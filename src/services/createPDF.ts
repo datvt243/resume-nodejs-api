@@ -88,6 +88,7 @@ export const pageRender = (RECORD: Record<string, any>) => {
   const _ = _helper();
 
   _content += _.renderInfo(candidate);
+  _content += _.renderCareer(generalInformation);
   _content += _.renderSkills(generalInformation);
   _content += _.renderExperience(experiences);
   _content += _.renderProject(projects);
@@ -230,6 +231,21 @@ const _helper = () => {
                     </div>
                     <div class="description">${introduction}</div>
                 </div>`;
+    },
+    renderCareer: function (generalInformation: { career?: string; careerGoal?: string }) {
+      // `career`/`careerGoal` are localized ({vi,en}) fields at the model
+      // level, but by the time they reach here they've already been
+      // resolved to a single string upstream (candidate_me/index.ts's
+      // resolveLocalizedText) — same as every other field this function
+      // handles.
+      const { career = '', careerGoal = '' } = generalInformation || {};
+      if (!career && !careerGoal) return '';
+
+      let _result = '';
+      career && (_result += `<p><strong>Nghề nghiệp:</strong> ${career}</p>`);
+      careerGoal && (_result += `<p><strong>Mục tiêu nghề nghiệp:</strong> ${careerGoal}</p>`);
+
+      return _boxContent('Định hướng nghề nghiệp', _result);
     },
     renderSkills: function (generalInformation: {
       personalSkills: Skill[];
