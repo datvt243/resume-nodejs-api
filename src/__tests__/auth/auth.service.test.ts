@@ -3,9 +3,10 @@
  */
 
 import CandidateModel from '@/models/candidate.model';
-import { handlerRegister, handlerLogin, isEmailAlreadyExists } from '@/auth/auth.service';
+import { handlerRegister, handlerLogin, isEmailAlreadyExists, handlerForgotPassword, handlerResetPassword } from '@/auth/auth.service';
 import * as bcrypt from '@/utils';
 import * as jwt from '@/utils';
+import { createResetToken, consumeResetToken } from '@/utils/passwordReset';
 
 // Mock modules
 jest.mock('@/models/candidate.model');
@@ -15,6 +16,13 @@ jest.mock('@/utils', () => ({
   bcryptGenerateSalt: jest.fn(),
   bcryptCompareHash: jest.fn(),
   jwtSign: jest.fn(),
+}));
+jest.mock('@/utils/passwordReset', () => ({
+  createResetToken: jest.fn(),
+  consumeResetToken: jest.fn(),
+}));
+jest.mock('@/logger', () => ({
+  logger: { info: jest.fn(), error: jest.fn() },
 }));
 
 describe('auth.service', () => {
@@ -132,6 +140,55 @@ describe('auth.service', () => {
       const result = await handlerLogin({ email: 'test@example.com', password: 'wrongpass' });
 
       expect(result).toEqual({ success: false, message: 'Mật khẩu không chính xác' });
+    });
+  });
+
+  describe('handlerForgotPassword', () => {
+    it('creates a reset token when the email exists', async () => {
+      const mockUser = { _id: { toString: () => 'user_id' }, email: 'test@example.com' };
+      (CandidateModel.findOne as jest.Mock).mockResolvedValue(mockUser);
+      (createResetToken as jest.Mock).mockResolvedValue('raw-token');
+
+      const result = await handlerForgotPassword('test@example.com');
+
+      expect(CandidateModel.findOne).toHaveBeenCalledWith({ email: 'test@example.com' });
+      expect(createResetToken).toHaveBeenCalledWith('user_id');
+      expect(result).toEqual({ success: true, message: 'Nếu email tồn tại, liên kết đặt lại mật khẩu đã được tạo' });
+    });
+
+    it('returns the same generic success message when the email does not exist (no user enumeration)', async () => {
+      (CandidateModel.findOne as jest.Mock).mockResolvedValue(null);
+
+      const result = await handlerForgotPassword('nonexistent@example.com');
+
+      expect(createResetToken).not.toHaveBeenCalled();
+      expect(result).toEqual({ success: true, message: 'Nếu email tồn tại, liên kết đặt lại mật khẩu đã được tạo' });
+    });
+  });
+
+  describe('handlerResetPassword', () => {
+    it('updates the password when the reset token is valid', async () => {
+      const mockHash = '$2b$10$newhashedpassword';
+      (consumeResetToken as jest.Mock).mockResolvedValue('user_id');
+      (bcrypt.bcryptGenerateSalt as jest.Mock).mockResolvedValue(mockHash);
+      (CandidateModel.updateOne as jest.Mock).mockResolvedValue({ acknowledged: true });
+
+      const result = await handlerResetPassword({ token: 'raw-token', password: 'NewPass123!' });
+
+      expect(consumeResetToken).toHaveBeenCalledWith('raw-token');
+      expect(bcrypt.bcryptGenerateSalt).toHaveBeenCalledWith('NewPass123!');
+      expect(CandidateModel.updateOne).toHaveBeenCalledWith({ _id: 'user_id' }, { password: mockHash });
+      expect(result).toEqual({ success: true, message: 'Đặt lại mật khẩu thành công' });
+    });
+
+    it('fails without touching the password when the token is invalid/expired', async () => {
+      (consumeResetToken as jest.Mock).mockResolvedValue(null);
+
+      const result = await handlerResetPassword({ token: 'bad-token', password: 'NewPass123!' });
+
+      expect(bcrypt.bcryptGenerateSalt).not.toHaveBeenCalled();
+      expect(CandidateModel.updateOne).not.toHaveBeenCalled();
+      expect(result).toEqual({ success: false, message: 'Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn' });
     });
   });
 });

@@ -7,7 +7,7 @@
 import express from 'express';
 const router = express.Router();
 
-import { authRegister, authLogin, authLogout, authRefreshToken } from '@/auth/auth.controller';
+import { authRegister, authLogin, authLogout, authRefreshToken, authForgotPassword, authResetPassword } from '@/auth/auth.controller';
 import { createRateLimiter } from '@/middlewares/rateLimit.middleware';
 
 // Apply rate limit for auth routes (150 requests per 15 minutes)
@@ -127,5 +127,63 @@ router.post('/logout', authLogout);
  *         description: Invalid, expired, or revoked refresh token
  */
 router.post('/refresh', authRefreshToken);
+
+/**
+ * @swagger
+ * /api/v1/auth/forgot-password:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Request a password reset (stub — no email is actually sent yet, see issue #70)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Generic success response (same regardless of whether the email exists)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ */
+router.post('/forgot-password', authForgotPassword);
+
+/**
+ * @swagger
+ * /api/v1/auth/reset-password:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Reset password using a reset token from /forgot-password
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, password, repassword]
+ *             properties:
+ *               token:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               repassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       400:
+ *         description: Invalid, expired, or already-used reset token
+ */
+router.post('/reset-password', authResetPassword);
 
 export default router;

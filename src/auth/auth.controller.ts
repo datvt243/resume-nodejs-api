@@ -7,8 +7,8 @@ import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { validateSchema, formatReturn, handleError, throwBadRequestError } from '@/utils';
 
-import { schemaAuthRegister, schemaAuthLogin } from './auth.validate';
-import { handlerRegister, handlerLogin } from './auth.service';
+import { schemaAuthRegister, schemaAuthLogin, schemaForgotPassword, schemaResetPassword } from './auth.validate';
+import { handlerRegister, handlerLogin, handlerForgotPassword, handlerResetPassword } from './auth.service';
 import { addToBlacklist, isBlacklisted } from '@/utils/tokenBlacklist';
 import { jwtSign, jwtVerify } from '@/utils';
 import { extractTokenFromRequest } from '@/utils/helper-auth';
@@ -150,6 +150,68 @@ export const authRefreshToken = async (req: Request, res: Response, next: NextFu
  */
 export const authCreateRefreshToken = async (req: Request, res: Response) => {
   // coming soon
+};
+
+/**
+ * Chức năng Quên mật khẩu: tạo reset token và (stub) log link đặt lại
+ */
+export const authForgotPassword = async (req: Request, res: Response, next: NextFunction) => {
+  const { isValidated, value = {}, errors, message } = validateSchema({
+    schema: schemaForgotPassword,
+    item: { ...req.body },
+    lang: (req as any).lang,
+  });
+  if (!isValidated) {
+    return formatReturn(res, {
+      statusCode: StatusCodes.BAD_REQUEST,
+      success: false,
+      message,
+      errors,
+    });
+  }
+
+  try {
+    const { success, message } = await handlerForgotPassword(value.email, (req as any).lang);
+    return formatReturn(res, {
+      statusCode: StatusCodes.OK,
+      success,
+      message,
+      data: null,
+    });
+  } catch (err) {
+    handleError(err, next, (req as any).lang);
+  }
+};
+
+/**
+ * Chức năng Đặt lại mật khẩu: xác thực reset token rồi cập nhật mật khẩu mới
+ */
+export const authResetPassword = async (req: Request, res: Response, next: NextFunction) => {
+  const { isValidated, value = {}, errors, message } = validateSchema({
+    schema: schemaResetPassword,
+    item: { ...req.body },
+    lang: (req as any).lang,
+  });
+  if (!isValidated) {
+    return formatReturn(res, {
+      statusCode: StatusCodes.BAD_REQUEST,
+      success: false,
+      message,
+      errors,
+    });
+  }
+
+  try {
+    const { success, message } = await handlerResetPassword({ token: value.token, password: value.password }, (req as any).lang);
+    return formatReturn(res, {
+      statusCode: StatusCodes[success ? 'OK' : 'BAD_REQUEST'],
+      success,
+      message,
+      data: null,
+    });
+  } catch (err) {
+    handleError(err, next, (req as any).lang);
+  }
 };
 
 /**
