@@ -43,3 +43,18 @@ export const schemaAuthLogin = Joi.object({
   email,
   password,
 });
+
+export const schemaForgotPassword = Joi.object({
+  email,
+});
+
+export const schemaResetPassword = Joi.object({
+  token: Joi.string().trim().strict().required().messages({
+    'any.required': 'Token không được để trống',
+    'string.empty': 'Token không được để trống',
+  }),
+  password,
+  repassword: Joi.any().valid(Joi.ref('password')).required().messages({
+    'any.only': 'Password không khớp',
+  }),
+}).with('password', 'repassword');

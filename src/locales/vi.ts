@@ -16,6 +16,9 @@ export default {
     tokenRefreshed: 'Làm mới token thành công',
     noTokenToLogout: 'Không có token để đăng xuất',
     logoutSuccess: 'Đăng xuất thành công',
+    forgotPasswordRequested: 'Nếu email tồn tại, liên kết đặt lại mật khẩu đã được tạo',
+    resetTokenInvalid: 'Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn',
+    resetPasswordSuccess: 'Đặt lại mật khẩu thành công',
   },
   validation: {
     hasErrors: 'Dữ liệu không hợp lệ',

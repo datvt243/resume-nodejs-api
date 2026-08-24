@@ -8,6 +8,8 @@ import CandidateModel from '@/models/candidate.model';
 import { bcryptGenerateSalt, bcryptCompareHash, jwtSign } from '@/utils';
 import { TOKEN_SECRET, TOKEN_REFRESH, TOKEN_EXP_IN, TOKEN_REFRESH_EXP_IN } from '@/config/process.config';
 import { t, DEFAULT_LANG } from '@/utils/i18n';
+import { createResetToken, consumeResetToken } from '@/utils/passwordReset';
+import { logger } from '@/logger';
 
 interface Auth {
   email: string;
@@ -94,4 +96,46 @@ export const handlerLogin = async (data: Auth, lang: string = DEFAULT_LANG) => {
     },
     errors: null,
   };
+};
+
+/**
+ * Chức năng Quên mật khẩu: tạo reset token cho email nếu tồn tại
+ *
+ * Luôn trả về message chung chung dù email có tồn tại hay không, để
+ * tránh lộ thông tin email nào đã đăng ký (user enumeration).
+ *
+ * STUB (issue #70): chưa có hạ tầng gửi email trong project — log link
+ * reset thay vì gửi email thật. Thay bằng mailer thật khi chọn được
+ * provider.
+ */
+export const handlerForgotPassword = async (email: string, lang: string = DEFAULT_LANG) => {
+  const user = await CandidateModel.findOne({ email });
+
+  if (user && user._id) {
+    const token = await createResetToken(user._id.toString());
+    logger.info(`[passwordReset] Reset link for ${email}: /reset-password?token=${token}`);
+  }
+
+  return { success: true, message: t('auth.forgotPasswordRequested', lang) };
+};
+
+interface ResetPasswordInput {
+  token: string;
+  password: string;
+}
+
+/**
+ * Chức năng Đặt lại mật khẩu: xác thực reset token (single-use) rồi
+ * cập nhật mật khẩu mới (bcrypt hash).
+ */
+export const handlerResetPassword = async (data: ResetPasswordInput, lang: string = DEFAULT_LANG) => {
+  const { token, password } = data;
+
+  const candidateId = await consumeResetToken(token);
+  if (!candidateId) return { success: false, message: t('auth.resetTokenInvalid', lang) };
+
+  const bcryptPwd = await bcryptGenerateSalt(password);
+  await CandidateModel.updateOne({ _id: candidateId }, { password: bcryptPwd });
+
+  return { success: true, message: t('auth.resetPasswordSuccess', lang) };
 };
