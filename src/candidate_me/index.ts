@@ -152,11 +152,19 @@ export const fnExportPDF = async (req: Request, res: Response, next: NextFunctio
 
   try {
     const lang = req.query.lang === 'en' ? 'en' : 'vi';
-    const { success, data } = await handlerGetAboutMe(email, lang);
+    const { success, message, data } = await handlerGetAboutMe(email, lang);
     if (!success) {
       res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('Lấy thông tin ứng viên thất bại'));
       return;
     }
+
+    // ?format=json reuses the same aggregated data already assembled for
+    // the PDF path — no new dependency, no new data-fetch (issue #76).
+    if (req.query.format === 'json') {
+      formatReturn(res, { success, message, data });
+      return;
+    }
+
     await createCV(data, res);
   } catch (err) {
     handleError(err, next, (req as any).lang);
