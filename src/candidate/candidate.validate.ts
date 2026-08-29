@@ -6,11 +6,12 @@
 
 import Joi from 'joi';
 
-import { getObject, _id, firstName, lastName, phone, candidateId, introduction } from '@/config/joi.config';
+import { getObject, _id, firstName, lastName, phone, candidateId, introduction, _boolean } from '@/config/joi.config';
 
 export const schemaCandidatePatch = getObject({
   _id: _id,
   candidateId,
+  isPublic: _boolean,
   socialMedia: Joi.object({
     github: Joi.string(),
     linkedin: Joi.string(),

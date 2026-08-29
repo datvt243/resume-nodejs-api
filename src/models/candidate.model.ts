@@ -47,6 +47,8 @@ const schema = new Schema(
       originalName: { type: String, required: false },
       uploadedAt: { type: Number, required: false },
     },
+    /* hiển thị public tại GET /api/me/:email hay không, default true để giữ nguyên hành vi cũ */
+    isPublic: { type: Boolean, default: true, required: false },
   },
   { timestamps: true },
 );

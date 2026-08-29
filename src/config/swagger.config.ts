@@ -67,6 +67,7 @@ const options: swaggerJsdoc.Options = {
                 uploadedAt: { type: 'number', description: 'Unix timestamp (ms)' },
               },
             },
+            isPublic: { type: 'boolean', description: 'Whether GET /api/me/:email serves this profile publicly. Default true.' },
           },
         },
         AuthRegisterRequest: {

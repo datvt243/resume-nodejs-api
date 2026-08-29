@@ -32,6 +32,15 @@ export const fnGetAboutMe = async (req: Request, res: Response, next: NextFuncti
    */
   try {
     const _me = await handlerGetAboutMe(email, lang);
+    // Private profile (issue #75) — same response shape as "email not
+    // found" so a private profile isn't distinguishable from a
+    // non-existent one. Only gates this public route; the authenticated
+    // self-export path (fnExportPDF) calls handlerGetAboutMe directly
+    // and is unaffected — a candidate can always see/export their own
+    // data regardless of this flag.
+    if (_me.success && (_me.data as any)?.isPublic === false) {
+      return formatReturn(res, formatReturnFailed('Email không tồn tại'));
+    }
     return formatReturn(res, _me);
   } catch (err) {
     handleError(err, next, (req as any).lang);
