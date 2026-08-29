@@ -47,6 +47,7 @@ See `CLAUDE.md` — `ADHOC_WORK`, `NO_EVIDENCE`, `EDIT_UNVERIFIED`,
 | No `limit` on `bodyParser.json()` (`src/server.ts`) | Unbounded request body size — DoS risk | Add an explicit size limit before shipping |
 | `auth.service.ts:40` skips Mongoose model-level validation before save (TODO comment in code) | Write path not fully validated | Call `validateModel()` (`src/utils/valid.ts`) before persisting |
 | No `lint` script in `package.json` despite `.eslintrc.cjs` existing | `npm run lint` does NOT work — don't assume it does | Confirm the real command before filling it into `doctrine/MEMORY.md` (currently `<<FILL>>`) |
+| Anything saved under `src/public/` is served unauthenticated via `express.static` (`server.ts` middleware step 7) — confirmed live for both `src/public/pdf/<email>.pdf` (PDF export) and `src/public/uploads/cv/<candidateId>-cv.pdf` (CV upload, `add-candidate-cv-upload` node) | Any personal document saved under `public/` is fetchable by anyone who can guess/obtain the filename — no auth check at the static-file layer, only at the API routes that happen to also serve the same data | Serve uploaded/generated personal files only through an authenticated route (already done for `GET /candidate/cv-file`), and consider moving the storage directory outside `public/` entirely so `express.static` can never reach it — bigger change, own node if picked up |
 
 ## Decisions, with reasoning
 > A decision recorded without its reason gets "cleaned up" by a future

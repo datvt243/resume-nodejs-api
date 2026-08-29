@@ -60,6 +60,13 @@ const options: swaggerJsdoc.Options = {
             phone: { type: 'string' },
             introduction: { type: 'string' },
             socialMedia: { $ref: '#/components/schemas/SocialMedia' },
+            cvFile: {
+              type: 'object',
+              properties: {
+                originalName: { type: 'string' },
+                uploadedAt: { type: 'number', description: 'Unix timestamp (ms)' },
+              },
+            },
           },
         },
         AuthRegisterRequest: {

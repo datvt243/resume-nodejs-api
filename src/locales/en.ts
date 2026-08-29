@@ -41,6 +41,11 @@ export default {
   candidate: {
     userNotFound: 'User not found',
     deleteAccountSuccess: 'Account deleted successfully',
+    cvUploadSuccess: 'CV uploaded successfully',
+    cvFileTooLarge: 'File exceeds the allowed size (5 MB)',
+    cvInvalidFileType: 'Only PDF files are accepted',
+    cvUploadFailed: 'CV upload failed',
+    cvFileNotFound: 'No CV has been uploaded yet',
   },
   generalInformation: {
     alreadyExists: 'Candidate already has information, cannot save',

@@ -7,7 +7,59 @@
 import express from 'express';
 const router = express.Router();
 
-import { fnGetInformationByEmail, fnUpdate, fnUpdateFields, fnDelete } from '@/candidate/candidate.controller';
+import { fnGetInformationByEmail, fnUpdate, fnUpdateFields, fnDelete, fnUploadCV, fnDownloadCV } from '@/candidate/candidate.controller';
+import { uploadCVMiddleware } from '@/middlewares/uploadCV.middleware';
+
+/**
+ * @swagger
+ * /api/v1/candidate/upload-cv:
+ *   post:
+ *     tags: [Candidate]
+ *     summary: Upload a CV file (PDF, max 5MB) for the authenticated candidate
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               cv:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: CV uploaded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       400:
+ *         description: Missing file, wrong type (non-PDF), or too large (> 5MB)
+ */
+router.post('/upload-cv', uploadCVMiddleware, fnUploadCV);
+
+/**
+ * @swagger
+ * /api/v1/candidate/cv-file:
+ *   get:
+ *     tags: [Candidate]
+ *     summary: Download the authenticated candidate's previously uploaded CV file
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: The uploaded PDF file
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: No CV has been uploaded yet
+ */
+router.get('/cv-file', fnDownloadCV);
 
 /**
  * @swagger

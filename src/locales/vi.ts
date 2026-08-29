@@ -41,6 +41,11 @@ export default {
   candidate: {
     userNotFound: 'Không tìm thấy người dùng',
     deleteAccountSuccess: 'Xoá tài khoản thành công',
+    cvUploadSuccess: 'Tải CV lên thành công',
+    cvFileTooLarge: 'File vượt quá dung lượng cho phép (5 MB)',
+    cvInvalidFileType: 'Chỉ chấp nhận file PDF',
+    cvUploadFailed: 'Tải CV lên thất bại',
+    cvFileNotFound: 'Chưa có CV nào được tải lên',
   },
   generalInformation: {
     alreadyExists: 'Candidate đã có thông tin, không thể lưu thêm',

@@ -42,6 +42,11 @@ const schema = new Schema(
       linkedin: { type: String, required: false },
       website: { type: String, required: false },
     },
+    /* CV file đã upload (khác với PDF export live-generate ở /download-pdf) */
+    cvFile: {
+      originalName: { type: String, required: false },
+      uploadedAt: { type: Number, required: false },
+    },
   },
   { timestamps: true },
 );

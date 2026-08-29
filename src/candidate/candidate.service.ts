@@ -4,10 +4,13 @@
  * Description:
  */
 
+import fs from 'fs';
+import path from 'path';
 import * as MODELS from '@/models';
 import { validateModel } from '@/utils';
 import { candidateQuerySafe } from '@/utils/querySafe';
 import { t, DEFAULT_LANG } from '@/utils/i18n';
+import { CV_UPLOAD_DIR } from '@/middlewares/uploadCV.middleware';
 
 const MODEL = MODELS.Candidate;
 
@@ -79,6 +82,22 @@ export const handlerUpdate = async (item: Record<string, any>, lang: string = DE
   return { success: true, message: t('common.updateSuccess', lang), errors: {}, data: _find ? _find : {} };
 };
 
+export const handlerUploadCV = async (candidateId: string, originalName: string, lang: string = DEFAULT_LANG) => {
+  if (!(await MODEL.findById(candidateId))) {
+    return { success: false, message: t('common.idNotFound', lang) };
+  }
+
+  const uploadedAt = Date.now();
+  await MODEL.updateOne({ _id: candidateId }, { cvFile: { originalName, uploadedAt } }).exec();
+
+  return { success: true, message: t('candidate.cvUploadSuccess', lang), errors: {}, data: { originalName, uploadedAt } };
+};
+
+export const handlerGetCVFile = async (candidateId: string) => {
+  const doc = await MODEL.findById(candidateId).select('cvFile').exec();
+  return doc?.get('cvFile.originalName') ? doc.get('cvFile') : null;
+};
+
 export const handlerDelete = async (_id: string, lang: string = DEFAULT_LANG) => {
   if (!(await MODEL.findById(_id))) {
     return { success: false, message: t('common.idNotFound', lang) };
@@ -86,6 +105,11 @@ export const handlerDelete = async (_id: string, lang: string = DEFAULT_LANG) =>
 
   await Promise.all(CV_SECTION_MODELS.map((model) => model.deleteMany({ candidateId: _id })));
   await MODEL.deleteOne({ _id }).exec();
+
+  // Uploaded CV file lives on disk, not in Mongo — deleting only the DB
+  // record would leave the actual PDF (real personal data) behind.
+  const cvFilePath = path.join(CV_UPLOAD_DIR, `${_id}-cv.pdf`);
+  if (fs.existsSync(cvFilePath)) fs.unlinkSync(cvFilePath);
 
   return { success: true, message: t('candidate.deleteAccountSuccess', lang), errors: {}, data: null };
 };

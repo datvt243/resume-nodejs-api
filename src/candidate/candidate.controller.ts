@@ -4,11 +4,20 @@
  * Description:
  */
 
+import path from 'path';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { formatReturn, validateSchema, handleError } from '@/utils';
 import { schemaCandidate, schemaCandidatePatch } from '@/candidate/candidate.validate';
-import { handlerUpdate, handlerDelete, handlerGetInformationByEmail, handlerGetInformationById } from '@/candidate/candidate.service';
+import {
+  handlerUpdate,
+  handlerDelete,
+  handlerGetInformationByEmail,
+  handlerGetInformationById,
+  handlerUploadCV,
+  handlerGetCVFile,
+} from '@/candidate/candidate.service';
+import { CV_UPLOAD_DIR } from '@/middlewares/uploadCV.middleware';
 import { t } from '@/utils/i18n';
 
 export const fnGetInformationById = async (req: Request, res: Response) => {
@@ -48,6 +57,50 @@ export const fnUpdate = async (req: Request, res: Response, next: NextFunction) 
   try {
     const _result = await handlerUpdate({ ...value, _id: (req as any).user?._id }, (req as any).lang);
     return formatReturn(res, { ..._result });
+  } catch (err) {
+    handleError(err, next, (req as any).lang);
+  }
+};
+
+export const fnUploadCV = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * `uploadCVMiddleware` (candidate.route.ts) already validated the file
+   * (PDF only, <= 5 MB) and saved it to disk as `<candidateId>-cv.pdf`
+   * before this handler runs — only the DB record is left to write.
+   */
+  const file = (req as any).file as Express.Multer.File | undefined;
+  if (!file) {
+    return formatReturn(res, { statusCode: StatusCodes.BAD_REQUEST, success: false, message: t('candidate.cvUploadFailed', (req as any).lang) });
+  }
+
+  try {
+    const _result = await handlerUploadCV((req as any).user?._id, file.originalname, (req as any).lang);
+    return formatReturn(res, { ..._result });
+  } catch (err) {
+    handleError(err, next, (req as any).lang);
+  }
+};
+
+export const fnDownloadCV = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Self only — always the authenticated user's own id (same IDOR-safe
+   * pattern as fnUpdate/fnDelete), never a client-supplied one. Serves
+   * the stored file through this authenticated route rather than a
+   * static/public URL, so a CV can't be fetched by guessing a path.
+   */
+  try {
+    const candidateId = (req as any).user?._id;
+    const cvFile = await handlerGetCVFile(candidateId);
+    if (!cvFile) {
+      return formatReturn(res, {
+        statusCode: StatusCodes.NOT_FOUND,
+        success: false,
+        message: t('candidate.cvFileNotFound', (req as any).lang),
+      });
+    }
+
+    const filePath = path.join(CV_UPLOAD_DIR, `${candidateId}-cv.pdf`);
+    return res.download(filePath, cvFile.originalName || 'CV.pdf');
   } catch (err) {
     handleError(err, next, (req as any).lang);
   }
