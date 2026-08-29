@@ -19,6 +19,8 @@ export default {
     forgotPasswordRequested: 'Nếu email tồn tại, liên kết đặt lại mật khẩu đã được tạo',
     resetTokenInvalid: 'Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn',
     resetPasswordSuccess: 'Đặt lại mật khẩu thành công',
+    verificationTokenInvalid: 'Token xác thực email không hợp lệ hoặc đã hết hạn',
+    emailVerifiedSuccess: 'Xác thực email thành công',
   },
   validation: {
     hasErrors: 'Dữ liệu không hợp lệ',

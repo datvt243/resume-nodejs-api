@@ -9,6 +9,7 @@ import { bcryptGenerateSalt, bcryptCompareHash, jwtSign } from '@/utils';
 import { TOKEN_SECRET, TOKEN_REFRESH, TOKEN_EXP_IN, TOKEN_REFRESH_EXP_IN } from '@/config/process.config';
 import { t, DEFAULT_LANG } from '@/utils/i18n';
 import { createResetToken, consumeResetToken } from '@/utils/passwordReset';
+import { createVerificationToken, consumeVerificationToken } from '@/utils/emailVerification';
 import { logger } from '@/logger';
 
 interface Auth {
@@ -44,12 +45,49 @@ export const handlerRegister = async (item: Auth, lang: string = DEFAULT_LANG) =
    */
 
   const bcryptPwd = await bcryptGenerateSalt(password);
-  const document = await CandidateModel.create({
+  await CandidateModel.create({
     _id: null,
     email: email,
     password: bcryptPwd,
   });
+
+  // STUB (issue #71, same gap as #70): no email-sending infra exists yet
+  // — log the verification link instead of emailing it. Does NOT block
+  // registration or login (product decision, operator-confirmed via
+  // AskUserQuestion): `emailVerified` stays false until this link is
+  // visited, but the account is usable immediately either way.
+  //
+  // Re-fetch by email instead of using CandidateModel.create()'s own
+  // return value — passing `_id: null` explicitly (as above) makes
+  // Mongoose keep `_id: null` on the returned in-memory document instead
+  // of the real ObjectId MongoDB actually assigned on insert (confirmed
+  // live: `document._id` was `null` right after `.create()` resolved,
+  // while every subsequent `findOne` for the same email correctly
+  // returns a real `_id`). Same root cause already documented in
+  // `services/index.ts`'s `baseCreateDocument` comment and tracked as
+  // the `fix-create-response-null-id` node — this is a second, separate
+  // occurrence of it in `auth.service.ts`, not something introduced here.
+  const savedDocument = await CandidateModel.findOne({ email });
+  if (savedDocument && savedDocument._id) {
+    const verifyToken = await createVerificationToken(savedDocument._id.toString());
+    logger.info(`[emailVerification] Verification link for ${email}: /verify-email?token=${verifyToken}`);
+  }
+
   return { success: true, message: t('auth.registerSuccess', lang) };
+};
+
+/**
+ * Chức năng Xác thực email: xác thực verification token (single-use) rồi
+ * đánh dấu emailVerified = true. Không chặn login — chỉ cập nhật cờ để
+ * frontend tự quyết định hiển thị (nhắc xác thực, giới hạn tính năng...).
+ */
+export const handlerVerifyEmail = async (token: string, lang: string = DEFAULT_LANG) => {
+  const candidateId = await consumeVerificationToken(token);
+  if (!candidateId) return { success: false, message: t('auth.verificationTokenInvalid', lang) };
+
+  await CandidateModel.updateOne({ _id: candidateId }, { emailVerified: true });
+
+  return { success: true, message: t('auth.emailVerifiedSuccess', lang) };
 };
 
 export const handlerLogin = async (data: Auth, lang: string = DEFAULT_LANG) => {
@@ -90,6 +128,9 @@ export const handlerLogin = async (data: Auth, lang: string = DEFAULT_LANG) => {
         email: _user.email,
         first_name: _user.firstName || '',
         last_name: _user.lastName || '',
+        // Issue #71 — not blocking, just exposed so the frontend can
+        // decide what to do (e.g. a "verify your email" banner).
+        email_verified: _user.emailVerified || false,
       },
       token: token,
       tokenRefresh: tokenRefresh,

@@ -68,6 +68,7 @@ const options: swaggerJsdoc.Options = {
               },
             },
             isPublic: { type: 'boolean', description: 'Whether GET /api/me/:email serves this profile publicly. Default true.' },
+            emailVerified: { type: 'boolean', description: 'Set via GET /auth/verify-email. Does not block login. Default false.' },
           },
         },
         AuthRegisterRequest: {

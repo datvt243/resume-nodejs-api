@@ -19,6 +19,8 @@ export default {
     forgotPasswordRequested: 'If the email exists, a password reset link has been generated',
     resetTokenInvalid: 'Password reset token is invalid or has expired',
     resetPasswordSuccess: 'Password reset successful',
+    verificationTokenInvalid: 'Email verification token is invalid or has expired',
+    emailVerifiedSuccess: 'Email verified successfully',
   },
   validation: {
     hasErrors: 'Validation has errors',

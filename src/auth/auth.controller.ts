@@ -8,7 +8,7 @@ import { StatusCodes } from 'http-status-codes';
 import { validateSchema, formatReturn, handleError, throwBadRequestError } from '@/utils';
 
 import { schemaAuthRegister, schemaAuthLogin, schemaForgotPassword, schemaResetPassword } from './auth.validate';
-import { handlerRegister, handlerLogin, handlerForgotPassword, handlerResetPassword } from './auth.service';
+import { handlerRegister, handlerLogin, handlerForgotPassword, handlerResetPassword, handlerVerifyEmail } from './auth.service';
 import { addToBlacklist, isBlacklisted } from '@/utils/tokenBlacklist';
 import { jwtSign, jwtVerify } from '@/utils';
 import { extractTokenFromRequest } from '@/utils/helper-auth';
@@ -150,6 +150,26 @@ export const authRefreshToken = async (req: Request, res: Response, next: NextFu
  */
 export const authCreateRefreshToken = async (req: Request, res: Response) => {
   // coming soon
+};
+
+/**
+ * Chức năng Xác thực email: xác thực verification token (single-use) rồi
+ * đánh dấu emailVerified = true. Không chặn login (issue #71).
+ */
+export const authVerifyEmail = async (req: Request, res: Response, next: NextFunction) => {
+  const token = typeof req.query.token === 'string' ? req.query.token : '';
+
+  try {
+    const { success, message } = await handlerVerifyEmail(token, (req as any).lang);
+    return formatReturn(res, {
+      statusCode: StatusCodes[success ? 'OK' : 'BAD_REQUEST'],
+      success,
+      message,
+      data: null,
+    });
+  } catch (err) {
+    handleError(err, next, (req as any).lang);
+  }
 };
 
 /**

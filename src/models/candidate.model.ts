@@ -49,6 +49,8 @@ const schema = new Schema(
     },
     /* hiển thị public tại GET /api/me/:email hay không, default true để giữ nguyên hành vi cũ */
     isPublic: { type: Boolean, default: true, required: false },
+    /* đã xác thực email chưa (issue #71) — không chặn login, chỉ để frontend tự quyết định hiển thị */
+    emailVerified: { type: Boolean, default: false, required: false },
   },
   { timestamps: true },
 );

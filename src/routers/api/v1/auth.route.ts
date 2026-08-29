@@ -7,7 +7,7 @@
 import express from 'express';
 const router = express.Router();
 
-import { authRegister, authLogin, authLogout, authRefreshToken, authForgotPassword, authResetPassword } from '@/auth/auth.controller';
+import { authRegister, authLogin, authLogout, authRefreshToken, authForgotPassword, authResetPassword, authVerifyEmail } from '@/auth/auth.controller';
 import { createRateLimiter } from '@/middlewares/rateLimit.middleware';
 
 // Apply rate limit for auth routes (150 requests per 15 minutes)
@@ -185,5 +185,29 @@ router.post('/forgot-password', authForgotPassword);
  *         description: Invalid, expired, or already-used reset token
  */
 router.post('/reset-password', authResetPassword);
+
+/**
+ * @swagger
+ * /api/v1/auth/verify-email:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Verify a candidate's email using the token sent (stub — logged, not emailed) on register
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Email verified
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       400:
+ *         description: Invalid, expired, or already-used verification token
+ */
+router.get('/verify-email', authVerifyEmail);
 
 export default router;

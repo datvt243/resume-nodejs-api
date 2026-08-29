@@ -3,10 +3,11 @@
  */
 
 import CandidateModel from '@/models/candidate.model';
-import { handlerRegister, handlerLogin, isEmailAlreadyExists, handlerForgotPassword, handlerResetPassword } from '@/auth/auth.service';
+import { handlerRegister, handlerLogin, isEmailAlreadyExists, handlerForgotPassword, handlerResetPassword, handlerVerifyEmail } from '@/auth/auth.service';
 import * as bcrypt from '@/utils';
 import * as jwt from '@/utils';
 import { createResetToken, consumeResetToken } from '@/utils/passwordReset';
+import { createVerificationToken, consumeVerificationToken } from '@/utils/emailVerification';
 
 // Mock modules
 jest.mock('@/models/candidate.model');
@@ -20,6 +21,10 @@ jest.mock('@/utils', () => ({
 jest.mock('@/utils/passwordReset', () => ({
   createResetToken: jest.fn(),
   consumeResetToken: jest.fn(),
+}));
+jest.mock('@/utils/emailVerification', () => ({
+  createVerificationToken: jest.fn(),
+  consumeVerificationToken: jest.fn(),
 }));
 jest.mock('@/logger', () => ({
   logger: { info: jest.fn(), error: jest.fn() },
@@ -52,11 +57,17 @@ describe('auth.service', () => {
   describe('handlerRegister', () => {
     it('should register successfully with new email', async () => {
       const mockHash = '$2b$10$hashedpassword';
-      const mockDoc = { _id: 'new_id', email: 'new@example.com' };
+      // CandidateModel.create() keeps `_id: null` as explicitly passed
+      // (a pre-existing Mongoose quirk — see the comment in
+      // auth.service.ts's handlerRegister) — handlerRegister re-fetches
+      // by email afterward to get the real, MongoDB-assigned `_id`.
+      const mockSavedDoc = { _id: 'new_id', email: 'new@example.com' };
 
-      (CandidateModel.findOne as jest.Mock).mockResolvedValue(null);
+      (CandidateModel.findOne as jest.Mock)
+        .mockResolvedValueOnce(null) // existence check
+        .mockResolvedValueOnce(mockSavedDoc); // re-fetch after create
       (bcrypt.bcryptGenerateSalt as jest.Mock).mockResolvedValue(mockHash);
-      (CandidateModel.create as jest.Mock).mockResolvedValue(mockDoc);
+      (CandidateModel.create as jest.Mock).mockResolvedValue({ _id: null, email: 'new@example.com' });
 
       const result = await handlerRegister({
         email: 'new@example.com',
@@ -64,13 +75,16 @@ describe('auth.service', () => {
         repassword: 'pass123',
       });
 
-      expect(CandidateModel.findOne).toHaveBeenCalledWith({ email: 'new@example.com' });
+      expect(CandidateModel.findOne).toHaveBeenNthCalledWith(1, { email: 'new@example.com' });
       expect(bcrypt.bcryptGenerateSalt).toHaveBeenCalledWith('pass123');
       expect(CandidateModel.create).toHaveBeenCalledWith({
         _id: null,
         email: 'new@example.com',
         password: mockHash,
       });
+      expect(CandidateModel.findOne).toHaveBeenNthCalledWith(2, { email: 'new@example.com' });
+      // issue #71 — a verification token is created (stub: logged, not emailed)
+      expect(createVerificationToken).toHaveBeenCalledWith('new_id');
       expect(result).toEqual({ success: true, message: 'Đăng ký thành công' });
     });
 
@@ -114,6 +128,7 @@ describe('auth.service', () => {
             email: 'test@example.com',
             first_name: 'John',
             last_name: 'Doe',
+            email_verified: false,
           },
           token: mockToken,
           tokenRefresh: mockRefresh,
@@ -189,6 +204,28 @@ describe('auth.service', () => {
       expect(bcrypt.bcryptGenerateSalt).not.toHaveBeenCalled();
       expect(CandidateModel.updateOne).not.toHaveBeenCalled();
       expect(result).toEqual({ success: false, message: 'Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn' });
+    });
+  });
+
+  describe('handlerVerifyEmail', () => {
+    it('marks emailVerified true when the verification token is valid', async () => {
+      (consumeVerificationToken as jest.Mock).mockResolvedValue('user_id');
+      (CandidateModel.updateOne as jest.Mock).mockResolvedValue({ acknowledged: true });
+
+      const result = await handlerVerifyEmail('raw-token');
+
+      expect(consumeVerificationToken).toHaveBeenCalledWith('raw-token');
+      expect(CandidateModel.updateOne).toHaveBeenCalledWith({ _id: 'user_id' }, { emailVerified: true });
+      expect(result).toEqual({ success: true, message: 'Xác thực email thành công' });
+    });
+
+    it('fails without touching the candidate when the token is invalid/expired', async () => {
+      (consumeVerificationToken as jest.Mock).mockResolvedValue(null);
+
+      const result = await handlerVerifyEmail('bad-token');
+
+      expect(CandidateModel.updateOne).not.toHaveBeenCalled();
+      expect(result).toEqual({ success: false, message: 'Token xác thực email không hợp lệ hoặc đã hết hạn' });
     });
   });
 });
