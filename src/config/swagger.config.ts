@@ -189,6 +189,7 @@ const options: swaggerJsdoc.Options = {
             yearsOfExperience: { type: 'number' },
             workLocation: { type: 'string' },
             workForm: { type: 'string' },
+            openToWork: { type: 'boolean' },
             careerGoal: { type: 'string' },
             personalSkills: { type: 'array', items: { type: 'object' } },
             professionalSkills: { type: 'array', items: { type: 'object' } },
