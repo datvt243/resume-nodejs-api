@@ -40,3 +40,9 @@ jspm_packages/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Uploaded candidate files (real user data — never committed)
+src/public/uploads/cv/*
+!src/public/uploads/cv/.gitkeep
+src/public/uploads/images/*
+!src/public/uploads/images/.gitkeep

@@ -1,35 +1,37 @@
 # agent-hub — Resume API Backend
 
-One-person dev hub cho `nodejs-resume-api-ts`. KHÔNG phải code doctrine
-trộn với code — repo là nơi build; `agent-hub/` là markdown thuần: doctrine,
-worker memory, diagram, và audit trail.
+One-person dev hub for `nodejs-resume-api-ts`. NOT code doctrine mixed with
+code — the repo is where you build; `agent-hub/` is pure markdown: doctrine,
+worker memory, diagram, and audit trail.
 
-## Triết lý
-Trí tuệ không nằm trong model — model reset mỗi phiên. Trí tuệ nằm trong
-`doctrine/`, `haven/workers/*/recipes/`, và evidence đã tích luỹ. Agent là
-nhân lực đi thuê theo phiên; hub là cơ thể còn lại.
+## Philosophy
+Intelligence doesn't live in the model — the model resets every session. It
+lives in `doctrine/`, `haven/workers/*/recipes/`, and accumulated evidence.
+The agent is hired help for a session; the hub is the body that remains.
 
-## Bắt đầu từ đâu
-1. `NORTHSTAR.md` — "done" nghĩa là gì.
-2. `CLAUDE.md` — hợp đồng agent, forbidden states.
-3. `doctrine/MEMORY.md` ★ — lệnh test/build thật (`npm test`, `npm run build`).
-4. `doctrine/domains/PROJECT.md` ★ — invariants/traps/decisions thật của
-   project này (CORS `origin: '*'`, Chrome executable path hardcode, v.v.).
-5. `haven/diagrams/dev-loop.prime-mermaid.md` ★ — trạng thái mọi task.
+## Where to start
+1. `NORTHSTAR.md` — what "done" means.
+2. `CLAUDE.md` — agent contract, forbidden states.
+3. `doctrine/MEMORY.md` ★ — real test/build commands (`npm test`, `npm run build`).
+4. `doctrine/domains/PROJECT.md` ★ — this project's real invariants/traps/
+   decisions (CORS `origin: '*'`, hardcoded Chrome executable path, etc.).
+5. `haven/diagrams/dev-loop.prime-mermaid.md` ★ — state of every task.
 
-## Vòng lặp hằng ngày
+## Daily loop
 ```
-/boot                                   # đọc, không sửa gì
+/boot                                   # read only, no edits
 /worker implementer "<task>"            # pick_next → implement → evidence
-/worker verifier "<task hoặc note>"     # SEAL hoặc REOPEN
-# hoặc gộp 2 lệnh trên:
+/worker verifier "<task or note>"       # SEAL or REOPEN (runs as a subagent)
+# or combine both:
 /todo "<task>"
 ```
 
-Chi tiết cơ chế: xem `CLAUDE.md` (forbidden states, seal gate) và
+Mechanism detail: see `CLAUDE.md` (forbidden states, seal gate) and
 `doctrine/standards/` (edit-verification, recipes).
 
-## Trạng thái hiện tại (2026-08-20)
-Hub vừa được khởi tạo. `doctrine/MEMORY.md` còn 1 `<<FILL>>` (lệnh
-lint/typecheck — không có script `lint` trong `package.json`). Node đầu
-tiên trên diagram: `fix-chrome-executable-path` (PENDING).
+## Current status (2026-08-22)
+0 nodes SEALED out of 11 on `dev-loop.prime-mermaid.md`. `doctrine/MEMORY.md`
+still has 1 `<<FILL>>` (lint/typecheck command — no `lint` script in
+`package.json`). Latest evidence: `fix-redis-init-blocks-dev-startup`
+REOPENED by verifier (2026-08-22) — implementer's manual-verification log
+had a truncated line.

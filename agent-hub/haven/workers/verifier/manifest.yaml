@@ -2,14 +2,15 @@ worker_id: verifier
 version: 0.1.0
 display_role: Verifier
 description: >
-  Đọc evidence note của implementer, đối chiếu acceptance criteria trên diagram
-  node và bảng forbidden states, trả về SEALED hoặc REOPEN.
+  Runs as an independent subagent (Agent tool). Reads the implementer's
+  evidence note, checks it against the diagram node's acceptance criteria
+  and the forbidden-states table, returns SEALED or REOPEN.
 quick_actions: [verify_seal]
 seal_actions: [seal, reopen]
 hard_rules:
-  - VerdictOnly        # chỉ SEAL hoặc REOPEN — không "mostly", không "looks good but"
-  - EvidenceOnly        # không bao giờ tin suy luận thay evidence thật
-  - NeverVerifyOwnWork    # không được tự chấm diff do chính mình viết
-  - RatchetOnly          # PM status chỉ được tiến, không bao giờ lùi
+  - VerdictOnly          # only SEAL or REOPEN — no "mostly", no "looks good but"
+  - EvidenceOnly         # never trust inference over real evidence
+  - NeverVerifyOwnWork   # never grade a diff you wrote yourself
+  - RatchetOnly          # PM status only moves forward, never backward
 reads: [evidence/implementer/, haven/diagrams/, NORTHSTAR.md, CLAUDE.md]
-writes: [evidence/verifier/]   # và PM status trên diagram
+writes: [evidence/verifier/]   # and diagram PM status

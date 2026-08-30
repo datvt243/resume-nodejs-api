@@ -1,25 +1,27 @@
-> Recipe là SAVED REASONING — các bước tốt định thay thế việc suy ra từ
-> đầu. Lần sau chỉ cần replay.
+> Recipe = SAVED REASONING — good steps meant to replace deriving from
+> scratch. Next time, just replay.
 
-## Why they matter (Trí Tuệ Tích Luỹ)
-"Recipes are capital. Models are fuel." Trí tuệ tích luỹ không nằm trong
-model — nó nằm trong recipe đã viết ra.
+## Why they matter (accumulated intelligence)
+"Recipes are capital. Models are fuel." Accumulated intelligence doesn't
+live in the model — it lives in the recipes written down.
 
 ## When to write one
-Viết recipe khi: (1) task này lặp lại ≥ 2 lần, (2) có bước dễ nhầm/khó nhớ,
-(3) có bước tốn công debug mới ra, (4) quy trình đủ dài để đáng lưu lại.
+Write a recipe when: (1) this task recurs ≥ 2 times, (2) it has an
+easy-to-forget/mistake-prone step, (3) it cost real debugging effort to
+figure out, (4) the procedure is long enough to be worth saving.
 
 ## What they are NOT
-Không phải action/lệnh cố định trong `manifest.yaml` — đó là thẩm quyền khác.
-Recipe sống ở `haven/workers/<wid>/recipes/*.md`.
+Not a fixed action/command in `manifest.yaml` — that's a different
+authority. Recipes live at `haven/workers/<wid>/recipes/*.md`.
 
-## Format (bắt buộc 5 mục)
-1. **Contract** — Input, Output, khi nào dùng.
-2. **Steps** — đánh số, tất định.
-3. **Hard rules honored** — liệt kê tên hard rule liên quan.
-4. **Failure branches** — bảng | Failure | Handling |.
-5. **Runtime** — cách gọi (`/worker <wid> "<task>"`).
+## Format (5 required sections)
+1. **Contract** — Input, Output, when to use.
+2. **Steps** — numbered, deterministic.
+3. **Hard rules honored** — list the related hard rule names.
+4. **Failure branches** — table | Failure | Handling |.
+5. **Runtime** — how to invoke (`/worker <wid> "<task>"`).
 
 ## Maintaining them
-Recipe sai thì sửa lại, và ghi vào bảng Corrections trong `MEMORY.md` của
-worker khi phát hiện nó sai. Không xoá rồi bỏ đi — sửa và giữ lại bài học.
+When a recipe turns out wrong, fix it, and record it in the Corrections
+table in that worker's `MEMORY.md`. Don't delete and walk away — fix and
+keep the lesson.

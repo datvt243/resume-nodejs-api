@@ -4,18 +4,19 @@
   files: string[], blocked_by: string|null}`
 
 ## Steps
-1. Đọc `NORTHSTAR.md` + `doctrine/MEMORY.md` +
+1. Read `NORTHSTAR.md` + `doctrine/MEMORY.md` +
    `doctrine/domains/PROJECT.md`.
-2. Đọc MỌI diagram trong `haven/diagrams/`, lập danh sách node + PM status.
-3. Tìm node PENDING sớm nhất trên critical path (ví dụ node hạt giống
-   `fix-chrome-executable-path` trong `dev-loop.prime-mermaid.md`).
-4. Không match → không tự bịa việc; báo rõ "không có node PENDING", dừng.
-5. Định vị code anchors bằng grep — path thật trong `src/`, không tự bịa
-   (ví dụ `src/services/createPDF.ts:14-25`, `src/config/cors.config.ts:8`).
-6. Khai báo blockers: nếu cần lệnh còn `<<FILL>>` trong
-   `doctrine/MEMORY.md` (hiện tại: lint/typecheck), báo blocked thay vì
-   đoán.
-7. Evidence: viết `evidence/implementer/<date>/<slug>-plan.md`.
+2. Read EVERY diagram in `haven/diagrams/`, list every node + PM status.
+3. Find the earliest PENDING node on the critical path (e.g. the seed node
+   `fix-chrome-executable-path` in `dev-loop.prime-mermaid.md`).
+4. No match → don't invent work; report "no PENDING node" clearly, stop.
+5. Locate code anchors by grep — real paths in `src/`, never invented
+   (e.g. `src/services/createPDF.ts:14-25`,
+   `src/config/cors.config.ts:8`).
+6. Declare blockers: if a needed command is still `<<FILL>>` in
+   `doctrine/MEMORY.md` (currently: lint/typecheck), report blocked
+   instead of guessing.
+7. Evidence: write `evidence/implementer/<date>/<slug>-plan.md`.
 
 ## Hard rules honored
 `NodeBeforeCode` | `EvidencePerAction` | `NoSilentFailure`
@@ -23,9 +24,9 @@
 ## Failure branches
 | Failure | Handling |
 |---|---|
-| Chưa có diagram | Tạo `haven/diagrams/<slug>.prime-mermaid.md` khớp format `dev-loop` |
-| Task mơ hồ | Dừng và hỏi, không đoán |
+| No diagram exists yet | Create `haven/diagrams/<slug>.prime-mermaid.md` matching the `dev-loop` format |
+| Task is ambiguous | Stop and ask, don't guess |
 
 ## Runtime
-`/worker implementer "<task>"`. Không API key, không network call — Claude Code
-LÀ runtime.
+`/worker implementer "<task>"`. No API key, no network call — Claude Code
+IS the runtime.

@@ -1,26 +1,29 @@
-> Đây là recipe chạm code nhiều nhất — chỗ `EDIT_UNVERIFIED` bị bắt hoặc lọt qua.
+> The recipe that touches the most code — where `EDIT_UNVERIFIED` gets
+> caught or slips through.
 
 # Contract
-- Input: output của `pick_next`.
+- Input: output of `pick_next`.
 - Output: `{status: sealed_pending_verifier | reopened_by_test | failed, node,
   diff summary, command, evidence}`
-- NEVER: `status: done` — chỉ verifier mới dùng trạng thái đã seal.
+- NEVER: `status: done` — only the verifier uses a sealed state.
 
 ## Steps
-1. Đọc lại node + acceptance criteria.
-2. Đọc mọi file liên quan trước khi viết — khớp naming/style/idiom hiện có
-   trong `src/` (ví dụ: controller/service/validate tách riêng theo section
-   như `src/candidate_profile/*`).
-3. Smallest diff — chỉ đổi cái acceptance criteria đòi hỏi.
-4. SEAL GATE trước hành động outward-facing — dừng, show diff, đợi approval.
-5. Chạy CHÍNH XÁC lệnh test từ `doctrine/MEMORY.md` (`npm test` từ repo
-   root) — copy nguyên văn.
-6. ĐỌC OUTPUT LẠI nguyên văn — claim không trích dẫn được = `EDIT_UNVERIFIED`.
-7. Chỉ báo `sealed_pending_verifier` khi TẤT CẢ criteria pass có evidence.
-8–9. Nếu gặp bug/trap mới (giống các trap đã ghi trong
-   `doctrine/domains/PROJECT.md`), cân nhắc ghi thêm vào đó hoặc vào
+1. Re-read the node + acceptance criteria.
+2. Read every related file before writing — match existing naming/style/
+   idiom in `src/` (e.g. controller/service/validate split per section
+   like `src/candidate_profile/*`).
+3. Smallest diff — only change what the acceptance criteria require.
+4. SEAL GATE before any outward-facing action — stop, show the diff, wait
+   for approval.
+5. Run the EXACT test command from `doctrine/MEMORY.md` (`npm test` from
+   repo root) — copy it verbatim.
+6. READ THE OUTPUT BACK verbatim — an uncited claim = `EDIT_UNVERIFIED`.
+7. Only report `sealed_pending_verifier` once ALL criteria pass with
+   evidence.
+8–9. If a new bug/trap is found (similar to the traps already recorded in
+   `doctrine/domains/PROJECT.md`), consider adding it there or to
    `MEMORY.md`.
-10. Ghi vào `evidence/` theo format ở `evidence/README.md`.
+10. Write to `evidence/` following the format in `evidence/README.md`.
 
 ## Hard rules honored
 `SmallestDiff` | `TestsBeforeDone` | `EvidencePerAction` | `NoSilentFailure` |
@@ -29,8 +32,8 @@
 ## Failure branches
 | Failure | Handling |
 |---|---|
-| Thiếu lệnh test trong `doctrine/MEMORY.md` | `blocked`, gợi ý điền `<<FILL>>` |
-| Lỗi do thiếu setup (env, deps, Mongo/Redis không chạy) | Báo lỗi THẬT, không vòng qua |
+| No test command in `doctrine/MEMORY.md` | `blocked`, suggest filling in `<<FILL>>` |
+| Setup error (env, deps, Mongo/Redis not running) | Report the REAL error, don't route around it |
 
 ## Runtime
 `/worker implementer "<task>"`.

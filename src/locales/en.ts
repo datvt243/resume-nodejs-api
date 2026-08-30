@@ -16,6 +16,11 @@ export default {
     tokenRefreshed: 'Token refreshed',
     noTokenToLogout: 'No token provided to logout',
     logoutSuccess: 'Logged out successfully',
+    forgotPasswordRequested: 'If the email exists, a password reset link has been generated',
+    resetTokenInvalid: 'Password reset token is invalid or has expired',
+    resetPasswordSuccess: 'Password reset successful',
+    verificationTokenInvalid: 'Email verification token is invalid or has expired',
+    emailVerifiedSuccess: 'Email verified successfully',
   },
   validation: {
     hasErrors: 'Validation has errors',
@@ -38,9 +43,22 @@ export default {
   candidate: {
     userNotFound: 'User not found',
     deleteAccountSuccess: 'Account deleted successfully',
+    cvUploadSuccess: 'CV uploaded successfully',
+    cvFileTooLarge: 'File exceeds the allowed size (5 MB)',
+    cvInvalidFileType: 'Only PDF files are accepted',
+    cvUploadFailed: 'CV upload failed',
+    cvFileNotFound: 'No CV has been uploaded yet',
   },
   generalInformation: {
     alreadyExists: 'Candidate already has information, cannot save',
+  },
+  images: {
+    noFilesUploaded: 'No file was uploaded',
+    uploadSuccess: 'Images uploaded successfully',
+    fileTooLarge: 'File exceeds the allowed size (5 MB per image)',
+    tooManyFiles: 'Too many files (5 images max per request)',
+    invalidFileType: 'Only image files are accepted (jpg, png, webp, gif)',
+    uploadFailed: 'Image upload failed',
   },
   errors: {
     invalidIdFormat: 'Invalid ID format',

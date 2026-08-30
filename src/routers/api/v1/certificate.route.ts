@@ -6,7 +6,7 @@
 
 import express, { Request, Response, NextFunction } from 'express';
 import { Collections } from '@/types/base.type';
-import { baseDelete, baseGetAll } from '@/candidate_profile/BaseController';
+import { baseDelete, baseGetAll, baseUploadImages } from '@/candidate_profile/BaseController';
 import { fnCreate, fnUpdate } from '@/candidate_profile/certificates/certificate.controller';
 
 const router = express.Router();
@@ -124,6 +124,55 @@ router.delete(
     next();
   },
   baseDelete,
+);
+
+/**
+ * @swagger
+ * /api/v1/certificate/{id}/images:
+ *   post:
+ *     tags: [Certificate]
+ *     summary: Upload one or more images (max 5, 5MB each) and append them to this certificate's images[]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: Images uploaded, returns the certificate's updated images[]
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       400:
+ *         description: No file, wrong type (non-image), or too large (> 5MB)
+ *       403:
+ *         description: Certificate does not belong to the authenticated candidate
+ *       404:
+ *         description: Certificate not found
+ */
+router.post(
+  '/:id/images',
+  (req: Request, res: Response, next: NextFunction) => {
+    req.params.collection = Collections.CERTIFICATE;
+    next();
+  },
+  baseUploadImages,
 );
 
 export default router;

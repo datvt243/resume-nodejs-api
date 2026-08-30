@@ -1,31 +1,33 @@
-> "You may not claim an outcome you have not observed." Quy tắc bị vi phạm
-> nhiều nhất trong agent work. Exceptions: None.
+> "You may not claim an outcome you have not observed." The most-violated
+> rule in agent work. Exceptions: none.
 
 ## The rule
-Chỉ được báo hoàn tất khi output đã thực sự được xuất ra và đọc lại — không
-phải khi bạn nghĩ edit đã đúng.
+Only report done once the output has actually been produced and read back
+— not once you think the edit is correct.
 
 ## Not evidence vs Evidence
 | Not evidence | Evidence |
 |---|---|
-| "Fix này chắc sẽ giải quyết được lỗi" | Chạy lại, đọc output thật |
+| "This fix should resolve the error" | Ran it again, read the real output |
 | "Tests should pass now" | `Tests: 42 passed, 42 total` (verbatim) |
 
 ## Why reasoning doesn't count
-Lập luận về code không phải là chạy code. Mô hình thường tin vào mô tả của
-chính nó hơn là kiểm tra thật.
+Reasoning about code isn't running code. Models tend to trust their own
+description over an actual check.
 
-## What read back means
-Copy nguyên văn lệnh CHÍNH XÁC từ `doctrine/MEMORY.md`, chạy, đọc kết quả
-verbatim, ghi vào evidence note — không tự diễn giải, không tóm tắt thành
-kết luận riêng.
+## What "read back" means
+Copy the EXACT command verbatim from `doctrine/MEMORY.md`, run it, read the
+result verbatim, paste it into the evidence note — no paraphrasing, no
+summarizing into your own conclusion.
 
-## No Exceptions
-Chưa verify được → báo `blocked`. Không có ngoại lệ "chắc là đúng".
+## No exceptions
+Can't verify yet → report `blocked`. No "probably fine" exception.
 
 ## Failure mode this catches
-"Green-by-supposition" — tự claim test pass mà không thực sự chạy.
+"Green-by-supposition" — claiming a test passed without actually running
+it.
 
 ## Enforcement
-Implementer: hard rule `TestsBeforeDone`. Verifier: hard rule `EvidencePerAction` —
-claim không đủ bằng chứng → REOPEN. Liên quan: `EDIT_UNVERIFIED`.
+Implementer: hard rule `TestsBeforeDone`. Verifier: hard rule
+`EvidencePerAction` — a claim without enough evidence → REOPEN. Related:
+`EDIT_UNVERIFIED`.

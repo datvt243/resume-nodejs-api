@@ -1,10 +1,10 @@
-# doctrine/domains/PROJECT.md — ground truth của Resume API Backend
+# doctrine/domains/PROJECT.md — ground truth of Resume API Backend
 
 ## What is it
-REST API backend (Node.js + TypeScript) để quản lý hồ sơ ứng viên
-(CV/Resume): auth JWT, CRUD cho 7 CV section (education/experience/award/
-certificate/project/reference/generalInformation), export PDF, rate
-limiting + token blacklist qua Redis (fallback in-memory), logging Winston.
+REST API backend (Node.js + TypeScript) for managing candidate CVs/resumes:
+JWT auth, CRUD for 7 CV sections (education/experience/award/certificate/
+project/reference/generalInformation), PDF export, Redis-backed rate
+limiting + token blacklist (in-memory fallback), Winston logging.
 Repo: `github.com/datvt243/nodejs-resume-api-ts`. Author: DatVT.
 
 ## Stack + shape
@@ -12,45 +12,48 @@ Repo: `github.com/datvt243/nodejs-resume-api-ts`. Author: DatVT.
 |---|---|
 | Language/runtime | Node.js (`>=20.19.0 <23.0.0`) + TypeScript 5.5 (strict, CommonJS), Express 4.19 |
 | Entry point | `src/server.ts` (Express setup, MongoDB connect, Redis init, dev port 3001 / prod port 3008) |
-| Data store | MongoDB + Mongoose 8.4 (primary); Redis 4.6 cho rate-limit + token blacklist (optional, fallback in-memory) |
+| Data store | MongoDB + Mongoose 8.4 (primary); Redis 4.6 for rate-limit + token blacklist (optional, in-memory fallback) |
 
 ## Invariants (things that never happen here)
-- Mọi Mongo query đi qua `QuerySafe` (`src/utils/querySafe.ts`) — chặn toán
-  tử `$` và pattern `javascript:` trước khi chạm DB. Không bao giờ build
-  filter Mongo trực tiếp từ input người dùng chưa qua `QuerySafe`.
-- Password không bao giờ lưu hoặc so sánh dạng plaintext — luôn bcrypt (12
-  rounds) qua `src/utils/bcrypt.ts`.
-- Một JWT không bao giờ được tin ngay — `verifyToken.middleware.ts` luôn
-  kiểm blacklist (Redis/mem) trước khi gắn `req.user._id`.
-- Mọi document CV section (education/experience/award/certificate/project/
-  reference/generalInformation) luôn mang `candidateId`; update/delete luôn
-  kiểm ownership qua base ops ở `src/services/index.ts`.
-- `dist/` luôn gitignored, không bao giờ sửa tay — luôn rebuild bằng
+- Every Mongo query goes through `QuerySafe` (`src/utils/querySafe.ts`) —
+  blocks `$` operators and `javascript:` patterns before touching the DB.
+  Never build a Mongo filter directly from user input without `QuerySafe`.
+- Password is never stored or compared as plaintext — always bcrypt (12
+  rounds) via `src/utils/bcrypt.ts`.
+- A JWT is never trusted outright — `verifyToken.middleware.ts` always
+  checks the blacklist (Redis/mem) before attaching `req.user._id`.
+- Every CV section document (education/experience/award/certificate/
+  project/reference/generalInformation) always carries `candidateId`;
+  update/delete always check ownership via base ops in
+  `src/services/index.ts`.
+- `dist/` is always gitignored, never hand-edited — always rebuild with
   `npm run build`.
 
 ## Diagram-first
-Diagram (`haven/diagrams/`) là source of truth cho tiến độ — code phải khớp.
+The diagram (`haven/diagrams/`) is the source of truth for progress — code
+must match it.
 
 ## Forbidden states
-Xem `CLAUDE.md` — `ADHOC_WORK`, `NO_EVIDENCE`, `EDIT_UNVERIFIED`,
+See `CLAUDE.md` — `ADHOC_WORK`, `NO_EVIDENCE`, `EDIT_UNVERIFIED`,
 `CODE_IN_HAVEN`, `DIAGRAM_DRIFT`.
 
-## Traps (append khi gặp cái mới)
-> Nguồn: `TODO.md` (repo root), cập nhật lần cuối 2026-07-05.
+## Traps (append when a new one is found)
+> Source: `TODO.md` (repo root), last updated 2026-07-05.
 
 | Trap | Why | What to do instead |
 |---|---|---|
-| Hardcoded Chrome executable path (`src/services/createPDF.ts:14-25`) | Breaks PDF export nếu Chrome không nằm đúng path kỳ vọng (CI/Docker) | Dùng `puppeteer.executablePath()` hoặc env var |
-| CORS `origin: '*'` (`src/config/cors.config.ts:8`) | Mở cho mọi origin ở mọi môi trường, kể cả prod | Giới hạn về danh sách origin đã biết trước khi coi là prod-ready |
-| Không có `limit` trên `bodyParser.json()` (`src/server.ts`) | Body request không giới hạn kích thước — rủi ro DoS | Thêm giới hạn size rõ ràng trước khi ship |
-| `auth.service.ts:40` bỏ qua Mongoose model-level validation trước khi save (TODO comment trong code) | Write path chưa được validate đầy đủ | Gọi `validateModel()` (`src/utils/valid.ts`) trước khi persist |
-| Không có script `lint` trong `package.json` dù `.eslintrc.cjs` tồn tại | `npm run lint` KHÔNG chạy được — đừng giả định nó có | Xác nhận lệnh thật trước khi điền vào `doctrine/MEMORY.md` (đang `<<FILL>>`) |
+| Hardcoded Chrome executable path (`src/services/createPDF.ts:14-25`) | Breaks PDF export if Chrome isn't at the expected path (CI/Docker) | Use `puppeteer.executablePath()` or an env var |
+| CORS `origin: '*'` (`src/config/cors.config.ts:8`) | Open to every origin in every environment, including prod | Restrict to a known origin list before calling it prod-ready |
+| No `limit` on `bodyParser.json()` (`src/server.ts`) | Unbounded request body size — DoS risk | Add an explicit size limit before shipping |
+| `auth.service.ts:40` skips Mongoose model-level validation before save (TODO comment in code) | Write path not fully validated | Call `validateModel()` (`src/utils/valid.ts`) before persisting |
+| No `lint` script in `package.json` despite `.eslintrc.cjs` existing | `npm run lint` does NOT work — don't assume it does | Confirm the real command before filling it into `doctrine/MEMORY.md` (currently `<<FILL>>`) |
+| Anything saved under `src/public/` is served unauthenticated via `express.static` (`server.ts` middleware step 7) — confirmed live for both `src/public/pdf/<email>.pdf` (PDF export) and `src/public/uploads/cv/<candidateId>-cv.pdf` (CV upload, `add-candidate-cv-upload` node) | Any personal document saved under `public/` is fetchable by anyone who can guess/obtain the filename — no auth check at the static-file layer, only at the API routes that happen to also serve the same data | Serve uploaded/generated personal files only through an authenticated route (already done for `GET /candidate/cv-file`), and consider moving the storage directory outside `public/` entirely so `express.static` can never reach it — bigger change, own node if picked up |
 
 ## Decisions, with reasoning
-> Một quyết định không ghi lý do sẽ bị một agent tương lai "làm đẹp" mất —
-> what đã có trong code, chỉ why là load-bearing.
+> A decision recorded without its reason gets "cleaned up" by a future
+> agent — the what is already in the code, only the why is load-bearing.
 
 | Date | Decision | Why | Alternative rejected |
 |---|---|---|---|
-| `<<FILL>>` | `MONGO_URI` (full connection string) được ưu tiên, nhưng `MONGOBD_USER`/`MONGOBD_PASSWORD` vẫn giữ làm fallback | `.env.example` ghi rõ đây là "fallback - for backward compatibility" | Xoá hẳn đường credentials rời, chỉ nhận `MONGO_URI` |
-| `<<FILL>>` | Alias `@/*` resolve qua `tsconfig-paths` ở dev, qua `module-alias` ở prod (`dist/`) | `tsc` không tự rewrite path alias khi build, nên dev và output đã compile cần 2 chiến lược resolve khác nhau | Viết lại toàn bộ import thành relative path |
+| `<<FILL>>` | `MONGO_URI` (full connection string) takes priority, but `MONGOBD_USER`/`MONGOBD_PASSWORD` remain as fallback | `.env.example` explicitly marks this "fallback - for backward compatibility" | Drop separate credentials entirely, accept only `MONGO_URI` |
+| `<<FILL>>` | Alias `@/*` resolves via `tsconfig-paths` in dev, via `module-alias` in prod (`dist/`) | `tsc` doesn't rewrite path aliases on build, so dev and compiled output need two different resolution strategies | Rewrite every import as a relative path |

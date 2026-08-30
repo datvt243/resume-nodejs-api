@@ -32,6 +32,15 @@ export const fnGetAboutMe = async (req: Request, res: Response, next: NextFuncti
    */
   try {
     const _me = await handlerGetAboutMe(email, lang);
+    // Private profile (issue #75) — same response shape as "email not
+    // found" so a private profile isn't distinguishable from a
+    // non-existent one. Only gates this public route; the authenticated
+    // self-export path (fnExportPDF) calls handlerGetAboutMe directly
+    // and is unaffected — a candidate can always see/export their own
+    // data regardless of this flag.
+    if (_me.success && (_me.data as any)?.isPublic === false) {
+      return formatReturn(res, formatReturnFailed('Email không tồn tại'));
+    }
     return formatReturn(res, _me);
   } catch (err) {
     handleError(err, next, (req as any).lang);
@@ -152,11 +161,19 @@ export const fnExportPDF = async (req: Request, res: Response, next: NextFunctio
 
   try {
     const lang = req.query.lang === 'en' ? 'en' : 'vi';
-    const { success, data } = await handlerGetAboutMe(email, lang);
+    const { success, message, data } = await handlerGetAboutMe(email, lang);
     if (!success) {
       res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('Lấy thông tin ứng viên thất bại'));
       return;
     }
+
+    // ?format=json reuses the same aggregated data already assembled for
+    // the PDF path — no new dependency, no new data-fetch (issue #76).
+    if (req.query.format === 'json') {
+      formatReturn(res, { success, message, data });
+      return;
+    }
+
     await createCV(data, res);
   } catch (err) {
     handleError(err, next, (req as any).lang);

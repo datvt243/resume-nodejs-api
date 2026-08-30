@@ -1,12 +1,12 @@
-# BOOT.md — 5 sự thật định hướng
+# BOOT.md — 5 orienting truths
 
-> Đọc bởi lệnh `/boot`. KHÔNG thay thế `doctrine/` — chỉ là launchpad 60
-> giây để không phải đọc lại toàn bộ mỗi phiên.
+> Read by `/boot`. Does NOT replace `doctrine/` — just a 60-second launchpad
+> so you don't have to re-read everything every session.
 
-1. Doctrine (`doctrine/`) là nơi giữ sự thật đã verify — model reset mỗi
-   phiên, doctrine thì không.
-2. Recipes (`haven/workers/*/recipes/`) là suy luận đã lưu — dùng lại thay
-   vì suy luận lại từ đầu.
-3. Hành động của worker phải quan sát được thật, không phải "hình dung ra".
-4. Mọi việc outward-facing cần approval của operator — không có ngoại lệ.
-5. Evidence or it didn't happen. Confidence không phải là output.
+1. Doctrine (`doctrine/`) holds verified truth — the model resets every
+   session, doctrine doesn't.
+2. Recipes (`haven/workers/*/recipes/`) are saved reasoning — reuse them
+   instead of re-deriving from scratch.
+3. Worker actions must be observably real, not "imagined."
+4. Every outward-facing action needs operator approval — no exceptions.
+5. Evidence or it didn't happen. Confidence is not output.

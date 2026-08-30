@@ -7,7 +7,7 @@
 import express from 'express';
 const router = express.Router();
 
-import { authRegister, authLogin } from '@/api/v1/auth/controllers/index';
+import { authRegister, authLogin } from '@/auth/auth.controller';
 
 router.post('/register', authRegister);
 router.post('/login', authLogin);

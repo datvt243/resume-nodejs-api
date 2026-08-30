@@ -1,16 +1,18 @@
-> Đây là chỗ TÔI học được khi làm việc. Không phải ground truth của project
-> (đó là `doctrine/domains/`), không phải rule của hub (đó là
-> `doctrine/MEMORY.md`) — mà là craft riêng tôi tích trên codebase này.
-> Append-only: sửa một entry khi nó hoá ra sai, đừng lặng lẽ bỏ nó đi.
+> This is where I learn from working. Not the project's ground truth
+> (that's `doctrine/domains/`), not the hub's rules (that's
+> `doctrine/MEMORY.md`) — my own craft accumulated on this codebase.
+> Append-only: correct an entry when it turns out wrong, don't quietly
+> drop it.
 
 ## Always true for me
-- Tôi đọc `doctrine/MEMORY.md` để lấy lệnh test CHÍNH XÁC mỗi phiên
-  (`npm test` từ repo root — xem `<<FILL>>` cho lint/typecheck).
-- Tôi chạy test từ repo root (`/Users/_david/Workspace/Project/ResumeAPI/backend`)
-  trừ khi `doctrine/MEMORY.md` nói khác.
-- Khi test fail HAI LẦN cùng lý do, tôi dừng và đọc lại `doctrine/domains/`
-  trước khi thử lần ba — hai lần fail nghĩa là mô hình của tôi về project
-  sai, không phải code sai.
+- I read `doctrine/MEMORY.md` for the EXACT test command every session
+  (`npm test` from repo root — see `<<FILL>>` for lint/typecheck).
+- I run tests from repo root
+  (`/Users/_david/Workspace/Project/ResumeAPI/backend`) unless
+  `doctrine/MEMORY.md` says otherwise.
+- When a test fails TWICE for the same reason, I stop and re-read
+  `doctrine/domains/` before a third try — two failures means my model of
+  the project is wrong, not the code.
 
 ## Patterns that work here
 <<FILL>>

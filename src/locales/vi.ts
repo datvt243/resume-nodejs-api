@@ -16,6 +16,11 @@ export default {
     tokenRefreshed: 'Làm mới token thành công',
     noTokenToLogout: 'Không có token để đăng xuất',
     logoutSuccess: 'Đăng xuất thành công',
+    forgotPasswordRequested: 'Nếu email tồn tại, liên kết đặt lại mật khẩu đã được tạo',
+    resetTokenInvalid: 'Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn',
+    resetPasswordSuccess: 'Đặt lại mật khẩu thành công',
+    verificationTokenInvalid: 'Token xác thực email không hợp lệ hoặc đã hết hạn',
+    emailVerifiedSuccess: 'Xác thực email thành công',
   },
   validation: {
     hasErrors: 'Dữ liệu không hợp lệ',
@@ -38,9 +43,22 @@ export default {
   candidate: {
     userNotFound: 'Không tìm thấy người dùng',
     deleteAccountSuccess: 'Xoá tài khoản thành công',
+    cvUploadSuccess: 'Tải CV lên thành công',
+    cvFileTooLarge: 'File vượt quá dung lượng cho phép (5 MB)',
+    cvInvalidFileType: 'Chỉ chấp nhận file PDF',
+    cvUploadFailed: 'Tải CV lên thất bại',
+    cvFileNotFound: 'Chưa có CV nào được tải lên',
   },
   generalInformation: {
     alreadyExists: 'Candidate đã có thông tin, không thể lưu thêm',
+  },
+  images: {
+    noFilesUploaded: 'Không có file nào được tải lên',
+    uploadSuccess: 'Tải ảnh lên thành công',
+    fileTooLarge: 'File vượt quá dung lượng cho phép (5 MB mỗi ảnh)',
+    tooManyFiles: 'Quá số lượng file cho phép (tối đa 5 ảnh mỗi lần)',
+    invalidFileType: 'Chỉ chấp nhận file ảnh (jpg, png, webp, gif)',
+    uploadFailed: 'Tải ảnh lên thất bại',
   },
   errors: {
     invalidIdFormat: 'ID không đúng định dạng',

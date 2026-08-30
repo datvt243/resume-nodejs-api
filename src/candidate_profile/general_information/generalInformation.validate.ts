@@ -15,10 +15,12 @@ import {
   _arrayString,
   _stringDefault,
   description,
+  _boolean,
 } from '@/config/joi.config';
 
 const _sub = {
   candidateId,
+  openToWork: _boolean,
   professionalSkillsGroup: _arrayString,
   professionalSkills: Joi.array()
     .items(

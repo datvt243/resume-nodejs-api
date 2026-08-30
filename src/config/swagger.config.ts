@@ -60,6 +60,15 @@ const options: swaggerJsdoc.Options = {
             phone: { type: 'string' },
             introduction: { type: 'string' },
             socialMedia: { $ref: '#/components/schemas/SocialMedia' },
+            cvFile: {
+              type: 'object',
+              properties: {
+                originalName: { type: 'string' },
+                uploadedAt: { type: 'number', description: 'Unix timestamp (ms)' },
+              },
+            },
+            isPublic: { type: 'boolean', description: 'Whether GET /api/me/:email serves this profile publicly. Default true.' },
+            emailVerified: { type: 'boolean', description: 'Set via GET /auth/verify-email. Does not block login. Default false.' },
           },
         },
         AuthRegisterRequest: {
@@ -189,6 +198,7 @@ const options: swaggerJsdoc.Options = {
             yearsOfExperience: { type: 'number' },
             workLocation: { type: 'string' },
             workForm: { type: 'string' },
+            openToWork: { type: 'boolean' },
             careerGoal: { type: 'string' },
             personalSkills: { type: 'array', items: { type: 'object' } },
             professionalSkills: { type: 'array', items: { type: 'object' } },
