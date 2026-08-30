@@ -3,10 +3,21 @@
 - Output: `{node, diagram, current_state, acceptance: string[],
   files: string[], blocked_by: string|null}`
 
+> [GUARD, added 2026-08-31] If `/boot` already ran in THIS SAME session,
+> `NORTHSTAR.md` / `doctrine/MEMORY.md` / `doctrine/domains/PROJECT.md` /
+> `haven/diagrams/` are already in context from that pass — steps 1-2 below
+> REUSE that content, don't `Read` it again (a second full read of the same
+> 4 files is pure duplication, same class of token waste as the
+> `agent-hub/CLAUDE.md` case already fixed in `boot/SKILL.md`). Only `Read`
+> for real when: (a) `/worker implementer` is invoked without a prior
+> `/boot` this session, or (b) the content might have changed since it was
+> last read.
+
 ## Steps
-1. Read `NORTHSTAR.md` + `doctrine/MEMORY.md` +
-   `doctrine/domains/PROJECT.md`.
-2. Read EVERY diagram in `haven/diagrams/`, list every node + PM status.
+1. Get `NORTHSTAR.md` + `doctrine/MEMORY.md` + `doctrine/domains/PROJECT.md`
+   — reuse from `/boot` if available (see GUARD above), else `Read` fresh.
+2. Get every diagram in `haven/diagrams/`, list every node + PM status —
+   reuse from `/boot` if available (see GUARD above), else `Read` fresh.
 3. Find the earliest PENDING node on the critical path (e.g. the seed node
    `fix-chrome-executable-path` in `dev-loop.prime-mermaid.md`).
 4. No match → don't invent work; report "no PENDING node" clearly, stop.
