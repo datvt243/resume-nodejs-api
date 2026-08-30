@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-REPO="datvt243/nodejs-resume-api-ts"
+REPO="datvt243/resume-nodejs-api"
 # nếu muốn override khi chạy: REPO=your/org-repo ./scripts/create_issues.sh
 
 if ! command -v gh >/dev/null 2>&1; then

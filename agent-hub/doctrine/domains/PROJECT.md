@@ -5,7 +5,7 @@ REST API backend (Node.js + TypeScript) for managing candidate CVs/resumes:
 JWT auth, CRUD for 7 CV sections (education/experience/award/certificate/
 project/reference/generalInformation), PDF export, Redis-backed rate
 limiting + token blacklist (in-memory fallback), Winston logging.
-Repo: `github.com/datvt243/nodejs-resume-api-ts`. Author: DatVT.
+Repo: `github.com/datvt243/resume-nodejs-api`. Author: DatVT.
 
 ## Stack + shape
 | Thing | Value |
