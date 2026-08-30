@@ -70,11 +70,15 @@ Base directory for this skill: `.claude/skills/release`
    - **Không có tag nào** (lần release đầu tiên) → dùng thẳng
      `version` hiện tại trong `package.json` ở `origin/staging`, KHÔNG
      bump, KHÔNG tạo commit bump (nhảy sang bước 6, bỏ qua bước 5).
-   - **Có tag** → đọc `git log <tag>..origin/staging --format=%s`, phân
-     loại theo Conventional Commits (xem Bối cảnh), tính version mới
-     bằng semver bump đúng loại. Không tự đoán nếu message không theo
-     chuẩn `type(scope): ...`/`type: ...` — coi là `patch` mặc định
-     (an toàn hơn major/minor sai).
+   - **Có tag** → đọc `git log origin/main..origin/staging --format=%s`
+     (ĐÚNG range là `main..staging`, KHÔNG phải `<tag>..staging` — tag
+     cũ có thể lùi xa hơn nhiều so với `main` hiện tại nếu từng có commit
+     merge thẳng vào `main` mà không tag lại, dùng sai range sẽ đếm nhầm
+     hàng loạt commit đã release từ trước). Phân loại theo Conventional
+     Commits (xem Bối cảnh), tính version mới bằng semver bump đúng
+     loại. Không tự đoán nếu message không theo chuẩn
+     `type(scope): ...`/`type: ...` — coi là `patch` mặc định (an toàn
+     hơn major/minor sai).
 
 5. **Tạo nhánh release + version-bump commit** (bỏ qua nếu bước 4 rơi
    vào case "lần đầu"):
