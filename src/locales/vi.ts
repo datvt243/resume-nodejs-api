@@ -52,6 +52,14 @@ export default {
   generalInformation: {
     alreadyExists: 'Candidate đã có thông tin, không thể lưu thêm',
   },
+  images: {
+    noFilesUploaded: 'Không có file nào được tải lên',
+    uploadSuccess: 'Tải ảnh lên thành công',
+    fileTooLarge: 'File vượt quá dung lượng cho phép (5 MB mỗi ảnh)',
+    tooManyFiles: 'Quá số lượng file cho phép (tối đa 5 ảnh mỗi lần)',
+    invalidFileType: 'Chỉ chấp nhận file ảnh (jpg, png, webp, gif)',
+    uploadFailed: 'Tải ảnh lên thất bại',
+  },
   errors: {
     invalidIdFormat: 'ID không đúng định dạng',
     duplicateKey: '{{field}} đã tồn tại',

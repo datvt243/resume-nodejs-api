@@ -11,6 +11,7 @@ import { validateModel } from '@/utils';
 import { candidateQuerySafe } from '@/utils/querySafe';
 import { t, DEFAULT_LANG } from '@/utils/i18n';
 import { CV_UPLOAD_DIR } from '@/middlewares/uploadCV.middleware';
+import { IMAGE_UPLOAD_DIR } from '@/middlewares/uploadImages.middleware';
 
 const MODEL = MODELS.Candidate;
 
@@ -25,6 +26,11 @@ const CV_SECTION_MODELS: any[] = [
   MODELS.Certificate,
   MODELS.Award,
 ];
+
+// Only these 3 have an images[] field (issue #72) — same on-disk-file
+// cleanup concern as CV_UPLOAD_DIR below, just spread across N documents
+// instead of one deterministic filename.
+const IMAGE_SECTION_MODELS: any[] = [MODELS.Project, MODELS.Certificate, MODELS.Award];
 
 export const handlerGetInformationById = async (id: string, props: { select: string } = { select: '' }) => {
   const { select = '' } = props;
@@ -103,6 +109,16 @@ export const handlerDelete = async (_id: string, lang: string = DEFAULT_LANG) =>
     return { success: false, message: t('common.idNotFound', lang) };
   }
 
+  // Collect image filenames BEFORE the documents holding them are
+  // deleted — same on-disk cleanup concern as the CV file below, just
+  // spread across every project/certificate/award document instead of
+  // one deterministic filename.
+  const imageDocsPerModel = await Promise.all(IMAGE_SECTION_MODELS.map((model) => model.find({ candidateId: _id }, { images: 1 })));
+  const imageFilenames = imageDocsPerModel
+    .flat()
+    .flatMap((doc: any) => doc.images || [])
+    .map((url: string) => path.basename(url));
+
   await Promise.all(CV_SECTION_MODELS.map((model) => model.deleteMany({ candidateId: _id })));
   await MODEL.deleteOne({ _id }).exec();
 
@@ -110,6 +126,12 @@ export const handlerDelete = async (_id: string, lang: string = DEFAULT_LANG) =>
   // record would leave the actual PDF (real personal data) behind.
   const cvFilePath = path.join(CV_UPLOAD_DIR, `${_id}-cv.pdf`);
   if (fs.existsSync(cvFilePath)) fs.unlinkSync(cvFilePath);
+
+  // Same reasoning for every uploaded project/certificate/award image.
+  for (const filename of imageFilenames) {
+    const imagePath = path.join(IMAGE_UPLOAD_DIR, filename);
+    if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+  }
 
   return { success: true, message: t('candidate.deleteAccountSuccess', lang), errors: {}, data: null };
 };

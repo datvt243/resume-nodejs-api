@@ -52,6 +52,14 @@ export default {
   generalInformation: {
     alreadyExists: 'Candidate already has information, cannot save',
   },
+  images: {
+    noFilesUploaded: 'No file was uploaded',
+    uploadSuccess: 'Images uploaded successfully',
+    fileTooLarge: 'File exceeds the allowed size (5 MB per image)',
+    tooManyFiles: 'Too many files (5 images max per request)',
+    invalidFileType: 'Only image files are accepted (jpg, png, webp, gif)',
+    uploadFailed: 'Image upload failed',
+  },
   errors: {
     invalidIdFormat: 'Invalid ID format',
     duplicateKey: '{{field}} already exists',
