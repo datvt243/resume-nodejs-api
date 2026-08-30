@@ -1,6 +1,6 @@
 ---
 name: ship
-description: "Gộp bước 'git add đúng file thuộc diff đã duyệt → commit → push' thành 1 lệnh, thay cho việc gõ 'commit và push' mỗi lần sau khi một node đã SEAL. Thêm --merge để tự tạo PR develop→main và tự merge. Dùng: /ship [--merge]"
+description: "Gộp bước 'git add đúng file thuộc diff đã duyệt → commit → push' thành 1 lệnh cho branch feature/fix hiện tại. Thêm --merge để tự tạo PR <branch>→staging và tự merge. Chặn chạy trực tiếp trên main/staging (2 branch đó đã protected — dùng /release để lên main). Dùng: /ship [--merge]"
 argument-hint: "[--merge]"
 ---
 
@@ -13,11 +13,32 @@ Base directory for this skill: `.claude/skills/ship`
 > (`agent-hub/CLAUDE.md`) coi việc operator gõ `/ship` là hành động phê
 > duyệt cho lần chạy đó — không dùng để tự động hoá lặp lại mà không có
 > operator gõ lệnh mỗi lần. Cờ `--merge` là một hành động outward-facing
-> RIÊNG, nặng hơn commit+push thường (đưa code lên `main`) — operator gõ
-> `--merge` chính là phê duyệt CHO RIÊNG hành động đó, không suy ra từ
+> RIÊNG, nặng hơn commit+push thường (đưa code vào `staging`) — operator
+> gõ `--merge` chính là phê duyệt CHO RIÊNG hành động đó, không suy ra từ
 > việc đã phê duyệt diff trước đó.
+>
+> **Model 2 tầng**: mọi branch fix/feature/hotfix branch ra từ `staging`,
+> PR merge VỀ `staging` — đây là việc của `/ship`. `staging → main` là
+> việc RIÊNG của `/release` (merge commit, bump version, tag, đóng
+> issue), không phải `/ship`. Cả `main` và `staging` đều bật GitHub
+> branch protection thật (không ai push thẳng được, kể cả owner).
 
-## 6 bước, đúng thứ tự
+## Bước 0 — guard chặn trước khi làm bất kỳ gì
+
+`git branch --show-current`. Nếu kết quả là `main` hoặc `staging` →
+**DỪNG NGAY, không chạy bước nào khác**, báo:
+```
+⛔ /ship không chạy trên `<branch>` — branch này đã protected (không push
+   thẳng được) và không phải nơi /ship thao tác.
+   - Muốn đưa code vào staging: checkout 1 branch feature/fix mới từ
+     staging (`git checkout -b <tên> staging`), làm việc ở đó, /ship từ
+     branch đó.
+   - Muốn đưa staging lên main (release thật): dùng /release, không phải
+     /ship.
+```
+Chỉ tiếp tục bước 1 khi branch hiện tại KHÁC `main` và `staging`.
+
+## 6 bước, đúng thứ tự (sau khi qua guard ở Bước 0)
 
 1. **Soát rác trước khi soát diff**: `git status --short`. Bất kỳ file
    nào rõ ràng là output tạm của live-test (PDF/ảnh sinh ra trong
@@ -53,7 +74,8 @@ Base directory for this skill: `.claude/skills/ship`
 4. **`git commit`** với message ở bước 3.
 
 5. **`git push origin <branch-hiện-tại>`** — đọc branch hiện tại thật
-   (`git branch --show-current`), không hard-code `develop`/`main`.
+   (`git branch --show-current`, đã xác nhận khác `main`/`staging` ở
+   Bước 0). Lần đầu push branch mới thì thêm `-u`.
 
 6. **Nếu KHÔNG có `--merge`** → báo cáo đúng 3 dòng rồi dừng:
    ```
@@ -62,39 +84,42 @@ Base directory for this skill: `.claude/skills/ship`
    🧹 Bỏ qua (nếu có): <file> — <lý do>
    ```
 
-## Nếu có `--merge`: bước 7-9 (chỉ chạy sau khi bước 1-5 xong, chỉ áp dụng chiều `develop` → `main`)
+## Nếu có `--merge`: bước 7-9 (chỉ chạy sau khi bước 1-5 xong, chỉ áp dụng chiều `<branch-hiện-tại>` → `staging`)
 
 7. **Điều kiện chặn trước khi làm bất kỳ gì thêm** — dừng và báo operator,
    không tự đoán/tự work around, nếu:
-   - Branch hiện tại (`git branch --show-current`) không phải `develop`.
-     `--merge` chỉ định nghĩa cho chiều `develop → main`; branch khác thì
-     dừng, hỏi operator muốn gì.
-   - `git log origin/main..develop --oneline` rỗng — không có gì để
-     merge, không tạo PR rỗng.
+   - `git log origin/staging..<branch-hiện-tại> --oneline` rỗng — không
+     có gì để merge, không tạo PR rỗng.
    - `gh` chưa đăng nhập / không có quyền trên repo — báo lỗi thật từ
      `gh`, không tự bịa trạng thái.
+   (Không cần check branch hiện tại nữa — Bước 0 đã đảm bảo nó khác
+   `main`/`staging` rồi.)
 
-8. **Tạo hoặc tái dùng PR `develop` → `main`**:
-   - Check trước: `gh pr list --base main --head develop --state open`.
-     Nếu đã có PR mở, dùng lại PR đó (không tạo trùng).
-   - Nếu chưa có: `gh pr create --base main --head develop --title
-     "<tiêu đề>" --body "<mô tả>"`. Title ngắn gọn kiểu
-     `chore(release): merge develop into main`. Body liệt kê
-     `git log origin/main..develop --oneline` (danh sách commit thật sẽ
-     lên main) — không tự bịa danh sách node đã SEAL, lấy từ git log
-     thật.
+8. **Tạo hoặc tái dùng PR `<branch-hiện-tại>` → `staging`**:
+   - Check trước: `gh pr list --base staging --head <branch-hiện-tại>
+     --state open`. Nếu đã có PR mở, dùng lại PR đó (không tạo trùng).
+   - Nếu chưa có: `gh pr create --base staging --head <branch-hiện-tại>
+     --title "<tiêu đề>" --body "<mô tả>"`. Title lấy từ dòng đầu commit
+     message ở bước 3. Body liệt kê `git log origin/staging..HEAD
+     --oneline` (danh sách commit thật sẽ vào staging) — không tự bịa.
+     Nếu commit/PR này thực sự đóng 1 issue, thêm dòng `Closes #N.` (chỉ
+     khi chắc chắn, không đoán số issue) — lưu ý: merge vào `staging`
+     KHÔNG tự đóng issue (không phải default branch), dòng `Closes #N`
+     ở đây chỉ để tham chiếu, việc đóng issue thật xảy ra ở `/release`
+     khi PR release lên `main`.
 
 9. **Merge PR bằng merge commit**: `gh pr merge <số PR> --merge`.
    - KHÔNG dùng `--admin`/bypass branch protection để ép merge khi bị
      chặn (review bắt buộc, check CI fail...) — báo lỗi thật từ `gh`,
      dừng, để operator tự quyết định (tự duyệt PR trên GitHub, hoặc chờ
      CI).
-   - KHÔNG tự xoá branch `develop` sau merge (`--delete-branch`) — đây là
-     branch làm việc chính, không phải feature branch dùng 1 lần.
+   - Sau khi merge xong, branch feature/fix đã hoàn thành vòng đời — có
+     thể xoá (`gh pr merge --merge --delete-branch` HOẶC xoá thủ công
+     sau) vì đây là branch dùng 1 lần cho 1 task, khác `develop` cũ.
    - Nếu merge thành công, thêm 2 dòng vào báo cáo bước 6:
      ```
      🔀 PR: <url PR> (#<số>)
-     ✅ Merged: <merge commit sha ngắn> → main
+     ✅ Merged: <merge commit sha ngắn> → staging
      ```
    - Nếu bị chặn không merge được (chưa CI xong, cần review...), báo rõ
      lý do `gh` trả về, dừng ở đó — PR vẫn ở trạng thái mở, không coi là
@@ -104,13 +129,16 @@ Base directory for this skill: `.claude/skills/ship`
 - KHÔNG tự chạy `/ship` thay cho operator — chỉ chạy khi operator gõ
   `/ship` (hoặc yêu cầu tương đương rõ ràng như "ship nó", "commit và
   push") trong lượt hiện tại.
+- KHÔNG bao giờ chạy trên `main`/`staging` — Bước 0 chặn trước, không có
+  ngoại lệ, kể cả khi operator quên đang đứng ở branch nào.
 - KHÔNG tự thêm `--merge` khi operator chỉ gõ `/ship` trơn — dù đã từng
-  dùng `--merge` ở lần trước trong cùng phiên, mỗi lần merge lên `main`
-  cần operator gõ lại cờ đó, không suy ra từ thói quen.
-- `--merge` chỉ merge `develop` → `main`, bằng merge commit
+  dùng `--merge` ở lần trước trong cùng phiên, mỗi lần merge vào
+  `staging` cần operator gõ lại cờ đó, không suy ra từ thói quen.
+- `--merge` chỉ merge `<branch-hiện-tại>` → `staging`, bằng merge commit
   (`gh pr merge --merge`), không squash/rebase, không bypass branch
-  protection, không xoá branch sau merge — đổi bất kỳ điều nào trong 4
-  điều này là thay đổi thiết kế, cần hỏi lại operator, không tự quyết.
+  protection — đổi điều này là thay đổi thiết kế, cần hỏi lại operator.
+- KHÔNG bao giờ tự chạy phần việc của `/release` (merge `staging` →
+  `main`, bump version, tạo tag) — 2 command tách biệt, không gộp.
 - KHÔNG gộp nhiều node SEAL không liên quan vào 1 commit nếu chúng không
   cùng nằm trong 1 phiên làm việc liên tục — mỗi `/ship` nên tương ứng
   1 đợt thay đổi đã duyệt, giữ lịch sử git dễ đọc.

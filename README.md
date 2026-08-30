@@ -169,6 +169,23 @@ REDIS_URL=redis://localhost:6379  # Optional
 
 ---
 
+## 🌿 Branching & Release Workflow
+
+2 tầng: `staging` (integration) → `main` (production). Xem thêm
+[CONTRIBUTING.md](./CONTRIBUTING.md) cho quy trình chi tiết + lý do
+thiết kế của từng phần.
+
+- Mọi branch fix/feature/hotfix branch ra từ `staging`, PR merge **về
+  `staging`** — không branch từ `main`.
+- `main` chỉ nhận code từ `staging` qua bước release chính thức, không
+  bao giờ nhận PR trực tiếp từ branch feature.
+- Cả `main` và `staging` đều bật GitHub branch protection: không ai
+  push thẳng được (kể cả owner/admin), mọi thay đổi đi qua PR.
+- Push vào `main` tự kích hoạt deploy (`.github/workflows/deploy.yml`
+  → Render).
+
+---
+
 ---
 
 ## 🛡️ Production Notes
