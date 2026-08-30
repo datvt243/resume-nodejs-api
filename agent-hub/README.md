@@ -1,6 +1,6 @@
 # agent-hub — Resume API Backend
 
-One-person dev hub for `nodejs-resume-api-ts`. NOT code doctrine mixed with
+One-person dev hub for `resume-nodejs-api`. NOT code doctrine mixed with
 code — the repo is where you build; `agent-hub/` is pure markdown: doctrine,
 worker memory, diagram, and audit trail.
 

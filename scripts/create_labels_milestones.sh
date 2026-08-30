@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-REPO="datvt243/nodejs-resume-api-ts"
+REPO="datvt243/resume-nodejs-api"
 
 if ! command -v gh >/dev/null 2>&1; then
   echo "gh cli chưa cài hoặc không tìm thấy. Cài: https://cli.github.com/"
@@ -41,7 +41,7 @@ MILESTONE_TITLE="v1.0.0 - Hardening"
 MILESTONE_DESC="Prepare release v1.0.0: security fixes, tests, docs"
 
 echo "Creating milestone: $MILESTONE_TITLE (via API)"
-gh api repos/datvt243/nodejs-resume-api-ts/milestones \
+gh api repos/datvt243/resume-nodejs-api/milestones \
   -f title="$MILESTONE_TITLE" \
   -f description="$MILESTONE_DESC" 2>/dev/null && echo "✓ Milestone created" || echo "✗ Milestone failed (may already exist)"
 
