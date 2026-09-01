@@ -48,6 +48,7 @@ export default {
     cvInvalidFileType: 'Chỉ chấp nhận file PDF',
     cvUploadFailed: 'Tải CV lên thất bại',
     cvFileNotFound: 'Chưa có CV nào được tải lên',
+    getVisitsSuccess: 'Lấy danh sách lượt ghé thăm thành công',
   },
   generalInformation: {
     alreadyExists: 'Candidate đã có thông tin, không thể lưu thêm',

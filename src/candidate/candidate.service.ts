@@ -104,6 +104,15 @@ export const handlerGetCVFile = async (candidateId: string) => {
   return doc?.get('cvFile.originalName') ? doc.get('cvFile') : null;
 };
 
+// `candidateId` here is always req.user._id from the verified JWT (never
+// client-supplied) — same trusted-id pattern already used by
+// handlerDelete's own CV_SECTION_MODELS.deleteMany calls above, so no
+// QuerySafe wrapping needed.
+export const handlerGetVisits = async (candidateId: string, lang: string = DEFAULT_LANG) => {
+  const visits = await MODELS.Visit.find({ candidateId }).sort({ createdAt: -1 }).exec();
+  return { success: true, message: t('candidate.getVisitsSuccess', lang), errors: {}, data: { count: visits.length, visits } };
+};
+
 export const handlerDelete = async (_id: string, lang: string = DEFAULT_LANG) => {
   if (!(await MODEL.findById(_id))) {
     return { success: false, message: t('common.idNotFound', lang) };

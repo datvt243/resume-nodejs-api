@@ -6,6 +6,7 @@
 
 import { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
+import geoip from 'geoip-lite';
 
 import { formatReturn, handleError } from '@/utils';
 import { formatReturnFailed } from '@/services';
@@ -131,6 +132,44 @@ export const handlerGetAboutMe = async (email: string, lang: string = 'vi') => {
     data: dataResult,
     message: 'Lấy thông tin ứng viên thành công',
   };
+};
+
+export const fnRecordVisit = async (req: Request, res: Response, next: NextFunction) => {
+  const { email } = req.params;
+  if (!email) {
+    res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('Không tìm thấy Email'));
+    return;
+  }
+
+  try {
+    const _result = await handlerRecordVisit(email, req);
+    return formatReturn(res, _result);
+  } catch (err) {
+    handleError(err, next, (req as any).lang);
+  }
+};
+
+export const handlerRecordVisit = async (email: string, req: Request) => {
+  const { candidateQuerySafe } = await import('@/utils/querySafe');
+  const safeEmailQuery = candidateQuerySafe.safeQuery({}, { email });
+  const candidate = await MODEL.Candidate.findOne(safeEmailQuery).select('_id').exec();
+  // Same response shape as the "email not found" branch of handlerGetAboutMe
+  // above (success: false, no throw) — kept consistent with that sibling
+  // public endpoint rather than introducing a different error convention
+  // (e.g. NotFoundError/404) for this one route.
+  if (!candidate) return formatReturnFailed('Email không tồn tại');
+
+  // Same IP-extraction pattern already used by rateLimit.middleware.ts —
+  // no `trust proxy` is configured on the Express app, so behind a
+  // reverse proxy (e.g. Render) this may resolve to the proxy's address
+  // rather than the real client IP; out of scope to fix here.
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const geo = ip && ip !== 'unknown' ? geoip.lookup(ip) : null;
+  const location = geo ? [geo.city, geo.region, geo.country].filter(Boolean).join(', ') : '';
+
+  await MODEL.Visit.create({ candidateId: candidate._id, ip, location });
+
+  return { success: true, message: 'Ghi nhận lượt ghé thăm thành công', data: null };
 };
 
 export const fnExportPDF = async (req: Request, res: Response, next: NextFunction) => {

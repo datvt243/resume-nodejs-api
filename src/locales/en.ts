@@ -48,6 +48,7 @@ export default {
     cvInvalidFileType: 'Only PDF files are accepted',
     cvUploadFailed: 'CV upload failed',
     cvFileNotFound: 'No CV has been uploaded yet',
+    getVisitsSuccess: 'Visits fetched successfully',
   },
   generalInformation: {
     alreadyExists: 'Candidate already has information, cannot save',
