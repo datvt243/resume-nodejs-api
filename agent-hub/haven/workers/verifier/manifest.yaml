@@ -12,5 +12,7 @@ hard_rules:
   - EvidenceOnly         # never trust inference over real evidence
   - NeverVerifyOwnWork   # never grade a diff you wrote yourself
   - RatchetOnly          # PM status only moves forward, never backward
-reads: [evidence/implementer/, haven/diagrams/, NORTHSTAR.md, CLAUDE.md]
+reads: [evidence/implementer/, haven/diagrams/, doctrine/MEMORY.md, CLAUDE.md]
+# doctrine/MEMORY.md: recipe step 4 needs it to check the note's command.
+# No NORTHSTAR.md — recipe never uses it, was dead weight on every spawn.
 writes: [evidence/verifier/]   # and diagram PM status

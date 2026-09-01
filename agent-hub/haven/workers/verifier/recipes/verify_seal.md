@@ -10,6 +10,31 @@
   fresh subagent dispatched via the Agent tool with no implementation
   history.
 
+## Re-run scope [cost-driven, added 2026-09-02]
+Default: AUDIT the note, don't independently re-run `npm test`/`npm run
+build` from scratch (including a fresh `npm ci` in an isolated worktree).
+`EvidenceOnly` means "don't substitute reasoning for real evidence" — it
+does NOT mean "always regenerate the evidence yourself." If the note's
+output is verbatim, not truncated (step 5), the command matches
+`doctrine/MEMORY.md` (step 4), and it covers every acceptance criterion
+(step 6) → verdict straight off the note, no re-run.
+
+Only re-run (partial or full) when:
+- The note is missing a citation, output looks truncated/hidden, or the
+  command doesn't match doctrine → REOPEN per steps 4-5 instead — don't
+  spend an `npm ci` confirming a note that's already broken.
+- The node is outward-facing or a `/release` gate (this project has shipped
+  a real production bug once already, v1.2.0 → v1.2.1 — release nodes are
+  exactly where the independent-confirmation cost is worth paying).
+- `doctrine/domains/PROJECT.md` names this class of change as needing
+  independent re-run (a per-project call, not the kit default).
+
+Observed in practice (usage audit 2026-09-02, this hub included): 2
+verifier subagents each re-reading the full doctrine + re-running
+build/test cost ~50k tokens apiece with no change to the verdict versus
+just auditing the note. Not a bug, but not what `EvidenceOnly` actually
+asks for — this section pins the boundary.
+
 ## Steps
 1. REFUSE SELF-GRADING FIRST — did I write this diff in this session? (No,
    by construction — subagent has a fresh context.)
