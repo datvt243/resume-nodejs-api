@@ -21,7 +21,11 @@ Base directory for this skill: `.claude/skills/ship`
 > PR merge VỀ `staging` — đây là việc của `/ship`. `staging → main` là
 > việc RIÊNG của `/release` (merge commit, bump version, tag, đóng
 > issue), không phải `/ship`. Cả `main` và `staging` đều bật GitHub
-> branch protection thật (không ai push thẳng được, kể cả owner).
+> branch protection thật (không ai push thẳng được, kể cả owner), kèm
+> `required_status_checks` thật (`build (20.x)`, `build (22.x)` — CI
+> Node.js CI, `strict: false`) — từ nay `gh pr merge` vào `staging` sẽ tự
+> bị GitHub chặn nếu CI chưa xong/fail, không chỉ dựa vào việc operator
+> tự nhớ chờ.
 
 ## Bước 0 — guard chặn trước khi làm bất kỳ gì
 
@@ -84,7 +88,7 @@ Chỉ tiếp tục bước 1 khi branch hiện tại KHÁC `main` và `staging`.
    🧹 Bỏ qua (nếu có): <file> — <lý do>
    ```
 
-## Nếu có `--merge`: bước 7-9 (chỉ chạy sau khi bước 1-5 xong, chỉ áp dụng chiều `<branch-hiện-tại>` → `staging`)
+## Nếu có `--merge`: bước 7-10 (chỉ chạy sau khi bước 1-5 xong, chỉ áp dụng chiều `<branch-hiện-tại>` → `staging`)
 
 7. **Điều kiện chặn trước khi làm bất kỳ gì thêm** — dừng và báo operator,
    không tự đoán/tự work around, nếu:
@@ -108,22 +112,30 @@ Chỉ tiếp tục bước 1 khi branch hiện tại KHÁC `main` và `staging`.
      ở đây chỉ để tham chiếu, việc đóng issue thật xảy ra ở `/release`
      khi PR release lên `main`.
 
-9. **Merge PR bằng merge commit**: `gh pr merge <số PR> --merge`.
-   - KHÔNG dùng `--admin`/bypass branch protection để ép merge khi bị
-     chặn (review bắt buộc, check CI fail...) — báo lỗi thật từ `gh`,
-     dừng, để operator tự quyết định (tự duyệt PR trên GitHub, hoặc chờ
-     CI).
-   - Sau khi merge xong, branch feature/fix đã hoàn thành vòng đời — có
-     thể xoá (`gh pr merge --merge --delete-branch` HOẶC xoá thủ công
-     sau) vì đây là branch dùng 1 lần cho 1 task, khác `develop` cũ.
-   - Nếu merge thành công, thêm 2 dòng vào báo cáo bước 6:
-     ```
-     🔀 PR: <url PR> (#<số>)
-     ✅ Merged: <merge commit sha ngắn> → staging
-     ```
-   - Nếu bị chặn không merge được (chưa CI xong, cần review...), báo rõ
-     lý do `gh` trả về, dừng ở đó — PR vẫn ở trạng thái mở, không coi là
-     lỗi của `/ship`, chỉ là "chưa merge được, PR đang chờ: <url>".
+9. **Chờ CI thật xong trước khi merge** (từ khi `staging` có
+   `required_status_checks` — xem `CONTRIBUTING.md`): `gh pr checks
+   <số PR> --watch --required`. Lệnh này tự poll tới khi 2 check
+   `build (20.x)`/`build (22.x)` xong, thoát khác 0 nếu có check fail.
+   Fail → DỪNG, báo lỗi/log CI thật (`gh run view <run-id> --log-failed`
+   nếu cần chi tiết), không merge, không tự sửa code để "cho qua" CI —
+   đó là việc của một `/ship` lần sau sau khi fix.
+
+10. **Merge PR bằng merge commit**: `gh pr merge <số PR> --merge`.
+    - KHÔNG dùng `--admin`/bypass branch protection để ép merge khi bị
+      chặn (review bắt buộc, check CI fail...) — báo lỗi thật từ `gh`,
+      dừng, để operator tự quyết định (tự duyệt PR trên GitHub, hoặc chờ
+      CI).
+    - Sau khi merge xong, branch feature/fix đã hoàn thành vòng đời — có
+      thể xoá (`gh pr merge --merge --delete-branch` HOẶC xoá thủ công
+      sau) vì đây là branch dùng 1 lần cho 1 task, khác `develop` cũ.
+    - Nếu merge thành công, thêm 2 dòng vào báo cáo bước 6:
+      ```
+      🔀 PR: <url PR> (#<số>)
+      ✅ Merged: <merge commit sha ngắn> → staging
+      ```
+    - Nếu bị chặn không merge được (chưa CI xong, cần review...), báo rõ
+      lý do `gh` trả về, dừng ở đó — PR vẫn ở trạng thái mở, không coi là
+      lỗi của `/ship`, chỉ là "chưa merge được, PR đang chờ: <url>".
 
 ## Ràng buộc cứng
 - KHÔNG tự chạy `/ship` thay cho operator — chỉ chạy khi operator gõ

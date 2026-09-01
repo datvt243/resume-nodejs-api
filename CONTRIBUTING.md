@@ -23,6 +23,14 @@ feature/fix/hotfix branch  →  PR  →  staging  →  /release  →  main  → 
 4. **Cả `main` và `staging` đều bật GitHub branch protection thật**:
    không ai push thẳng được, kể cả owner/admin (`enforce_admins: true`).
    Mọi thay đổi — kể cả 1 dòng version-bump — đi qua PR.
+5. **Cả 2 branch đều gate bằng CI thật** (`required_status_checks`):
+   PR không được merge (kể cả bởi owner) nếu `build (20.x)`/`build
+   (22.x)` (job `build` trong `.github/workflows/node.js.yml`, chạy
+   `npm ci && npm run build && npm test`) chưa xong hoặc fail trên chính
+   commit đó. `strict: false` — không bắt buộc branch phải rebase lên
+   mới nhất của base trước khi merge, tránh thao tác thủ công không cần
+   thiết cho 1 maintainer duy nhất; điều được gate là "commit này có pass
+   CI không", không phải "branch có mới nhất không".
 
 ## Vì sao `required_approving_review_count = 0`?
 
@@ -36,6 +44,30 @@ protection (không ai push thẳng, không force-push, không xoá branch —
 mọi thay đổi bắt buộc phải là 1 PR có thể xem lại diff trước khi merge)
 mà không tự khoá chân mình. Khi repo có thêm người maintain, đây là giá
 trị đầu tiên nên nâng lên `>= 1`.
+
+## Vì sao thêm `required_status_checks` (CI thật) vào branch protection?
+
+Ban đầu (2026-08-30) branch protection KHÔNG gate theo CI check
+(`required_status_checks: null`) — lý do lúc đó: `/release` đã tự chạy
+`npm run build`/`npm test` cục bộ (trong 1 git worktree cô lập) trước
+khi tạo PR lên `main`, nên coi như đã có gate.
+
+Nhưng gate đó chỉ tồn tại trên đường `/release` (`staging → main`).
+Đường `/ship --merge` (PR feature/fix → `staging`) **không có gate build
++test nào cả** trước khi merge — chỉ dựa vào việc operator tự nhớ đã
+chạy test trước đó trong phiên. Thêm `required_status_checks` (check
+`build (20.x)`/`build (22.x)`, đúng job/matrix thật trong
+`.github/workflows/node.js.yml`) vào CẢ 2 branch bịt lỗ hổng này: mọi PR
+vào `staging` HOẶC `main`, dù qua `/ship`, `/release`, hay merge tay trên
+GitHub UI, đều bắt buộc CI thật (chạy trên máy GitHub, không phải máy
+local của operator) phải xanh trước khi `gh pr merge` được chấp nhận —
+kể cả `enforce_admins: true` nên owner cũng không bypass được.
+
+`strict: false` (không phải `true`): không bắt buộc nhánh đang merge
+phải chứa commit mới nhất của base trước khi merge. Vì repo chỉ có 1
+maintainer, những PR chồng lấn hiếm khi xảy ra — bật `strict: true` chỉ
+thêm thao tác "update branch" thủ công không cần thiết mỗi lần base
+nhích lên, mà không mua thêm an toàn tương xứng.
 
 ## Release process
 
