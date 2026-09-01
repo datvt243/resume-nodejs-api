@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-REPO="datvt243/nodejs-resume-api-ts"
+REPO="datvt243/resume-nodejs-api"
 MILESTONE_TITLE="v1.0.0 - Hardening"
 
 if ! command -v gh >/dev/null 2>&1; then

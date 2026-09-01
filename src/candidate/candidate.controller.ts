@@ -16,6 +16,7 @@ import {
   handlerGetInformationById,
   handlerUploadCV,
   handlerGetCVFile,
+  handlerGetVisits,
 } from '@/candidate/candidate.service';
 import { CV_UPLOAD_DIR } from '@/middlewares/uploadCV.middleware';
 import { t } from '@/utils/i18n';
@@ -101,6 +102,20 @@ export const fnDownloadCV = async (req: Request, res: Response, next: NextFuncti
 
     const filePath = path.join(CV_UPLOAD_DIR, `${candidateId}-cv.pdf`);
     return res.download(filePath, cvFile.originalName || 'CV.pdf');
+  } catch (err) {
+    handleError(err, next, (req as any).lang);
+  }
+};
+
+export const fnGetVisits = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Self only — always the authenticated user's own id (same IDOR-safe
+   * pattern as fnUpdate/fnDelete/fnDownloadCV), never a client-supplied
+   * one, so a candidate can only ever see their own visit stats.
+   */
+  try {
+    const _result = await handlerGetVisits((req as any).user?._id, (req as any).lang);
+    return formatReturn(res, { ..._result });
   } catch (err) {
     handleError(err, next, (req as any).lang);
   }

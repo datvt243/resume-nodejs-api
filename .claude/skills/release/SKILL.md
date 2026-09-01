@@ -21,10 +21,20 @@ Base directory for this skill: `.claude/skills/release`
   (`enforce_admins: true`, `required_approving_review_count: 0` — 0 vì
   GitHub không cho tự approve PR của chính mình, để ≥1 sẽ tự khoá luôn
   khả năng agent/CLI tự merge; `allow_force_pushes/deletions: false`;
-  `required_status_checks: null` — không dùng GitHub check để gate, vì
-  gate thật nằm ngay trong bước 2 của `/release`). Nghĩa là **không ai
-  push thẳng được vào 2 branch này, kể cả owner** — mọi thay đổi phải
-  qua PR, kể cả version-bump commit của chính `/release`.
+  `required_status_checks: { strict: false, checks: ["build (20.x)",
+  "build (22.x)"] }` — tên check thật lấy từ `.github/workflows/node.js.yml`
+  (job `build`, matrix Node 20.x/22.x), gắn từ khi thêm real CI gate vào
+  branch protection. `strict: false` — không bắt buộc branch phải
+  up-to-date với `main`/`staging` trước khi merge, tránh phát sinh thao
+  tác rebase/update-branch thủ công cho một maintainer duy nhất; cái cần
+  gate là "CI có pass trên chính commit này không", không phải "branch
+  có mới nhất không"). Đây là gate BỔ SUNG cho gate cục bộ ở bước 3 dưới
+  đây (worktree cô lập) — không thay thế nó: bước 2 bắt lỗi sớm trước cả
+  khi tạo PR, còn `required_status_checks` là lưới an toàn thật trên
+  GitHub, quan trọng nhất cho đường `/ship --merge` (merge vào `staging`)
+  vốn trước đây không có gate build+test nào cả trước khi merge. Nghĩa
+  là **không ai push thẳng được vào 2 branch này, kể cả owner** — mọi
+  thay đổi phải qua PR, kể cả version-bump commit của chính `/release`.
 - Default branch trên GitHub là `main` (đổi từ `develop` khi dựng
   workflow này) — để "Closes #n" trong PR body tự đóng issue thật khi PR
   merge vào `main` (GitHub chỉ auto-close khi merge vào default branch).
@@ -112,28 +122,36 @@ Base directory for this skill: `.claude/skills/release`
    - Check trước có PR mở trùng head/base chưa (`gh pr list --base main
      --head <head> --state open`) — có thì dùng lại, không tạo trùng.
 
-8. **Merge PR bằng merge commit thật, không squash**:
+8. **Chờ CI thật xong trước khi merge**: `gh pr checks <số PR> --watch
+   --required`. Poll tới khi `build (20.x)`/`build (22.x)` xong, thoát
+   khác 0 nếu fail. Đây là lưới an toàn THỨ HAI, sau gate cục bộ ở bước 3
+   — bình thường sẽ pass ngay vì bước 3 đã build+test đúng commit này
+   rồi, nhưng vẫn chờ thật thay vì giả định GitHub Actions chắc chắn
+   xanh. Fail → DỪNG, không merge, báo log CI thật
+   (`gh run view <run-id> --log-failed`).
+
+9. **Merge PR bằng merge commit thật, không squash**:
    `gh pr merge <số PR> --merge`. Lý do merge thường thay vì squash:
    giữ nguyên lịch sử từng commit trên `staging` khi lên `main` (mỗi
    node/feature vẫn có commit riêng, dễ `git bisect`/audit sau này thay
    vì gộp thành 1 commit lớn mất chi tiết). KHÔNG `--admin`/bypass nếu
    bị chặn thật (CI fail, review thiếu...) — báo lỗi `gh` thật, dừng.
 
-9. **Tag đúng merge commit vừa tạo**:
-   ```
-   git fetch origin main --quiet
-   git tag -a vX.Y.Z origin/main -m "Release vX.Y.Z"
-   git push origin vX.Y.Z
-   ```
-   (Version = version mới ở bước 4, kể cả case "lần đầu" dùng version
-   hiện có trong `package.json`.)
+10. **Tag đúng merge commit vừa tạo**:
+    ```
+    git fetch origin main --quiet
+    git tag -a vX.Y.Z origin/main -m "Release vX.Y.Z"
+    git push origin vX.Y.Z
+    ```
+    (Version = version mới ở bước 4, kể cả case "lần đầu" dùng version
+    hiện có trong `package.json`.)
 
-10. **Deploy — không tự gọi gì thêm**: `main` vừa nhận push từ merge ở
-    bước 8 → `.github/workflows/deploy.yml` tự kích hoạt (Render). Báo
+11. **Deploy — không tự gọi gì thêm**: `main` vừa nhận push từ merge ở
+    bước 9 → `.github/workflows/deploy.yml` tự kích hoạt (Render). Báo
     link theo dõi: `gh run list --branch main --workflow deploy.yml
     --limit 1` lấy run mới nhất, in URL.
 
-11. **Sync version-bump ngược lại `staging`** (bỏ qua nếu bước 5 không
+12. **Sync version-bump ngược lại `staging`** (bỏ qua nếu bước 5 không
     chạy — case "lần đầu" không có gì để sync vì `staging` vốn đã là
     nguồn):
     - Check PR mở trùng chưa: `gh pr list --base staging --head
@@ -141,16 +159,19 @@ Base directory for this skill: `.claude/skills/release`
     - Chưa có: `gh pr create --base staging --head release/vX.Y.Z
       --title "chore(release): sync vX.Y.Z version bump back to staging"
       --body "..."`.
+    - `staging` cũng có `required_status_checks` — chờ CI xong trước khi
+      merge: `gh pr checks <số PR> --watch --required`, fail thì dừng
+      (cùng logic bước 8, không merge PR có CI đỏ dù chỉ là bump version).
     - Merge bằng merge commit: `gh pr merge <số PR> --merge` (nhánh này
       chỉ có đúng 1 commit bump, method nào cũng tương đương nhưng giữ
-      merge commit cho nhất quán với bước 8).
+      merge commit cho nhất quán với bước 9).
 
-12. **Dọn nhánh release tạm** (chỉ nhánh `release/vX.Y.Z`, KHÔNG đụng
-    `staging`/`main`): sau khi CẢ 2 PR ở bước 8 và 11 đã merge xong,
+13. **Dọn nhánh release tạm** (chỉ nhánh `release/vX.Y.Z`, KHÔNG đụng
+    `staging`/`main`): sau khi CẢ 2 PR ở bước 9 và 12 đã merge xong,
     `git push origin --delete release/vX.Y.Z` + `git branch -D
     release/vX.Y.Z` (local, nếu có).
 
-13. **Verify + đóng issue còn sót + báo cáo cuối**:
+14. **Verify + đóng issue còn sót + báo cáo cuối**:
     - Với mỗi issue thu thập ở bước 6: `gh issue view <N> --json state`.
       Vẫn `OPEN` (auto-close không fire, ví dụ do PR không phải PR đầu
       tiên tham chiếu issue đó) → `gh issue close <N> --comment
@@ -169,9 +190,10 @@ Base directory for this skill: `.claude/skills/release`
 - KHÔNG bao giờ push thẳng vào `main`/`staging` — mọi thay đổi (kể cả
   version-bump commit của chính `/release`) đi qua PR + `gh pr merge`,
   đúng như branch protection đã bật thật.
-- KHÔNG merge nếu bước 3 (gate build+test) fail — không có ngoại lệ,
-  không "merge trước sửa sau".
-- KHÔNG squash/rebase ở bước 8 — bắt buộc merge commit thật để giữ lịch
+- KHÔNG merge nếu bước 3 (gate build+test cục bộ) HOẶC bước 8/12 (CI
+  thật trên GitHub, `required_status_checks`) fail — không có ngoại lệ,
+  không "merge trước sửa sau", không dùng `--admin` để bypass check đỏ.
+- KHÔNG squash/rebase ở bước 9 — bắt buộc merge commit thật để giữ lịch
   sử `staging` trên `main`.
 - KHÔNG tự gọi thêm deploy hook nào ngoài GitHub Action có sẵn — tránh
   deploy 2 lần cho cùng 1 commit lên Render.

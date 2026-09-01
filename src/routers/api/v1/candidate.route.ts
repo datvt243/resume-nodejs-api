@@ -7,7 +7,15 @@
 import express from 'express';
 const router = express.Router();
 
-import { fnGetInformationByEmail, fnUpdate, fnUpdateFields, fnDelete, fnUploadCV, fnDownloadCV } from '@/candidate/candidate.controller';
+import {
+  fnGetInformationByEmail,
+  fnUpdate,
+  fnUpdateFields,
+  fnDelete,
+  fnUploadCV,
+  fnDownloadCV,
+  fnGetVisits,
+} from '@/candidate/candidate.controller';
 import { uploadCVMiddleware } from '@/middlewares/uploadCV.middleware';
 
 /**
@@ -60,6 +68,35 @@ router.post('/upload-cv', uploadCVMiddleware, fnUploadCV);
  *         description: No CV has been uploaded yet
  */
 router.get('/cv-file', fnDownloadCV);
+
+/**
+ * @swagger
+ * /api/v1/candidate/visits:
+ *   get:
+ *     tags: [Candidate]
+ *     summary: Get the authenticated candidate's own profile visit count + list (recorded via POST /api/me/{email}/visit)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Visit count + list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         count: { type: number }
+ *                         visits:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/Visit'
+ */
+router.get('/visits', fnGetVisits);
 
 /**
  * @swagger
