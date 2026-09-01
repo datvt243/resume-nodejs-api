@@ -184,6 +184,16 @@ const options: swaggerJsdoc.Options = {
             position: { type: 'string' },
           },
         },
+        Visit: {
+          type: 'object',
+          properties: {
+            _id: { type: 'string' },
+            candidateId: { type: 'string' },
+            ip: { type: 'string' },
+            location: { type: 'string', description: 'Derived from IP via offline geoip-lite lookup; empty when the lookup has no match' },
+            createdAt: { type: 'string', format: 'date-time' },
+          },
+        },
         GeneralInformation: {
           type: 'object',
           properties: {

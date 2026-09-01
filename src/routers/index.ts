@@ -8,7 +8,7 @@ import express, { Request, Response } from 'express';
 
 const router = express.Router();
 
-import { fnGetAboutMe } from '@/candidate_me';
+import { fnGetAboutMe, fnRecordVisit } from '@/candidate_me';
 import routerAPI from './api/v1/index';
 import routerAPIV2 from './api/v2/index';
 /**
@@ -57,6 +57,31 @@ router.use('/api/v2', routerAPIV2);
  *         description: Email not found
  */
 router.get('/api/me/:email', fnGetAboutMe);
+
+/**
+ * @swagger
+ * /api/me/{email}/visit:
+ *   post:
+ *     tags: [CandidateMe]
+ *     summary: Record a visit to a candidate's public profile (count, timestamp, IP, geo-location), no auth required
+ *     parameters:
+ *       - in: path
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: email
+ *     responses:
+ *       200:
+ *         description: Visit recorded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       400:
+ *         description: Email not found
+ */
+router.post('/api/me/:email/visit', fnRecordVisit);
 
 /**
  * 404
