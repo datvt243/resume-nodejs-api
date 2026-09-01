@@ -2,7 +2,7 @@
   "name": "resume-nodejs-api",
   "main": "src/server.ts",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Resume API backend with rate limiting and Redis support",
   "scripts": {
     "dev-node": "ts-node -r tsconfig-paths/register src/server.ts",
