@@ -10,6 +10,7 @@ import { validateSchema, formatReturn, handleError, throwBadRequestError } from 
 import { schemaAuthRegister, schemaAuthLogin, schemaForgotPassword, schemaResetPassword } from './auth.validate';
 import { handlerRegister, handlerLogin, handlerForgotPassword, handlerResetPassword, handlerVerifyEmail } from './auth.service';
 import { addToBlacklist, isBlacklisted } from '@/utils/tokenBlacklist';
+import { invalidateAllSessions, getSessionsInvalidatedAt, isSessionRevoked } from '@/utils/sessionRevocation';
 import { jwtSign, jwtVerify } from '@/utils';
 import { extractTokenFromRequest } from '@/utils/helper-auth';
 import { TOKEN_SECRET, TOKEN_REFRESH, TOKEN_EXP_IN, TOKEN_REFRESH_EXP_IN } from '@/config/process.config';
@@ -119,13 +120,24 @@ export const authRefreshToken = async (req: Request, res: Response, next: NextFu
 
     // verify refresh token
     const decoded = jwtVerify(refreshToken, TOKEN_REFRESH);
-    const { _id } = (decoded as { _id?: string }) || {};
+    const { _id, iat } = (decoded as { _id?: string; iat?: number }) || {};
     if (!_id)
       return formatReturn(res, {
         statusCode: StatusCodes.UNAUTHORIZED,
         success: false,
         message: t('auth.invalidRefreshPayload', (req as any).lang),
       });
+
+    // "Log out of all devices" (issue #74): a refresh token issued before
+    // the candidate's last logout-all must not be usable to mint new pairs.
+    const invalidatedAt = await getSessionsInvalidatedAt(_id);
+    if (isSessionRevoked(iat, invalidatedAt)) {
+      return formatReturn(res, {
+        statusCode: StatusCodes.FORBIDDEN,
+        success: false,
+        message: t('auth.refreshTokenRevoked', (req as any).lang),
+      });
+    }
 
     // rotate: blacklist old refresh token
     await addToBlacklist(refreshToken);
@@ -256,6 +268,36 @@ export const authLogout = async (req: Request, res: Response, next: NextFunction
       statusCode: StatusCodes.OK,
       success: true,
       message: t('auth.logoutSuccess', (req as any).lang),
+    });
+  } catch (err) {
+    handleError(err, next, (req as any).lang);
+  }
+};
+
+/**
+ * Chức năng "Log out of all devices" (issue #74): thu hồi mọi token đã
+ * phát cho candidate này tính đến thời điểm hiện tại — không chỉ token
+ * hiện tại như /logout. Yêu cầu route được gắn `verifyToken` trước, nên
+ * `req.user._id` luôn tồn tại khi tới đây.
+ */
+export const authLogoutAll = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const candidateId = (req as any).user?._id;
+
+    if (!candidateId) {
+      return formatReturn(res, {
+        statusCode: StatusCodes.UNAUTHORIZED,
+        success: false,
+        message: t('auth.noTokenToLogout', (req as any).lang),
+      });
+    }
+
+    await invalidateAllSessions(candidateId);
+
+    return formatReturn(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: t('auth.logoutAllSuccess', (req as any).lang),
     });
   } catch (err) {
     handleError(err, next, (req as any).lang);

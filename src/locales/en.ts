@@ -16,6 +16,7 @@ export default {
     tokenRefreshed: 'Token refreshed',
     noTokenToLogout: 'No token provided to logout',
     logoutSuccess: 'Logged out successfully',
+    logoutAllSuccess: 'Logged out of all devices successfully',
     forgotPasswordRequested: 'If the email exists, a password reset link has been generated',
     resetTokenInvalid: 'Password reset token is invalid or has expired',
     resetPasswordSuccess: 'Password reset successful',
