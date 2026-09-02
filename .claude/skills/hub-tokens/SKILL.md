@@ -54,10 +54,12 @@ echo "pick_next/verify_seal — large size here is not a recurring cost):"
 ARCHIVE_B=$(find "$HUB/haven/diagrams" -type f -iname "*archive*" 2>/dev/null -exec cat {} + 2>/dev/null | wc -c | tr -d ' ')
 EVI_I_B=$(bytes_glob "$HUB/evidence/implementer")
 EVI_V_B=$(bytes_glob "$HUB/evidence/verifier")
+TODO_LOG_B=$(wc -c < "$HUB/evidence/worker-runs.log" 2>/dev/null | tr -d ' '); TODO_LOG_B=${TODO_LOG_B:-0}
 row "haven/diagrams/*archive*" "$ARCHIVE_B"
 row "evidence/implementer/" "$EVI_I_B"
 row "evidence/verifier/" "$EVI_V_B"
-COLD_B=$(( ARCHIVE_B + EVI_I_B + EVI_V_B ))
+row "evidence/worker-runs.log" "$TODO_LOG_B"
+COLD_B=$(( ARCHIVE_B + EVI_I_B + EVI_V_B + TODO_LOG_B ))
 row "= cold storage total" "$COLD_B"
 echo
 TOTAL_B=$(( SESSION_B + COLD_B ))

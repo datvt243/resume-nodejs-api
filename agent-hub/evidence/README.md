@@ -6,12 +6,16 @@
 evidence/implementer/<date>/<slug>-plan.md
 evidence/implementer/<date>/<slug>-diff.md
 evidence/verifier/<date>/<slug>-{seal|reopen}.md
+evidence/worker-runs.log
 ```
 Date as `YYYY-mm-dd`, slug kebab-case from the task name.
 
 ## Format — implementer note
 - Title (date - node) · Worker · Version · Node (points to diagram) · Task
   (verbatim prompt)
+- `## Hub bytes before` — [added 2026-09-02] byte count measured at
+  `pick_next` step 7, before the diff starts — the verifier reads this
+  back when writing `worker-runs.log`, don't skip it
 - `## Diff` — files | file | why |
 - `## Command` — exact command from `doctrine/MEMORY.md`
 - `## Output` — verbatim, no paraphrasing
@@ -27,6 +31,31 @@ Date as `YYYY-mm-dd`, slug kebab-case from the task name.
   (PENDING/SEALED/REOPEN)
 - `## Reasoning` — cite evidence for each criterion
 - `## Missing` — only present on REOPEN
+- `## Re-run` — [added 2026-09-02] `none`/`partial`/`full`, declared
+  honestly per what was actually done (see "Re-run scope" in
+  `recipes/verify_seal.md`), with a reason if not `none`. The verifier
+  reads this back when writing `worker-runs.log` — not decorative.
+
+## Format — worker-runs.log
+- [added 2026-09-02] NOT a narrative note like the ones above — an
+  **append-only file, 1 line per implementer or verifier pass that ends**.
+  Written by `pick_next.md`/`implement.md`/`verify_seal.md` themselves.
+- Two line shapes:
+  - Implementer (only on `blocked`/`failed`, never reaching the verifier):
+    `<ISO timestamp> role=implementer outcome=blocked|failed node=<slug>
+    hub_bytes_before=<N> verifier_rerun=n/a`
+  - Verifier (every verdict — SEAL or REOPEN):
+    `<ISO timestamp> role=verifier outcome=SEAL|REOPEN node=<slug>
+    rerun=none|partial|full hub_bytes_before=<N> hub_bytes_after=<N>`
+  `hub_bytes_*` use this hub's own `/hub-tokens` "per-session total"
+  formula.
+- One line per round-trip, not one per node's whole lifetime — a node
+  REOPENed 3 times has 3 verifier lines sharing the same `node=`.
+- **Purpose**: real, non-inferred data to spot patterns later — repeated
+  REOPEN, a verifier re-running despite the audit-only default, an
+  unusual jump in hub size between two runs. Not a real token count.
+- Cold storage — not re-read wholesale every worker session, only opened
+  when someone audits patterns on purpose. NEVER delete a line.
 
 ## The three rules of this directory
 1. **VERBATIM, ALWAYS** — no claim without real cited evidence.

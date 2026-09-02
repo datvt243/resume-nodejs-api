@@ -24,6 +24,14 @@
    `doctrine/domains/PROJECT.md`), consider adding it there or to
    `MEMORY.md`.
 10. Write to `evidence/` following the format in `evidence/README.md`.
+11. [added 2026-09-02] ONLY when the result is `blocked` or `failed`
+    (never reaches the verifier) — append one line to
+    `evidence/worker-runs.log` (create the file if missing):
+    `role=implementer outcome=blocked|failed node=<slug>
+    hub_bytes_before=<N from pick_next step 7> verifier_rerun=n/a`. When
+    the result is `sealed_pending_verifier`, do NOT log here — the
+    verifier logs both sides (before/after) in `verify_seal.md` once it
+    has a real verdict.
 
 ## Hard rules honored
 `SmallestDiff` | `TestsBeforeDone` | `EvidencePerAction` | `NoSilentFailure` |
