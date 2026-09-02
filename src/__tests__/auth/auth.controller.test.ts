@@ -4,19 +4,21 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { authRegister, authLogin, authRefreshToken, authLogout, authCreateRefreshToken } from '@/auth/auth.controller';
+import { authRegister, authLogin, authRefreshToken, authLogout, authLogoutAll, authCreateRefreshToken } from '@/auth/auth.controller';
 import * as validateSchema from '@/utils';
 import * as formatReturn from '@/utils';
 import * as handleError from '@/utils';
 import * as tokenBlacklist from '@/utils/tokenBlacklist';
 import * as jwt from '@/utils';
 import * as helperAuth from '@/utils/helper-auth';
+import * as sessionRevocation from '@/utils/sessionRevocation';
 import { handlerRegister, handlerLogin } from '@/auth/auth.service';
 
 // Mock modules
 jest.mock('@/utils');
 jest.mock('@/utils/tokenBlacklist');
 jest.mock('@/utils/helper-auth');
+jest.mock('@/utils/sessionRevocation');
 jest.mock('@/auth/auth.service');
 jest.mock('@/auth/auth.validate', () => ({
   schemaAuthRegister: {},
@@ -45,6 +47,9 @@ const mockNext = jest.fn() as NextFunction;
 describe('auth.controller', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // no logout-all in effect by default
+    (sessionRevocation.getSessionsInvalidatedAt as jest.Mock).mockResolvedValue(null);
+    (sessionRevocation.isSessionRevoked as jest.Mock).mockImplementation(jest.requireActual('@/utils/sessionRevocation').isSessionRevoked);
   });
 
   describe('authRegister', () => {
@@ -230,6 +235,43 @@ describe('auth.controller', () => {
         expect.objectContaining({
           statusCode: StatusCodes.BAD_REQUEST,
           message: 'Không có token để đăng xuất',
+        }),
+      );
+    });
+  });
+
+  describe('authLogoutAll', () => {
+    it('invalidates all sessions for the authenticated candidate', async () => {
+      const req: any = mockRequest();
+      req.user = { _id: 'user_id' };
+      const res = mockResponse();
+
+      (sessionRevocation.invalidateAllSessions as jest.Mock).mockResolvedValue(true);
+
+      await authLogoutAll(req, res, mockNext);
+
+      expect(sessionRevocation.invalidateAllSessions).toHaveBeenCalledWith('user_id');
+      expect(formatReturn.formatReturn).toHaveBeenCalledWith(
+        res,
+        expect.objectContaining({
+          statusCode: StatusCodes.OK,
+          success: true,
+          message: 'Đã đăng xuất khỏi tất cả thiết bị',
+        }),
+      );
+    });
+
+    it('fails when there is no authenticated user on the request', async () => {
+      const req: any = mockRequest();
+      const res = mockResponse();
+
+      await authLogoutAll(req, res, mockNext);
+
+      expect(sessionRevocation.invalidateAllSessions).not.toHaveBeenCalled();
+      expect(formatReturn.formatReturn).toHaveBeenCalledWith(
+        res,
+        expect.objectContaining({
+          statusCode: StatusCodes.UNAUTHORIZED,
         }),
       );
     });

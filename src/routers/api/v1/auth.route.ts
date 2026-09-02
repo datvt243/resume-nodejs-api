@@ -7,8 +7,9 @@
 import express from 'express';
 const router = express.Router();
 
-import { authRegister, authLogin, authLogout, authRefreshToken, authForgotPassword, authResetPassword, authVerifyEmail } from '@/auth/auth.controller';
+import { authRegister, authLogin, authLogout, authLogoutAll, authRefreshToken, authForgotPassword, authResetPassword, authVerifyEmail } from '@/auth/auth.controller';
 import { createRateLimiter } from '@/middlewares/rateLimit.middleware';
+import { verifyToken } from '@/middlewares/verifyToken.middleware';
 
 // Apply rate limit for auth routes (150 requests per 15 minutes)
 const authLimiter = createRateLimiter({ max: 150, windowMs: 15 * 60 * 1000, keyPrefix: 'auth-rl' });
@@ -99,6 +100,31 @@ router.get('/login', authLogin);
  *               $ref: '#/components/schemas/ApiResponse'
  */
 router.post('/logout', authLogout);
+
+/**
+ * @swagger
+ * /api/v1/auth/logout-all:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Log out of all devices — revoke every token issued to this candidate up to now
+ *     description: >
+ *       Unlike /logout (which blacklists only the current access token), this
+ *       invalidates every access and refresh token issued before this call,
+ *       including the one used to make this request. All devices/sessions
+ *       will need to log in again.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All sessions revoked
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       401:
+ *         description: Missing, invalid, expired, or already-revoked token
+ */
+router.post('/logout-all', verifyToken, authLogoutAll);
 
 /**
  * @swagger

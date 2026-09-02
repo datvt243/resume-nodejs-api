@@ -8,6 +8,7 @@ import { StatusCodes } from 'http-status-codes';
 import { TOKEN_SECRET } from '@/config/process.config';
 import { jwtVerify } from '@/utils/jwt';
 import { isBlacklisted } from '@/utils/tokenBlacklist';
+import { getSessionsInvalidatedAt, isSessionRevoked } from '@/utils/sessionRevocation';
 import { ErrorCode, TokenExpiredError, TokenRevokedError, InvalidTokenError, AuthenticationError } from '@/errors';
 
 import { extractTokenFromRequest } from '@/utils/helper-auth';
@@ -29,10 +30,18 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
     }
 
     const decoded = jwtVerify(token, TOKEN_SECRET);
-    const { _id } = (decoded as { _id?: string }) || {};
+    const { _id, iat } = (decoded as { _id?: string; iat?: number }) || {};
 
     if (!_id) {
       return next(new InvalidTokenError('Invalid token payload.'));
+    }
+
+    // "Log out of all devices" (issue #74): reject any token issued before
+    // the candidate's last logout-all, even if it hasn't blacklisted-out or
+    // expired on its own yet.
+    const invalidatedAt = await getSessionsInvalidatedAt(_id);
+    if (isSessionRevoked(iat, invalidatedAt)) {
+      return next(new TokenRevokedError('Token has been revoked.'));
     }
 
     // Attach authenticated user info. Also force req.body.candidateId to the
