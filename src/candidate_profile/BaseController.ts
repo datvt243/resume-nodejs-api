@@ -14,6 +14,11 @@ interface baseProp {
   findOne?: boolean;
 }
 
+// Field name used to sort by — no `$`, so this can't smuggle a Mongo
+// operator into `.sort()`, and it can only ever reorder rows, never widen
+// which rows come back. A leading `-` (Mongoose convention) means desc.
+const SORT_FIELD_REGEX = /^-?[a-zA-Z0-9_.]+$/;
+
 const modelObject: { [key: string]: any } = {
   generalInformation: MODELS.generalInformation,
   experiences: MODELS.Experience,
@@ -30,12 +35,20 @@ export const baseGetAll = async (req: Request, res: Response, next: NextFunction
   if (!candidateId || !collection || !modelObject[collection])
     return formatReturn(res, { statusCode: StatusCodes.NOT_FOUND, data: null, message: t('common.notFoundData', (req as any).lang) });
 
+  // Optional pagination/sort (issue #73). Omitting page/limit keeps the
+  // pre-existing "return everything" behavior (`data` stays a plain
+  // array) — this is purely additive, no existing caller is affected.
+  const { page, limit, sort } = req.query as Record<string, string | undefined>;
+
   try {
     const _result = await baseFindDocument({
       fields: { candidateId: candidateId },
       model: modelObject[collection],
       findOne: false,
       lang: (req as any).lang,
+      page: page !== undefined ? parseInt(page, 10) : undefined,
+      limit: limit !== undefined ? parseInt(limit, 10) : undefined,
+      sort: sort && SORT_FIELD_REGEX.test(sort) ? sort : undefined,
     });
     return formatReturn(res, { ..._result });
   } catch (err) {

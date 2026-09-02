@@ -19,9 +19,13 @@ const router = express.Router();
  *     summary: List all awards for the authenticated candidate
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - $ref: '#/components/parameters/SortParam'
  *     responses:
  *       200:
- *         description: List of awards
+ *         description: List of awards. Passing `limit` switches `data` to `{ items, pagination }` instead of a bare array.
  *         content:
  *           application/json:
  *             schema:
