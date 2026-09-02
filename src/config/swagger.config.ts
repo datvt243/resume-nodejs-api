@@ -28,6 +28,33 @@ const options: swaggerJsdoc.Options = {
           bearerFormat: 'JWT',
         },
       },
+      parameters: {
+        // Pagination (issue #73) — shared by every CV-section `GET /` list
+        // endpoint via BaseController.baseGetAll. All three are optional;
+        // omitting `limit` returns the full, unpaginated array exactly as
+        // before (see ApiResponse vs ApiResponsePaginated).
+        PageParam: {
+          in: 'query',
+          name: 'page',
+          required: false,
+          schema: { type: 'integer', minimum: 1, default: 1 },
+          description: '1-indexed page number. Ignored unless `limit` is also given.',
+        },
+        LimitParam: {
+          in: 'query',
+          name: 'limit',
+          required: false,
+          schema: { type: 'integer', minimum: 1, maximum: 100 },
+          description: 'Page size (max 100). Providing this switches the response `data` shape from an array to `{ items, pagination }`.',
+        },
+        SortParam: {
+          in: 'query',
+          name: 'sort',
+          required: false,
+          schema: { type: 'string' },
+          description: "Mongoose sort expression, e.g. `startDate` or `-createdAt` for descending. Invalid values are silently ignored.",
+        },
+      },
       schemas: {
         ApiResponse: {
           type: 'object',
@@ -36,6 +63,18 @@ const options: swaggerJsdoc.Options = {
             message: { type: 'string' },
             errors: { nullable: true },
             data: { nullable: true },
+          },
+        },
+        // Shape of `data` when a `GET /` list endpoint is called with
+        // `?limit=` (issue #73) — otherwise `data` stays a plain array,
+        // as documented on ApiResponse.
+        Pagination: {
+          type: 'object',
+          properties: {
+            page: { type: 'integer' },
+            limit: { type: 'integer' },
+            total: { type: 'integer' },
+            totalPages: { type: 'integer' },
           },
         },
         SocialMedia: {
