@@ -19,9 +19,13 @@ const router = express.Router();
  *     summary: List all references for the authenticated candidate
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - $ref: '#/components/parameters/SortParam'
  *     responses:
  *       200:
- *         description: List of references
+ *         description: List of references. Passing `limit` switches `data` to `{ items, pagination }` instead of a bare array.
  *         content:
  *           application/json:
  *             schema:

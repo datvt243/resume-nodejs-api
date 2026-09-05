@@ -19,9 +19,13 @@ const router = express.Router();
  *     summary: List all education entries for the authenticated candidate
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - $ref: '#/components/parameters/SortParam'
  *     responses:
  *       200:
- *         description: List of education entries
+ *         description: List of education entries. Passing `limit` switches `data` to `{ items, pagination }` instead of a bare array.
  *         content:
  *           application/json:
  *             schema:

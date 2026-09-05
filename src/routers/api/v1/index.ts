@@ -59,12 +59,12 @@ router.use('/certificate', verifyToken, routeCertificate);
  *         required: false
  *         schema:
  *           type: string
- *           enum: [pdf, json]
+ *           enum: [pdf, json, docx]
  *           default: pdf
- *         description: Response format. `json` returns the same aggregated candidate data used to render the PDF, as JSON, instead of a PDF file.
+ *         description: Response format. `json` returns the same aggregated candidate data used to render the PDF, as JSON. `docx` returns the same data as an editable Word document, instead of a PDF file.
  *     responses:
  *       200:
- *         description: PDF file stream, or the candidate's aggregated data as JSON when `format=json`
+ *         description: PDF file stream, the candidate's aggregated data as JSON when `format=json`, or a .docx file when `format=docx`
  *         content:
  *           application/pdf:
  *             schema:
@@ -73,6 +73,10 @@ router.use('/certificate', verifyToken, routeCertificate);
  *           application/json:
  *             schema:
  *               type: object
+ *           application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+ *             schema:
+ *               type: string
+ *               format: binary
  */
 router.get('/download-pdf', verifyTokenByQuery, fnExportPDF);
 

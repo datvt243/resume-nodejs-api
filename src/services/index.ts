@@ -12,7 +12,14 @@ interface baseProp {
   fields: { _id?: string; candidateId?: string };
   findOne?: boolean;
   lang?: string;
+  page?: number;
+  limit?: number;
+  sort?: string;
 }
+
+// Pagination (issue #73) hard cap — a caller cannot request more than this
+// many documents per page regardless of what `limit` it passes.
+const MAX_PAGE_LIMIT = 100;
 
 const formatReturn = (props: BaseReturn) => {
   const { success = false, message = '', errors = null, data = null } = props;
@@ -37,21 +44,50 @@ export const formatReturnFailed = (props: string | BaseReturn) => {
 };
 
 export const baseFindDocument = async (props: baseProp) => {
-  const { model: MODEL, fields = { _id: '' }, findOne = true, lang = DEFAULT_LANG } = props;
+  const { model: MODEL, fields = { _id: '' }, findOne = true, lang = DEFAULT_LANG, page, limit, sort } = props;
 
   if (!MODEL || !fields || !Object.keys(fields).length) return formatReturnFailed(t('common.notFoundData', lang));
 
-  let find;
   const idQuerySafe = (await import('@/utils/querySafe')).idQuerySafe;
   const safeFields = idQuerySafe.safeQuery({}, fields);
+
   if (findOne) {
-    find = await MODEL.findOne(safeFields).exec();
-  } else {
-    find = await MODEL.find(safeFields).exec();
+    const find = await MODEL.findOne(safeFields).exec();
+    return formatReturn({ success: true, data: find, message: '', errors: null });
   }
+
+  let query = MODEL.find(safeFields);
+  if (sort) query = query.sort(sort);
+
+  /**
+   * Pagination (issue #73) is opt-in: it only kicks in when the caller
+   * passes a valid positive `limit`. No `limit` -> exactly the old
+   * behavior (`data` is the full, unpaginated array), so every existing
+   * caller of baseGetAll keeps working unchanged.
+   */
+  const hasPagination = Number.isInteger(limit) && (limit as number) > 0;
+  if (!hasPagination) {
+    const find = await query.exec();
+    return formatReturn({ success: true, data: find, message: '', errors: null });
+  }
+
+  const safeLimit = Math.min(limit as number, MAX_PAGE_LIMIT);
+  const safePage = Number.isInteger(page) && (page as number) > 0 ? (page as number) : 1;
+  const skip = (safePage - 1) * safeLimit;
+
+  const [items, total] = await Promise.all([query.skip(skip).limit(safeLimit).exec(), MODEL.countDocuments(safeFields)]);
+
   return formatReturn({
     success: true,
-    data: find,
+    data: {
+      items,
+      pagination: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages: Math.max(Math.ceil(total / safeLimit), 1),
+      },
+    },
     message: '',
     errors: null,
   });

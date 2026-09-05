@@ -11,6 +11,7 @@ import geoip from 'geoip-lite';
 import { formatReturn, handleError } from '@/utils';
 import { formatReturnFailed } from '@/services';
 import { createCV } from '@/services/createPDF';
+import { createCVDocx } from '@/services/createDocx';
 import * as MODEL from '@/models';
 
 // Localized ({vi, en}) fields get resolved down to a single string for
@@ -210,6 +211,13 @@ export const fnExportPDF = async (req: Request, res: Response, next: NextFunctio
     // the PDF path — no new dependency, no new data-fetch (issue #76).
     if (req.query.format === 'json') {
       formatReturn(res, { success, message, data });
+      return;
+    }
+
+    // ?format=docx (issue #76, remainder) — same aggregated data, packed
+    // as a .docx instead of rendered to PDF.
+    if (req.query.format === 'docx') {
+      await createCVDocx(data, res);
       return;
     }
 

@@ -27,7 +27,13 @@
 6. Declare blockers: if a needed command is still `<<FILL>>` in
    `doctrine/MEMORY.md` (currently: lint/typecheck), report blocked
    instead of guessing.
-7. Evidence: write `evidence/implementer/<date>/<slug>-plan.md`.
+7. [added 2026-09-02] Measure `hub_bytes_before` — the total bytes across
+   the 5 categories `/hub-tokens` calls the "per-session total" (root
+   files, `doctrine/`, the active `haven/diagrams/`, 2 worker bundles).
+   Record this number in the evidence note at step 8 — the verifier reads
+   it back to compute the hub-size diff in `worker-runs.log`.
+8. Evidence: write `evidence/implementer/<date>/<slug>-plan.md`, including
+   the line `## Hub bytes before: <N>` from step 7.
 
 ## Hard rules honored
 `NodeBeforeCode` | `EvidencePerAction` | `NoSilentFailure`
