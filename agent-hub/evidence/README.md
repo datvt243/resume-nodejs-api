@@ -29,6 +29,12 @@ Date as `YYYY-mm-dd`, slug kebab-case from the task name.
 ## Format — verifier verdict
 - Worker (subagent, dispatched via Agent tool) · Node · New PM status
   (PENDING/SEALED/REOPEN)
+- `## Isolation proof` — [added 2026-09-06, fed back from real production
+  use in `datvt243.github.io`] cites whatever makes this a genuinely
+  separate subagent spawn (see `recipes/verify_seal.md` step 1b) — not
+  technically enforced by a hook, but a missing/suspicious line here is
+  itself citeable evidence for a later audit that `NeverVerifyOwnWork`'s
+  subagent-isolation step was skipped.
 - `## Reasoning` — cite evidence for each criterion
 - `## Missing` — only present on REOPEN
 - `## Re-run` — [added 2026-09-02] `none`/`partial`/`full`, declared
