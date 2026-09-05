@@ -18,6 +18,9 @@
    — reuse from `/boot` if available (see GUARD above), else `Read` fresh.
 2. Get every diagram in `haven/diagrams/`, list every node + PM status —
    reuse from `/boot` if available (see GUARD above), else `Read` fresh.
+   [clarified 2026-09-05] "every diagram" means every file WITHOUT
+   `archive` in its name — an archive file is cold storage, not re-read
+   here, matching `/boot` step 5's rule exactly.
 3. Find the earliest PENDING node on the critical path (e.g. the seed node
    `fix-chrome-executable-path` in `dev-loop.prime-mermaid.md`).
 4. No match → don't invent work; report "no PENDING node" clearly, stop.
@@ -36,12 +39,12 @@
    the line `## Hub bytes before: <N>` from step 7.
 
 ## Hard rules honored
-`NodeBeforeCode` | `EvidencePerAction` | `NoSilentFailure`
+`NodeBeforeCode` | `EvidencePerAction` | `NoSilentFailure` | `AppendOnly`
 
 ## Failure branches
 | Failure | Handling |
 |---|---|
-| No diagram exists yet | Create `haven/diagrams/<slug>.prime-mermaid.md` matching the `dev-loop` format |
+| No diagram exists yet | Create `haven/diagrams/<slug>.prime-mermaid.md` matching the `dev-loop` format. [added 2026-09-05] Always APPEND the new row at the END of the PM status table, never insert it in the middle — required for `agent-hub/.gitattributes`' `merge=union` to merge cleanly when 2 branches each add a different new node around the same time. |
 | Task is ambiguous | Stop and ask, don't guess |
 
 ## Runtime
