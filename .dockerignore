@@ -1,0 +1,25 @@
+node_modules
+dist
+build
+logs
+*.log
+npm-debug.log*
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+coverage
+.DS_Store
+# Keep the directories themselves (their .gitkeep, matching git) — the
+# app writes to these exact relative paths at runtime regardless of
+# NODE_ENV (see Dockerfile's production stage comment); only the
+# generated content inside is excluded from the build context.
+src/public/pdf/*
+!src/public/pdf/.gitkeep
+src/public/uploads/cv/*
+!src/public/uploads/cv/.gitkeep
+src/public/uploads/images/*
+!src/public/uploads/images/.gitkeep
+.vscode
+.idea
