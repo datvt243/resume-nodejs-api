@@ -1,0 +1,53 @@
+# Production stack (issue #24): compiled API + MongoDB.
+#
+#   cp .env.example .env   # fill in REAL secrets, do not use dev defaults
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Unlike docker-compose.yml (dev), this file has NO built-in secret
+# defaults — a real `.env` is required, and MongoDB's port is not
+# published to the host (only reachable from `api` on the compose
+# network).
+#
+# Port note: src/server.ts hardcodes the app to listen on 3008 whenever
+# NODE_ENV=production, ignoring LOCAL_PORT entirely (pre-existing
+# behavior, see the `fix-prod-port-ignores-local-port` trap in
+# agent-hub/doctrine/domains/PROJECT.md). The port below is deliberately
+# a fixed literal, not a ${LOCAL_PORT} substitution — Compose reads a
+# project-root `.env` for its OWN variable substitution (separate from
+# the `env_file:` injection below), so templating this off LOCAL_PORT
+# would silently follow whatever value `.env.example`'s LOCAL_PORT=3001
+# carries and publish the wrong host port too.
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data-prod:/data/db
+    healthcheck:
+      # mongosh itself can take a few seconds to start on a loaded/emulated
+      # host (observed ~3.4s on this machine) — timeout/start_period sized
+      # with real headroom above that, not the bare minimum.
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  api:
+    build:
+      context: .
+      target: production
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      MONGO_URI: mongodb://mongo:27017/resume-api
+    ports:
+      - '3008:3008'
+
+volumes:
+  mongo-data-prod:
