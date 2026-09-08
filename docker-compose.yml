@@ -1,0 +1,54 @@
+# Development stack (issue #24): hot reload API + MongoDB.
+#
+#   docker compose up --build
+#   -> http://localhost:3001/health
+#
+# No .env required to get started — sane (insecure) dev defaults are
+# baked in below via ${VAR:-default} substitution. Create a real `.env`
+# (see .env.example) to override any of them; docker compose reads it
+# automatically for this substitution.
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      # mongosh itself can take a few seconds to start on a loaded/emulated
+      # host (observed ~3.4s on this machine) — timeout/start_period sized
+      # with real headroom above that, not the bare minimum.
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  api:
+    build:
+      context: .
+      target: development
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      LOCAL_PORT: ${LOCAL_PORT:-3001}
+      MONGO_URI: mongodb://mongo:27017/resume-api
+      SESSION_SECRET: ${SESSION_SECRET:-dev-session-secret-change-me}
+      TOKEN_SECRET: ${TOKEN_SECRET:-dev-token-secret-change-me-32-chars-min}
+      TOKEN_REFRESH: ${TOKEN_REFRESH:-dev-refresh-secret-change-me-32-chars-min}
+      TOKEN_EXP_IN: ${TOKEN_EXP_IN:-7d}
+      REDIS_URL: ${REDIS_URL:-}
+    ports:
+      - '3001:3001'
+    volumes:
+      - .:/app
+      - /app/node_modules
+    # Redis is intentionally not included — the app already falls back to
+    # an in-memory rate-limit/blacklist store when REDIS_URL is unset
+    # (see src/services/redis.ts).
+
+volumes:
+  mongo-data:

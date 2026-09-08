@@ -107,6 +107,30 @@ REDIS_URL=redis://localhost:6379  # Optional
 
 ---
 
+## 🐳 Docker
+
+No local Node/Mongo install needed — everything runs in containers.
+
+**Dev** (hot reload, insecure built-in dev secrets, no `.env` required):
+```
+docker compose up --build
+```
+→ http://localhost:3001/health
+
+**Prod** (compiled image, real secrets required):
+```
+cp .env.example .env   # fill in real TOKEN_SECRET/TOKEN_REFRESH/SESSION_SECRET
+docker compose -f docker-compose.prod.yml up -d --build
+```
+→ http://localhost:3008/health
+
+Both stacks include a MongoDB 7 container (`mongo`) with a persistent
+volume — no separate Mongo Atlas connection needed for local use. Redis
+is intentionally not containerized; the app already falls back to an
+in-memory store when `REDIS_URL` is unset.
+
+---
+
 ## 📚 API Endpoints (v1 - JWT required except auth)
 
 ### Auth `/api/v1/auth`

@@ -1,14 +1,38 @@
 > the gate.
 
 # Contract
-- Input: path to an evidence note under `evidence/implementer/`.
-- Output: `{verdict: SEAL|REOPEN, node, cited: string[], missing: string[],
-  forbidden_hit: string|null, pm_updated: boolean}`
+- Input: path to an evidence note under `evidence/implementer/`, OR
+  multiple paths (batch), OR `all-pending` (every node currently
+  `sealed_pending_verifier` on the active diagram — see "Batch verify"
+  below). [batch added 2026-09-05]
+- Output: AN ARRAY, 1 element per node: `{verdict: SEAL|REOPEN, node,
+  cited: string[], missing: string[], forbidden_hit: string|null,
+  pm_updated: boolean, rerun: none|partial|full, isolation_proof:
+  string}` — `isolation_proof` is a real self-declaration (step 1b), not
+  inferred from outside.
 - REFUSAL: if this exact session wrote the diff under review → refuse
   immediately: "I wrote this, a separate verifier pass is required."
   (`NeverVerifyOwnWork`) — in practice moot, since verify_seal runs as a
   fresh subagent dispatched via the Agent tool with no implementation
-  history.
+  history. In a batch, this check still applies PER NODE: refuse just a
+  self-written node, don't cancel the rest of the batch.
+
+## Batch verify [added 2026-09-05]
+The heaviest cost of a verify pass isn't the act of verifying — it's
+reloading the whole bundle + doctrine on every subagent spawn. Batch
+verify pays that cost EXACTLY ONCE for N nodes instead of N times,
+without changing anything about the substance of verifying:
+- The fresh-subagent-context guarantee + self-refusal check (step 1)
+  apply ONCE for the whole batch.
+- Steps 2-13 (read note, check criteria, scan forbidden states, verdict,
+  write verdict, Re-run declaration) run REPEATEDLY, INDEPENDENTLY, for
+  EACH node — using node A's evidence/reasoning to infer node B's verdict
+  is forbidden, even if the two notes look similar. Each node still gets
+  its own evidence, own verdict, own verdict note.
+- Being in a batch is NEVER an excuse to loosen any criterion in steps
+  2-13 — batching only folds the SPAWN COST, never the VERDICT.
+- `all-pending`: first list every `sealed_pending_verifier` node on
+  `dev-loop.prime-mermaid.md`, then run the full procedure below on each.
 
 ## Re-run scope [cost-driven, added 2026-09-02]
 Default: AUDIT the note, don't independently re-run `npm test`/`npm run
@@ -38,8 +62,16 @@ asks for — this section pins the boundary.
 ## Steps
 1. REFUSE SELF-GRADING FIRST — did I write this diff in this session? (No,
    by construction — subagent has a fresh context.)
-2. Read the NOTE — only the note, do NOT open the diff directly.
-   (`EvidenceOnly`)
+1b. [added 2026-09-06, fed back from real production use in
+   `datvt243.github.io`] Record proof this pass is really a separate
+   subagent context, not a self-report: cite whatever this invocation was
+   actually spawned with that the implementer pass didn't have (e.g. the
+   `description`/task string passed to the Agent tool for this spawn) —
+   write it into the note's `## Isolation proof` line (step 12a). No hook
+   technically blocks a skipped isolation — this only leaves a citeable
+   trail for a later audit.
+2. [LOOP STARTS HERE FOR EACH NODE if batch] Read the NOTE — only the
+   note, do NOT open the diff directly. (`EvidenceOnly`)
 3. Read the NODE — pull acceptance criteria from `haven/diagrams/`,
    forbidden states from `CLAUDE.md`. [GUARD, added 2026-08-31] Don't `Read
    agent-hub/CLAUDE.md` yourself for this — same mechanism as
@@ -61,8 +93,14 @@ asks for — this section pins the boundary.
 10. Verdict is exactly one of: SEAL (every criterion has cited evidence)
     or REOPEN (one important gap is enough).
 11. Only on SEAL: update the ratchet/PM status on
-    `haven/diagrams/dev-loop.prime-mermaid.md`.
+    `haven/diagrams/dev-loop.prime-mermaid.md`. [added 2026-09-05] Update
+    the node's own row IN PLACE (state column → SEALED) — never reorder,
+    move, or re-sort rows in the table (`AppendOnly`); this keeps
+    `agent-hub/.gitattributes`' `merge=union` able to merge cleanly
+    across branches.
 12. Write the verdict to `evidence/verifier/<date>/<slug>-{seal|reopen}.md`.
+12a. [added 2026-09-06] In that note, include the `## Isolation proof`
+   line from step 1b.
 12b. [added 2026-09-02] In the verdict note, truthfully declare 1 line
    `## Re-run`: `none` (audit-only, the correct default per "Re-run
    scope" above), `partial` (name exactly which command was re-run), or
@@ -84,7 +122,8 @@ asks for — this section pins the boundary.
    rest of `evidence/`.
 
 ## Hard rules honored
-`NeverVerifyOwnWork` | `EvidenceOnly` | `VerdictOnly` | `RatchetOnly`
+`NeverVerifyOwnWork` | `EvidenceOnly` | `VerdictOnly` | `RatchetOnly` |
+`AppendOnly`
 
 ## Failure branches
 | Failure | Handling |
@@ -96,4 +135,8 @@ asks for — this section pins the boundary.
 ## Runtime
 Dispatched as a subagent (Agent tool) by `/worker verifier "<task or
 note>"` or by `/todo` round 2 — never run in the implementer's own
-session.
+session. [added 2026-09-05] `/worker verifier "<path1> <path2> ..."`
+(multiple evidence note paths) or `/worker verifier all-pending` spawns
+ONE subagent that verifies every queued node independently — use this
+after several small implementer passes have piled up, instead of one
+`/worker verifier` call per node.

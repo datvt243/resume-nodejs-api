@@ -9,6 +9,13 @@ argument-hint: <implementer|verifier> "<task>"
 > Chạy MỘT worker cho MỘT task. Không bao giờ làm việc "chung chung" ngoài
 > vai trò — mọi hành động phải trace về `haven/workers/<wid>/`.
 
+> [thêm 2026-09-05] Riêng `verifier`, tham số task có thể là 1 đường dẫn
+> evidence note, NHIỀU đường dẫn cùng lúc (batch), hoặc từ khoá
+> `all-pending` (mọi node đang `sealed_pending_verifier` trên diagram
+> active) — xem "Batch verify" trong `recipes/verify_seal.md`. Batch chỉ
+> gộp chi phí spawn subagent (load bundle 1 lần cho cả lô), verdict vẫn
+> tính RIÊNG, ĐỘC LẬP cho từng node.
+
 ## Vòng chạy bắt buộc
 1. **Load bundle** — đọc đúng thứ tự:
    `agent-hub/haven/workers/<wid>/manifest.yaml` →
@@ -26,7 +33,13 @@ argument-hint: <implementer|verifier> "<task>"
      chấm, và node liên quan trên diagram. Subagent tự đọc note + diagram +
      `CLAUDE.md`, tự viết verdict vào `evidence/verifier/`, tự cập nhật PM
      status nếu SEAL. Đây chính là cách hiện thực `NeverVerifyOwnWork` thật
-     — subagent không có lịch sử hội thoại của lượt implement.
+     — subagent không có lịch sử hội thoại của lượt implement. [thêm
+     2026-09-06] Không có hook nào chặn thật việc bỏ qua bước spawn này —
+     `NeverVerifyOwnWork` là ràng buộc hạ tầng, không phải lời hứa tự
+     giác. Phòng vệ thật là dấu vết citeable: `recipes/verify_seal.md`
+     bước 1b bắt verifier ghi bằng chứng spawn riêng vào dòng
+     `## Isolation proof` của verdict note, để 1 audit sau này phát hiện
+     được nếu bước tách context bị bỏ qua.
 3. **Follow recipe** — chọn recipe khớp `quick_actions` của worker:
    - `implementer`: `pick_next` rồi `implement` (xem
      `recipes/pick_next.md`, `recipes/implement.md`).

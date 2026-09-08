@@ -18,7 +18,12 @@ description: Đọc doctrine + diagram + evidence gần nhất của agent-hub, 
    đó không xuất hiện trong phiên này.
 3. Đọc `agent-hub/doctrine/MEMORY.md` — lấy path, stack, lệnh chính xác.
 4. Đọc `agent-hub/doctrine/domains/PROJECT.md` — invariants/traps/decisions.
-5. Đọc mọi file trong `agent-hub/haven/diagrams/` — đếm node theo PM status.
+5. Đọc mọi file trong `agent-hub/haven/diagrams/` **TRỪ** file có chữ
+   `archive` trong tên (`dev-loop-archive.md`...) — [sửa 2026-09-05] đó là
+   cold storage theo thiết kế (xem ghi chú token-discipline trong
+   `dev-loop.prime-mermaid.md` + `hub-tokens.md`), đọc lại mỗi phiên phá
+   vỡ đúng mục đích archive. Chỉ đếm node + PM status từ file KHÔNG phải
+   archive.
 6. Đọc `agent-hub/haven/workers/*/manifest.yaml` — roster worker khả dụng.
 7. Đọc tối đa 5 evidence note gần nhất trong `agent-hub/evidence/`
    (implementer + verifier, mới nhất trước). Để liệt kê, dùng

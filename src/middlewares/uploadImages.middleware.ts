@@ -16,7 +16,16 @@ import crypto from 'crypto';
 import multer from 'multer';
 import { Request } from 'express';
 
-export const IMAGE_UPLOAD_DIR = path.join('src', 'public', 'uploads', 'images');
+// Anchored to __dirname, not a bare relative literal — resolves to
+// `src/public/uploads/images/` when running from source and
+// `dist/public/uploads/images/` when running compiled, matching exactly
+// what `express.static(path.join(__dirname, 'public'))` serves in
+// `src/server.ts` (fix-hardcoded-src-public-write-paths,
+// doctrine/domains/PROJECT.md — a bare `src/...` literal never matched
+// what's actually served in a compiled deploy, meaning these "public
+// portfolio" images were silently unreachable via their own static URL
+// outside a dev/ts-node run).
+export const IMAGE_UPLOAD_DIR = path.join(__dirname, '..', 'public', 'uploads', 'images');
 export const IMAGE_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB per file
 export const IMAGE_MAX_FILES = 5; // per request
 
