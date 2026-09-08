@@ -16,10 +16,13 @@ import { StatusCodes } from 'http-status-codes';
 import { formatReturn } from '@/utils';
 import { t } from '@/utils/i18n';
 
-// Relative to the process CWD (repo root when running `ts-node`/compiled
-// `dist/server.js` — same convention `services/createPDF.ts` already
-// uses for `src/public/pdf/`).
-export const CV_UPLOAD_DIR = path.join('src', 'public', 'uploads', 'cv');
+// Anchored to __dirname, not a bare relative literal — resolves to
+// `src/public/uploads/cv/` when running from source and
+// `dist/public/uploads/cv/` when running compiled, matching exactly what
+// `express.static(path.join(__dirname, 'public'))` serves in
+// `src/server.ts` (fix-hardcoded-src-public-write-paths,
+// doctrine/domains/PROJECT.md).
+export const CV_UPLOAD_DIR = path.join(__dirname, '..', 'public', 'uploads', 'cv');
 export const CV_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB, per operator decision
 
 const storage = multer.diskStorage({

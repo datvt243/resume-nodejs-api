@@ -8,15 +8,14 @@
 # published to the host (only reachable from `api` on the compose
 # network).
 #
-# Port note: src/server.ts hardcodes the app to listen on 3008 whenever
-# NODE_ENV=production, ignoring LOCAL_PORT entirely (pre-existing
-# behavior, see the `fix-prod-port-ignores-local-port` trap in
-# agent-hub/doctrine/domains/PROJECT.md). The port below is deliberately
-# a fixed literal, not a ${LOCAL_PORT} substitution — Compose reads a
-# project-root `.env` for its OWN variable substitution (separate from
-# the `env_file:` injection below), so templating this off LOCAL_PORT
-# would silently follow whatever value `.env.example`'s LOCAL_PORT=3001
-# carries and publish the wrong host port too.
+# Port note: src/server.ts now respects LOCAL_PORT in production too
+# (fixed — see the `fix-prod-port-ignores-local-port` trap history in
+# agent-hub/doctrine/domains/PROJECT.md), defaulting to 3008 only when
+# LOCAL_PORT is unset. `${LOCAL_PORT:-3008}` below matches that same
+# default and is safe now: Compose substitutes it from this directory's
+# `.env` (its own variable-substitution source, separate from the
+# `env_file:` injection below) — the SAME value the container itself
+# will actually bind to, since both now read the same LOCAL_PORT.
 services:
   mongo:
     image: mongo:7
@@ -47,7 +46,7 @@ services:
       NODE_ENV: production
       MONGO_URI: mongodb://mongo:27017/resume-api
     ports:
-      - '3008:3008'
+      - '${LOCAL_PORT:-3008}:${LOCAL_PORT:-3008}'
 
 volumes:
   mongo-data-prod:
