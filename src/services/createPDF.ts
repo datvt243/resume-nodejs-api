@@ -1,12 +1,27 @@
 import puppeteer from 'puppeteer';
 // import open from 'open';
 
+import path from 'path';
+import fs from 'fs';
 import { Response } from 'express';
 import { informationPersonal, Skill, Item, Language, Reference, Certificate, Award } from '@/types/candidate.type';
 
+// Anchored to __dirname, not a bare relative literal — resolves to
+// `src/public/pdf/` when running from source (ts-node, __dirname is
+// `src/services`) and `dist/public/pdf/` when running compiled
+// (__dirname is `dist/services`), matching exactly what
+// `express.static(path.join(__dirname, 'public'))` serves in
+// `src/server.ts` (fix-hardcoded-src-public-write-paths,
+// doctrine/domains/PROJECT.md — the old hardcoded `src/public/pdf/`
+// ENOENT'd in a minimal production Docker image that has no `src/` at
+// all, and even outside Docker never matched what's actually served in
+// a compiled deploy).
+const PDF_OUTPUT_DIR = path.join(__dirname, '..', 'public', 'pdf');
+
 export const createCV = async (data: Record<string, any>, res: Response) => {
   try {
-    const URL = `src/public/pdf/`;
+    if (!fs.existsSync(PDF_OUTPUT_DIR)) fs.mkdirSync(PDF_OUTPUT_DIR, { recursive: true });
+    const URL = `${PDF_OUTPUT_DIR}${path.sep}`;
 
     // Optional override for CI/Docker where a specific Chrome/Chromium must be pinned.
     // Unset: puppeteer resolves its own bundled Chromium automatically.
