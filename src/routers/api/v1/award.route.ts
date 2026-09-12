@@ -6,7 +6,7 @@
 
 import express, { Request, Response, NextFunction } from 'express';
 import { Collections } from '@/types/base.type';
-import { baseDelete, baseGetAll, baseUploadImages } from '@/candidate_profile/BaseController';
+import { baseDelete, baseGetAll, baseUploadImages, baseRestore } from '@/candidate_profile/BaseController';
 import { fnCreate, fnUpdate } from '@/candidate_profile/awards/award.controller';
 
 const router = express.Router();
@@ -128,6 +128,37 @@ router.delete(
     next();
   },
   baseDelete,
+);
+
+/**
+ * @swagger
+ * /api/v1/award/restore/{id}:
+ *   post:
+ *     tags: [Award]
+ *     summary: Restore a soft-deleted award entry by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Award restored
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ */
+router.post(
+  '/restore/:id',
+  (req: Request, res: Response, next: NextFunction) => {
+    req.params.collection = Collections.AWARD;
+    next();
+  },
+  baseRestore,
 );
 
 /**
