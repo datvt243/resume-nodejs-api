@@ -38,7 +38,9 @@ describe('baseFindDocument', () => {
     const model = createFakeModel([{ _id: '1', candidateId: 'c1' }]);
     const result = await baseFindDocument({ model, fields: { candidateId: 'c1' }, findOne: true });
 
-    expect(model.findOne).toHaveBeenCalledWith({ candidateId: 'c1' });
+    // deletedAt: null is the soft-delete exclusion filter (issue #121), added
+    // to every query by baseFindDocument regardless of caller-supplied fields.
+    expect(model.findOne).toHaveBeenCalledWith({ deletedAt: null, candidateId: 'c1' });
     expect(result).toEqual({ success: true, message: '', errors: null, data: { _id: '1', candidateId: 'c1' } });
   });
 
@@ -48,7 +50,8 @@ describe('baseFindDocument', () => {
 
     const result = await baseFindDocument({ model, fields: { candidateId: 'c1' }, findOne: false });
 
-    expect(model.find).toHaveBeenCalledWith({ candidateId: 'c1' });
+    // deletedAt: null is the soft-delete exclusion filter (issue #121).
+    expect(model.find).toHaveBeenCalledWith({ deletedAt: null, candidateId: 'c1' });
     expect(model.__query.skip).not.toHaveBeenCalled();
     expect(model.__query.limit).not.toHaveBeenCalled();
     expect(model.countDocuments).not.toHaveBeenCalled();
@@ -63,7 +66,8 @@ describe('baseFindDocument', () => {
 
     expect(model.__query.skip).toHaveBeenCalledWith(2); // (page 2 - 1) * limit 2
     expect(model.__query.limit).toHaveBeenCalledWith(2);
-    expect(model.countDocuments).toHaveBeenCalledWith({ candidateId: 'c1' });
+    // deletedAt: null is the soft-delete exclusion filter (issue #121).
+    expect(model.countDocuments).toHaveBeenCalledWith({ deletedAt: null, candidateId: 'c1' });
     expect(result.data).toEqual({
       items: docs,
       pagination: { page: 2, limit: 2, total: 2, totalPages: 1 },

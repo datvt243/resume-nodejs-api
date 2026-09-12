@@ -6,7 +6,7 @@
 
 import express, { Request, Response, NextFunction } from 'express';
 import { Collections } from '@/types/base.type';
-import { baseDelete, baseGetAll } from '@/candidate_profile/BaseController';
+import { baseDelete, baseGetAll, baseRestore } from '@/candidate_profile/BaseController';
 import { fnCreate, fnUpdate } from '@/candidate_profile/experience/experience.controller';
 
 const router = express.Router();
@@ -128,6 +128,37 @@ router.delete(
     next();
   },
   baseDelete,
+);
+
+/**
+ * @swagger
+ * /api/v1/experience/restore/{id}:
+ *   post:
+ *     tags: [Experience]
+ *     summary: Restore a soft-deleted work experience entry by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Experience entry restored
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ */
+router.post(
+  '/restore/:id',
+  (req: Request, res: Response, next: NextFunction) => {
+    req.params.collection = Collections.EXPERIENCE;
+    next();
+  },
+  baseRestore,
 );
 
 export default router;

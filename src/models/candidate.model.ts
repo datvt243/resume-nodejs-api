@@ -51,6 +51,8 @@ const schema = new Schema(
     isPublic: { type: Boolean, default: true, required: false },
     /* đã xác thực email chưa (issue #71) — không chặn login, chỉ để frontend tự quyết định hiển thị */
     emailVerified: { type: Boolean, default: false, required: false },
+    /* soft-delete (issue #121) — null nghĩa là chưa xoá */
+    deletedAt: { type: Number, default: null },
   },
   { timestamps: true },
 );
