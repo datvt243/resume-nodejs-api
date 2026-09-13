@@ -49,12 +49,18 @@ export const fnGetAboutMe = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-export const handlerGetAboutMe = async (email: string, lang: string = 'vi') => {
+export const handlerGetAboutMe = async (identifier: string, lang: string = 'vi') => {
   const removeFields = { __v: 0, createdAt: 0, updatedAt: 0, candidateId: 0 };
 
   const { candidateQuerySafe } = await import('@/utils/querySafe');
-  const safeEmailQuery = candidateQuerySafe.safeQuery({}, { email });
-  const document = await MODEL.Candidate.findOne(safeEmailQuery, { ...removeFields }).exec();
+  // Slug-first (issue #120) — a slug is a non-PII, shareable identifier;
+  // email lookup stays as a fallback so existing shared links keep working.
+  const safeSlugQuery = candidateQuerySafe.safeQuery({}, { slug: identifier });
+  let document = await MODEL.Candidate.findOne(safeSlugQuery, { ...removeFields }).exec();
+  if (!document) {
+    const safeEmailQuery = candidateQuerySafe.safeQuery({}, { email: identifier });
+    document = await MODEL.Candidate.findOne(safeEmailQuery, { ...removeFields }).exec();
+  }
   if (!document) return formatReturnFailed('Email không tồn tại');
 
   const { _id } = document;

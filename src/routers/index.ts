@@ -30,14 +30,14 @@ router.use('/api/v2', routerAPIV2);
  * /api/me/{email}:
  *   get:
  *     tags: [CandidateMe]
- *     summary: Get a candidate's full public profile (CV) by email, no auth required
+ *     summary: Get a candidate's full public profile (CV) by vanity slug or email (slug checked first, email as fallback for existing shared links), no auth required
  *     parameters:
  *       - in: path
  *         name: email
  *         required: true
  *         schema:
  *           type: string
- *           format: email
+ *         description: Vanity slug (e.g. `jane-doe-ab12`) or registration email
  *       - in: query
  *         name: lang
  *         required: false

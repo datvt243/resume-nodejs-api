@@ -10,6 +10,7 @@ import { TOKEN_SECRET, TOKEN_REFRESH, TOKEN_EXP_IN, TOKEN_REFRESH_EXP_IN } from 
 import { t, DEFAULT_LANG } from '@/utils/i18n';
 import { createResetToken, consumeResetToken } from '@/utils/passwordReset';
 import { createVerificationToken, consumeVerificationToken } from '@/utils/emailVerification';
+import { generateUniqueCandidateSlug } from '@/utils/slug';
 import { logger } from '@/logger';
 
 interface Auth {
@@ -45,10 +46,15 @@ export const handlerRegister = async (item: Auth, lang: string = DEFAULT_LANG) =
    */
 
   const bcryptPwd = await bcryptGenerateSalt(password);
+  // Vanity slug (issue #120) — auto-generated here since no name is
+  // collected at register time, only email/password; base comes from the
+  // email's local-part.
+  const slug = await generateUniqueCandidateSlug(email.split('@')[0]);
   await CandidateModel.create({
     _id: null,
     email: email,
     password: bcryptPwd,
+    slug,
   });
 
   // STUB (issue #71, same gap as #70): no email-sending infra exists yet
