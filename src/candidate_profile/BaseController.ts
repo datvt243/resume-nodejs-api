@@ -4,7 +4,7 @@ import { Schema } from 'joi';
 import multer from 'multer';
 
 import { formatReturn, handleError, validateSchema } from '@/utils/index';
-import { baseDeleteDocument, baseFindDocument } from '@/services';
+import { baseDeleteDocument, baseFindDocument, baseRestoreDocument } from '@/services';
 import * as MODELS from '@/models';
 import { t } from '@/utils/i18n';
 import { uploadImagesMiddleware } from '@/middlewares/uploadImages.middleware';
@@ -68,6 +68,33 @@ export const baseDelete = async (req: Request, res: Response, next: NextFunction
    */
   try {
     const _result = await baseDeleteDocument({
+      model: modelObject[collection],
+      _id: id,
+      userID: req.body.candidateId || '',
+      name: '',
+      lang: (req as any).lang,
+    });
+    return formatReturn(res, { ..._result });
+  } catch (err) {
+    //
+    handleError(err, next, (req as any).lang);
+  }
+};
+
+export const baseRestore = async (req: Request, res: Response, next: NextFunction) => {
+  const { id, collection = '' } = req.params;
+
+  if (!id) return formatReturn(res, { success: false, message: t('common.notFoundId', (req as any).lang) });
+  if (!(collection && modelObject[collection]))
+    return formatReturn(res, { success: false, message: t('common.cannotRestore', (req as any).lang) });
+
+  /**
+   * restore (issue #121) — same ownership pattern as baseDelete: userID
+   * always comes from req.body.candidateId, which verifyToken.middleware.ts
+   * already forces to the authenticated req.user._id.
+   */
+  try {
+    const _result = await baseRestoreDocument({
       model: modelObject[collection],
       _id: id,
       userID: req.body.candidateId || '',

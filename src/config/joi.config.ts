@@ -5,7 +5,7 @@
  */
 
 import Joi from 'joi';
-import { phoneRegex } from '@/config/regex.config';
+import { phoneRegex, slugRegex } from '@/config/regex.config';
 
 export const PASSWORD_MIN_LENGTH = 12;
 export const PASSWORD_MAX_LENGTH = 128;
@@ -173,6 +173,16 @@ export const startDate = Joi.number().required().messages({
 });
 export const endDate = Joi.number().greater(Joi.ref('startDate')).messages({
   'number.greater': 'Ngày kết thúc phải lớn hơn ngày bắt đầu',
+});
+
+// Vanity slug for the public profile (issue #120) — lowercased before the
+// pattern check runs so a caller sending mixed case isn't rejected (the
+// Mongoose model also lowercases on save, this just keeps validation
+// consistent with the stored value).
+export const slug = Joi.string().trim().lowercase().min(3).max(50).pattern(slugRegex).messages({
+  'string.min': 'Slug phải có ít nhất {#limit} ký tự',
+  'string.max': 'Slug không được vượt quá {#limit} ký tự',
+  'string.pattern.base': 'Slug chỉ được chứa chữ thường, số và dấu gạch ngang',
 });
 
 export const _boolean = Joi.boolean();

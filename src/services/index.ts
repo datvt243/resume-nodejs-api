@@ -49,7 +49,12 @@ export const baseFindDocument = async (props: baseProp) => {
   if (!MODEL || !fields || !Object.keys(fields).length) return formatReturnFailed(t('common.notFoundData', lang));
 
   const idQuerySafe = (await import('@/utils/querySafe')).idQuerySafe;
-  const safeFields = idQuerySafe.safeQuery({}, fields);
+  // Soft-delete (issue #121): exclude documents that have been soft-deleted
+  // by default. `fields` can never override this key (safeQuery only ever
+  // merges keys from its own allow-list into the base query), so every
+  // existing caller keeps working unchanged — they just stop seeing
+  // soft-deleted rows.
+  const safeFields = idQuerySafe.safeQuery({ deletedAt: null }, fields);
 
   if (findOne) {
     const find = await MODEL.findOne(safeFields).exec();
@@ -110,15 +115,54 @@ export const baseDeleteDocument = async (props: { model: any; _id: string; name:
   if (candidateId.toString() !== userID) return formatReturnFailed(t('common.deleteNotYours', lang));
 
   /**
-   * tiến hành xoá
+   * Soft-delete (issue #121): mark deletedAt instead of removing the
+   * document, so it can be recovered via baseRestoreDocument. Same
+   * ownership check and same return shape as the old hard delete.
    */
   let success = false,
     message = t('common.deleteFailed', lang),
     error = null;
   try {
-    const { deletedCount = 0 } = await MODEL.deleteOne({ _id }).exec();
-    success = !!deletedCount;
+    const { modifiedCount = 0 } = await MODEL.updateOne({ _id }, { deletedAt: Date.now() }).exec();
+    success = !!modifiedCount;
     message = t('common.deleteSuccess', lang);
+  } catch (err) {
+    error = err;
+  }
+
+  return formatReturn({
+    success,
+    message,
+    errors: error,
+  });
+};
+
+export const baseRestoreDocument = async (props: { model: any; _id: string; name: string; userID: string; lang?: string }) => {
+  const { model: MODEL, _id: __id, userID, lang = DEFAULT_LANG } = props;
+
+  /**
+   * Check Document có tồn tại không -> findById. `baseCheckDocumentById`
+   * doesn't filter on `deletedAt`, so it finds the document whether it's
+   * currently soft-deleted or not.
+   */
+  const { isExist, message: _mess, document } = await _baseHelper().baseCheckDocumentById(MODEL, __id, lang);
+  if (!isExist) return formatReturnFailed(_mess);
+
+  const { _id, candidateId = '' } = document;
+
+  /**
+   * Kiểm tra doc cần khôi phục có thuộc người đang khôi phục hay không
+   * (cùng logic ownership check với baseDeleteDocument)
+   */
+  if (candidateId.toString() !== userID) return formatReturnFailed(t('common.restoreNotYours', lang));
+
+  let success = false,
+    message = t('common.restoreFailed', lang),
+    error = null;
+  try {
+    const { modifiedCount = 0 } = await MODEL.updateOne({ _id }, { deletedAt: null }).exec();
+    success = !!modifiedCount;
+    message = t('common.restoreSuccess', lang);
   } catch (err) {
     error = err;
   }
