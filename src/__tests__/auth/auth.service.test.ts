@@ -65,6 +65,9 @@ describe('auth.service', () => {
 
       (CandidateModel.findOne as jest.Mock)
         .mockResolvedValueOnce(null) // existence check
+        // issue #120 — generateUniqueCandidateSlug's uniqueness check
+        // (`.findOne(...).select('_id').exec()`), no collision on 1st try
+        .mockReturnValueOnce({ select: () => ({ exec: () => Promise.resolve(null) }) })
         .mockResolvedValueOnce(mockSavedDoc); // re-fetch after create
       (bcrypt.bcryptGenerateSalt as jest.Mock).mockResolvedValue(mockHash);
       (CandidateModel.create as jest.Mock).mockResolvedValue({ _id: null, email: 'new@example.com' });
@@ -81,8 +84,9 @@ describe('auth.service', () => {
         _id: null,
         email: 'new@example.com',
         password: mockHash,
+        slug: expect.stringMatching(/^new-[a-z0-9]+$/),
       });
-      expect(CandidateModel.findOne).toHaveBeenNthCalledWith(2, { email: 'new@example.com' });
+      expect(CandidateModel.findOne).toHaveBeenNthCalledWith(3, { email: 'new@example.com' });
       // issue #71 — a verification token is created (stub: logged, not emailed)
       expect(createVerificationToken).toHaveBeenCalledWith('new_id');
       expect(result).toEqual({ success: true, message: 'Đăng ký thành công' });

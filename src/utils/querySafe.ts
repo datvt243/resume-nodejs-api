@@ -50,6 +50,7 @@ export const candidateQuerySafe = new QuerySafe([
   'github',
   'linkedin',
   'website',
+  'slug',
 ]);
 
 export const idQuerySafe = new QuerySafe(['_id', 'candidateId', 'email']);
