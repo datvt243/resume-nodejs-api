@@ -5,7 +5,7 @@
  */
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { validateSchema, formatReturn, handleError, throwBadRequestError } from '@/utils';
+import { validateSchema, formatReturn, handleError, throwBadRequestError, setAuthCookies, clearAuthCookies } from '@/utils';
 
 import { schemaAuthRegister, schemaAuthLogin, schemaForgotPassword, schemaResetPassword } from './auth.validate';
 import { handlerRegister, handlerLogin, handlerForgotPassword, handlerResetPassword, handlerVerifyEmail } from './auth.service';
@@ -82,6 +82,13 @@ export const authLogin = async (req: Request, res: Response, next: NextFunction)
   try {
     const _result = await handlerLogin({ email: value.email, password: value.password }, (req as any).lang);
 
+    // issue #119: also set httpOnly cookies so the frontend can migrate off
+    // localStorage — kept alongside the existing response-body tokens
+    // during the transition (frontend issue resume-vuejs-website#8).
+    if (_result?.success && _result?.data) {
+      setAuthCookies(res, { token: _result.data.token, tokenRefresh: _result.data.tokenRefresh });
+    }
+
     return formatReturn(res, {
       statusCode: StatusCodes[_result?.success ? 'OK' : 'UNAUTHORIZED'],
       success: _result?.success || false,
@@ -145,6 +152,9 @@ export const authRefreshToken = async (req: Request, res: Response, next: NextFu
     // create new tokens
     const newAccess = jwtSign({ _id }, TOKEN_SECRET, { expiresIn: TOKEN_EXP_IN || '1h' });
     const newRefresh = jwtSign({ _id }, TOKEN_REFRESH, { expiresIn: TOKEN_REFRESH_EXP_IN });
+
+    // issue #119: rotate the httpOnly cookies to match the rotated tokens
+    setAuthCookies(res, { token: newAccess, tokenRefresh: newRefresh });
 
     return formatReturn(res, {
       statusCode: StatusCodes.OK,
@@ -264,6 +274,9 @@ export const authLogout = async (req: Request, res: Response, next: NextFunction
 
     await addToBlacklist(token);
 
+    // issue #119: clear the httpOnly auth cookies on logout
+    clearAuthCookies(res);
+
     return formatReturn(res, {
       statusCode: StatusCodes.OK,
       success: true,
@@ -293,6 +306,9 @@ export const authLogoutAll = async (req: Request, res: Response, next: NextFunct
     }
 
     await invalidateAllSessions(candidateId);
+
+    // issue #119: also clear the caller's own httpOnly auth cookies
+    clearAuthCookies(res);
 
     return formatReturn(res, {
       statusCode: StatusCodes.OK,

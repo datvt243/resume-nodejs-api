@@ -10,6 +10,7 @@ import dotenv from 'dotenv';
 import path, { dirname } from 'path';
 import express from 'express';
 import bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import session from 'express-session';
 import swaggerUi from 'swagger-ui-express';
@@ -32,6 +33,11 @@ const runServer = async ({ portNumber }: { portNumber: number }) => {
    * request logging
    */
   app.use(requestLogger);
+
+  /**
+   * parse cookies (issue #119: httpOnly JWT cookies) → req.cookies
+   */
+  app.use(cookieParser());
 
   /**
    * resolve request language (Accept-Language) → req.lang / req.t(key)
