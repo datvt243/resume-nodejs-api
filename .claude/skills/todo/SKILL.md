@@ -1,14 +1,44 @@
 ---
 name: todo
-description: "Gộp /worker implementer và /worker verifier thành 1 lệnh gõ cho một task — vẫn chạy 2 lượt tách biệt bên trong, tự lặp lại khi REOPEN. Dùng: /todo \"<task>\""
-argument-hint: "<task>"
+description: "Resolve/tạo GitHub issue + checkout branch riêng của issue đó, rồi gộp /worker implementer và /worker verifier thành 1 lệnh gõ cho một task — vẫn chạy 2 lượt tách biệt bên trong, tự lặp lại khi REOPEN. Dùng: /todo \"<task>\"|#<số-issue> [--ship]"
+argument-hint: "<task>"|#<số-issue> [--ship]
 ---
 
-# /todo "<task>"
+# /todo "<task>"|#<số-issue> [--ship]
 
 > Orchestrate lại đúng skill `worker` 2 lần, ở 2 lượt tách biệt. KHÔNG tự
 > triển khai lại logic implement/verify riêng — chỉ gọi `/worker` theo
 > đúng thứ tự bên dưới.
+
+## Bước 0 — resolve issue + checkout branch (chạy TRƯỚC bất kỳ worker nào)
+1. **Resolve issue**:
+   - Tham số khớp `^#?\d+$` (issue mode) → `gh issue view <số> --json
+     number,title,url`. Không tìm thấy / `gh` chưa đăng nhập → dừng, báo
+     lỗi thật, không tự đoán tiếp.
+   - Ngược lại (free-text) → `gh issue create --title "<dòng đầu của
+     task>" --body "<toàn bộ task>"` để mở issue mới, lấy `<số>`/`<title>`/
+     `<url>` thật từ output lệnh. Lỗi (không có `gh`, chưa auth, chưa có
+     remote) → dừng, báo lỗi, KHÔNG tự chạy tiếp không có issue.
+   - Từ đây `<task>` cho phần còn lại của lượt `/todo` này là title + body
+     của issue đã resolve, không chỉ đúng chuỗi CLI gốc.
+2. **Tính tên branch**: `<số>-<slug>`, `<slug>` = 3 từ đầu của issue title,
+   viết thường, ký tự không phải chữ/số gộp thành `-`.
+3. **Base branch**: `staging` (theo `doctrine/domains/PROJECT.md` — mô hình
+   2 tầng `staging` → `main`, mọi branch fix/feature branch ra từ
+   `staging`).
+4. **Sync base branch thật**: `git fetch origin`, `git checkout staging`,
+   `git pull origin staging` — luôn làm trước khi branch ra, không bao giờ
+   branch từ bản local cũ. Lỗi pull/conflict → dừng, báo lỗi thật, không tự
+   force/stash/discard.
+5. **Checkout branch của issue**: `gh issue develop <số> --list` trước —
+   nếu đã có branch liên kết (đang làm tiếp) → checkout branch đó rồi
+   `git pull` trên đó luôn, không tạo branch thứ 2 cho cùng issue. Chưa có
+   → `gh issue develop <số> --checkout --base staging --name <số>-<slug>`.
+   Lỗi git (dirty tree, base ref không tồn tại...) → dừng, báo lỗi thật,
+   không tự force/stash/discard.
+6. **Báo cáo** issue (`#<số>`, URL) + tên branch trước khi qua Lượt 1 —
+   đây là report, KHÔNG phải gate phê duyệt thứ 2 (gate thật duy nhất
+   trong toàn chuỗi `/todo` vẫn là push của `/ship`).
 
 ## Quy trình
 1. **Lượt 1 — implementer**: chạy tương đương `/worker implementer "<task>"`,
@@ -28,9 +58,19 @@ argument-hint: "<task>"
 3. **Verdict = REOPEN** → tự động quay lại Lượt 1 với đúng lý do REOPEN
    trích từ evidence note của subagent verifier. Lặp tối đa **3 lần**. Chạm
    giới hạn → dừng, báo operator tự quyết định, không tự lặp thêm.
-4. **Verdict = SEAL** → dừng, báo kết quả. KHÔNG tự `commit`/`push` —
-   seal gate trong `CLAUDE.md` vẫn áp dụng cho mọi hành động
-   outward-facing trên `src/`, kể cả khi gọi qua `/todo`.
+4. **Verdict = SEAL** → báo kết quả (node, evidence, issue + branch ở Bước
+   0).
+   - **Không có `--ship`** (mặc định): dừng ở đây. KHÔNG tự
+     `commit`/`push` — seal gate trong `CLAUDE.md` vẫn áp dụng cho mọi
+     hành động outward-facing trên `src/`, kể cả khi gọi qua `/todo`.
+   - **Có `--ship`**: gọi ngay `/ship "<task>"` đúng như skill đó định
+     nghĩa — KHÔNG tự triển khai lại logic của `/ship` ở đây. `/ship` vẫn
+     chạy TOÀN BỘ hợp đồng của chính nó (guard chặn main/staging, show
+     git commands thật, chờ approval, evidence note riêng) — `--ship` chỉ
+     bỏ bước gõ `/ship` làm lệnh thứ 2, KHÔNG bỏ qua seal gate của
+     `/ship`. Muốn `--merge` (mở PR vào staging) thì gõ `/ship --merge`
+     riêng sau, hoặc `/todo "<task>" --ship` rồi tự thêm `--merge` — cờ
+     `--ship` ở đây không tự suy ra `--merge`.
 
 ## Hiển thị agent-hub trong phiên
 `agent-hub/` (evidence note của cả 2 lượt, PM status, MEMORY.md) là tài
@@ -51,6 +91,9 @@ REOPEN. Diff của `src/` vẫn hiển thị đầy đủ khi implementer đụn
 - Nếu `doctrine/MEMORY.md` còn `<<FILL>>` khiến implementer `blocked` ngay
   từ lượt 1, dừng và báo blocker — không cố gắng "đoán qua" để tiếp tục
   vòng lặp, và không dispatch subagent verifier khi chưa có gì để chấm.
+- `--ship` KHÔNG BAO GIỜ tự chạy khi vòng lặp dừng ở `blocked`/thất bại
+  test/chạm giới hạn 3 lần REOPEN — không có SEAL thì không có gì để
+  ship.
 
 ## Ví dụ
 ```

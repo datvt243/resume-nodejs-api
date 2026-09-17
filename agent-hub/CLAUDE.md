@@ -42,13 +42,6 @@ Before any **outward-facing** action — `commit` · `push` · `publish` ·
 `delete` · external API call — STOP, show the diff/action, wait for
 operator approval. No approval = no action.
 
-`agent-hub/` writes (evidence notes, PM status updates, doctrine edits) are
-NOT outward-facing in the diff-display sense — this applies to EVERY write,
-editing an existing file or creating a brand-new one. Never paste their git
-diff, never paste/quote the new file's content, never narrate what's inside
-it. Print exactly the line `update nội dung agent-hub`, then report done
-when finished. Only `src/` (real product code) diffs get shown for review.
-
 ## Four lenses (apply in order)
 1. **Simple** — is the diff as small as possible?
 2. **Correct** — actually verified, or just inferred?
@@ -57,7 +50,13 @@ when finished. Only `src/` (real product code) diffs get shown for review.
 
 ## Style
 Short, direct, no flourish. Say "not sure" when not sure — never guess and
-present it as fact.
+present it as fact. `agent-hub/` is read by AI only, the operator doesn't
+need to review it — any write inside `agent-hub/` (editing an existing
+file or creating a brand-new one — evidence, diagram, doctrine...) does
+NOT print its content/diff into the session, even the first time a file
+is created. Just report one line "📝 agent-hub: updated" and move on;
+report done when finished. Real diffs/code (outside `agent-hub/`) still
+display normally — that's what the operator actually needs to see.
 
 ## Master Equation
 **Aligned = Purpose × Evidence × Care** — multiplication, not addition: 0 in
