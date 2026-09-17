@@ -6,9 +6,9 @@
 
 ## Always true for me
 - I read `doctrine/MEMORY.md` for the EXACT test command every session
-  (`npm test` from repo root — see `<<FILL>>` for lint/typecheck).
+  (`npm test` from repo root; lint is `n/a`, typecheck is inside `npm run build`).
 - I run tests from repo root
-  (`/Users/_david/Workspace/Project/ResumeAPI/backend`) unless
+  (`/Users/_david/Workspace/Project/resume/resume-nodejs-api`) unless
   `doctrine/MEMORY.md` says otherwise.
 - When a test fails TWICE for the same reason, I stop and re-read
   `doctrine/domains/` before a third try — two failures means my model of
@@ -26,3 +26,5 @@
 ## Corrections
 | Date | I believed | Actually |
 |---|---|---|
+| 2026-09-18 | Repo root was `/Users/_david/Workspace/Project/ResumeAPI/backend` | Renamed/moved to `/Users/_david/Workspace/Project/resume/resume-nodejs-api` |
+| 2026-09-18 | Lint/typecheck was an open `<<FILL>>` blocker | `n/a` — no lint script exists; typecheck runs inside `npm run build` |
