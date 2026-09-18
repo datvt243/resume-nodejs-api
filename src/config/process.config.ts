@@ -29,6 +29,7 @@ const {
   REDIS_URL,
   MONGO_MAX_POOL_SIZE,
   MONGO_MIN_POOL_SIZE,
+  CORS_ORIGIN,
 } = process.env;
 
 // No dedicated env var for refresh-token lifetime; default it to
@@ -50,4 +51,5 @@ export {
   REDIS_URL,
   MONGO_MAX_POOL_SIZE,
   MONGO_MIN_POOL_SIZE,
+  CORS_ORIGIN,
 };

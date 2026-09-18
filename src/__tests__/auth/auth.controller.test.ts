@@ -115,6 +115,7 @@ describe('auth.controller', () => {
       await authLogin(req, res, mockNext);
 
       expect(handlerLogin).toHaveBeenCalledWith({ email: 'test@example.com', password: 'pass123' }, undefined);
+      expect((jwt as any).setAuthCookies).toHaveBeenCalledWith(res, { token: 'token', tokenRefresh: 'refresh' });
       expect(formatReturn.formatReturn).toHaveBeenCalledWith(
         res,
         expect.objectContaining({
@@ -156,6 +157,7 @@ describe('auth.controller', () => {
       await authRefreshToken(req, res, mockNext);
 
       expect(helperAuth.extractTokenFromRequest).toHaveBeenCalledWith(req, 'refreshToken');
+      expect((jwt as any).setAuthCookies).toHaveBeenCalledWith(res, { token: 'new_access', tokenRefresh: 'new_refresh' });
       expect(formatReturn.formatReturn).toHaveBeenCalledWith(
         res,
         expect.objectContaining({
@@ -212,6 +214,7 @@ describe('auth.controller', () => {
       await authLogout(req, res, mockNext);
 
       expect(tokenBlacklist.addToBlacklist).toHaveBeenCalledWith('access_token');
+      expect((jwt as any).clearAuthCookies).toHaveBeenCalledWith(res);
       expect(formatReturn.formatReturn).toHaveBeenCalledWith(
         res,
         expect.objectContaining({
@@ -251,6 +254,7 @@ describe('auth.controller', () => {
       await authLogoutAll(req, res, mockNext);
 
       expect(sessionRevocation.invalidateAllSessions).toHaveBeenCalledWith('user_id');
+      expect((jwt as any).clearAuthCookies).toHaveBeenCalledWith(res);
       expect(formatReturn.formatReturn).toHaveBeenCalledWith(
         res,
         expect.objectContaining({

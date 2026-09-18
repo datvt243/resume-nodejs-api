@@ -21,7 +21,7 @@ function createMocks(body?: any, headers?: Record<string, string>) {
     query: {},
   };
   const json = jest.fn();
-  const res: any = { status: jest.fn().mockReturnValue({ json }), json };
+  const res: any = { status: jest.fn().mockReturnValue({ json }), json, cookie: jest.fn() };
   const next = jest.fn();
   return { req, res, next, json };
 }

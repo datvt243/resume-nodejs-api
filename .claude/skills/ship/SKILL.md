@@ -42,7 +42,19 @@ Base directory for this skill: `.claude/skills/ship`
 ```
 Chỉ tiếp tục bước 1 khi branch hiện tại KHÁC `main` và `staging`.
 
-## 6 bước, đúng thứ tự (sau khi qua guard ở Bước 0)
+## Bước 0.5 — SealedOnly: node phải đã SEAL trước khi ship
+
+Đọc `agent-hub/haven/diagrams/dev-loop.prime-mermaid.md`, tìm node khớp
+với thay đổi trong working tree hiện tại.
+- Node chưa tồn tại, hoặc còn `PENDING`/`IN_PROGRESS` → **DỪNG NGAY**,
+  báo operator chạy `/worker verifier` (hoặc `/todo`) trước — không bao
+  giờ commit một node chưa qua verify (`SealedOnly`).
+- Node đã `SEALED` nhưng thiếu 1 trong 2 evidence note (implementer VÀ
+  verifier) tại `agent-hub/evidence/` → DỪNG (`NO_EVIDENCE`), không tự
+  giả định note đã tồn tại.
+Chỉ qua Bước 0 (guard branch) rồi bước này pass mới được chạy tiếp Bước 1.
+
+## 6 bước, đúng thứ tự (sau khi qua guard ở Bước 0 + Bước 0.5)
 
 1. **Soát rác trước khi soát diff**: `git status --short`. Bất kỳ file
    nào rõ ràng là output tạm của live-test (PDF/ảnh sinh ra trong
@@ -138,6 +150,9 @@ Chỉ tiếp tục bước 1 khi branch hiện tại KHÁC `main` và `staging`.
       lỗi của `/ship`, chỉ là "chưa merge được, PR đang chờ: <url>".
 
 ## Ràng buộc cứng
+- `SealedOnly`: KHÔNG BAO GIỜ chạy quá Bước 0.5 nếu node liên quan chưa
+  `SEALED` hoặc thiếu evidence note — không có ngoại lệ, kể cả khi diff
+  "nhìn" đã xong.
 - KHÔNG tự chạy `/ship` thay cho operator — chỉ chạy khi operator gõ
   `/ship` (hoặc yêu cầu tương đương rõ ràng như "ship nó", "commit và
   push") trong lượt hiện tại.

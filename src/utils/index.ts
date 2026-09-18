@@ -9,6 +9,7 @@ export * from './bcrypt';
 export * from './helper';
 export * from './jwt';
 export * from './valid';
+export * from './authCookies';
 
 import { jwtVerify } from './jwt';
 import { TOKEN_SECRET } from '@/config/process.config';

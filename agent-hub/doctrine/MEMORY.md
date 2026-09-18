@@ -3,8 +3,8 @@
 > one of them.
 
 ## What this is
-- Hub path (absolute): `/Users/_david/Workspace/Project/ResumeAPI/backend/agent-hub`
-- Code repo path (absolute): `/Users/_david/Workspace/Project/ResumeAPI/backend`
+- Hub path (absolute): `/Users/_david/Workspace/Project/resume/resume-nodejs-api/agent-hub`
+- Code repo path (absolute): `/Users/_david/Workspace/Project/resume/resume-nodejs-api`
 - Hub ↔ repo relationship: only touch the repo through a worker, with an
   actual test run and an evidence note — never ad-hoc.
 
@@ -14,18 +14,15 @@
 
 | Purpose | Command | Run from |
 |---|---|---|
-| Test | `npm test` | `/Users/_david/Workspace/Project/ResumeAPI/backend` |
-| Test one file | `npx jest <path/to/file.test.ts>` | `/Users/_david/Workspace/Project/ResumeAPI/backend` |
-| Build | `npm run build` | `/Users/_david/Workspace/Project/ResumeAPI/backend` |
-| Lint/typecheck | `<<FILL>>` | `<<FILL>>` |
-| Run locally | `npm run dev` | `/Users/_david/Workspace/Project/ResumeAPI/backend` |
+| Test | `npm test` | `/Users/_david/Workspace/Project/resume/resume-nodejs-api` |
+| Test one file | `npx jest <path/to/file.test.ts>` | `/Users/_david/Workspace/Project/resume/resume-nodejs-api` |
+| Build | `npm run build` | `/Users/_david/Workspace/Project/resume/resume-nodejs-api` |
+| Lint/typecheck | `n/a` — no `lint` script in `package.json` (checked 2026-09-18, still true as of 2026-08-20); typecheck happens implicitly inside `npm run build` (`tsc && npm run copy`) | `/Users/_david/Workspace/Project/resume/resume-nodejs-api` |
+| Run locally | `npm run dev` | `/Users/_david/Workspace/Project/resume/resume-nodejs-api` |
 
 `npm test` = `jest --passWithNoTests` (see `package.json`). No `lint`
 script in `package.json` despite `.eslintrc.cjs` existing — don't assume
-`npm run lint` is real, it isn't as of 2026-08-20.
-
-Until Lint/typecheck is filled in: implementer reports `blocked` instead of
-guessing. That's CORRECT behavior, not a bug.
+`npm run lint` is real, it isn't (re-checked 2026-09-18).
 
 ## Stack
 | Thing | Value |
@@ -54,8 +51,3 @@ Never skip step 1 on a cold session, never skip step 3.
 - Monotonic ratchet: PENDING → IN_PROGRESS → SEALED, never demoted.
 - Verifier owns PM status; implementer never sets it.
 - `dist/` is build output, always gitignored, never hand-edited.
-
-## Open <<FILL>> values
-1. Lint/typecheck command + run-from path — no confirmed real script yet
-   (no `npm run lint` in `package.json` as of 2026-08-20). `/boot` reports
-   this as a blocker until filled.
