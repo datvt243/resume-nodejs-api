@@ -199,9 +199,12 @@ export const baseUpdateDocument = async (props: {
   const { _id } = _valueUpdate;
 
   /**
-   * Check Document có tồn tại không -> findById
+   * Check Document có tồn tại không -> findById (loại trừ document đã
+   * soft-delete — không cho update một bản ghi đã bị xoá, issue #136)
    */
-  const { isExist, message: _mess, document: _existing } = await _baseHelper().baseCheckDocumentById(MODEL, _id, lang);
+  const { isExist, message: _mess, document: _existing } = await _baseHelper().baseCheckDocumentById(MODEL, _id, lang, {
+    excludeDeleted: true,
+  });
   if (!isExist) return formatReturnFailed(_mess);
 
   /**
@@ -325,9 +328,12 @@ export const basePatchDocument = async (props: { document: Record<string, any>; 
   const { _id } = document;
 
   /**
-   * Check Document có tồn tại không -> findById
+   * Check Document có tồn tại không -> findById (loại trừ document đã
+   * soft-delete — không cho patch một bản ghi đã bị xoá, issue #136)
    */
-  const { isExist, message: _mess } = await _baseHelper().baseCheckDocumentById(MODEL, _id, lang);
+  const { isExist, message: _mess } = await _baseHelper().baseCheckDocumentById(MODEL, _id, lang, {
+    excludeDeleted: true,
+  });
   if (!isExist) return formatReturnFailed(_mess);
 
   /**
@@ -401,14 +407,26 @@ const _baseHelper = () => {
         errors: {},
       };
     },
-    baseCheckDocumentById: async (MODEL: any, _id: string, lang: string = DEFAULT_LANG) => {
+    baseCheckDocumentById: async (
+      MODEL: any,
+      _id: string,
+      lang: string = DEFAULT_LANG,
+      opts: { excludeDeleted?: boolean } = {},
+    ) => {
       let message = t('common.idNotFound', lang);
 
       if (!_id) return { isExist: false, message };
 
       let isExist = true;
       const idQuerySafe = (await import('@/utils/querySafe')).idQuerySafe;
-      const _find = await MODEL.findOne(idQuerySafe.safeQuery({}, { _id })).exec();
+      // Soft-delete (issue #121) excludes deletedAt-set docs from reads by
+      // default (baseFindDocument), but this shared existence check was
+      // never updated — update/patch could still find and mutate a
+      // soft-deleted document. `excludeDeleted` is opt-in per caller:
+      // baseRestoreDocument (and baseDeleteDocument) must still find a
+      // document regardless of its deletedAt state.
+      const baseQuery = opts.excludeDeleted ? { deletedAt: null } : {};
+      const _find = await MODEL.findOne(idQuerySafe.safeQuery(baseQuery, { _id })).exec();
       if (!_find) {
         isExist = false;
       } else {
