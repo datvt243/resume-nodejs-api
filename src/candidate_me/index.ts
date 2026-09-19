@@ -55,11 +55,15 @@ export const handlerGetAboutMe = async (identifier: string, lang: string = 'vi')
   const { candidateQuerySafe } = await import('@/utils/querySafe');
   // Slug-first (issue #120) — a slug is a non-PII, shareable identifier;
   // email lookup stays as a fallback so existing shared links keep working.
+  // QuerySafe silently DROPS a rejected value (e.g. containing "$") instead
+  // of throwing — checking the key survived sanitization keeps a rejected
+  // identifier from collapsing the query to {} and matching an arbitrary
+  // candidate (issue #135).
   const safeSlugQuery = candidateQuerySafe.safeQuery({}, { slug: identifier });
-  let document = await MODEL.Candidate.findOne(safeSlugQuery, { ...removeFields }).exec();
+  let document = 'slug' in safeSlugQuery ? await MODEL.Candidate.findOne(safeSlugQuery, { ...removeFields }).exec() : null;
   if (!document) {
     const safeEmailQuery = candidateQuerySafe.safeQuery({}, { email: identifier });
-    document = await MODEL.Candidate.findOne(safeEmailQuery, { ...removeFields }).exec();
+    document = 'email' in safeEmailQuery ? await MODEL.Candidate.findOne(safeEmailQuery, { ...removeFields }).exec() : null;
   }
   if (!document) return formatReturnFailed('Email không tồn tại');
 
@@ -158,8 +162,10 @@ export const fnRecordVisit = async (req: Request, res: Response, next: NextFunct
 
 export const handlerRecordVisit = async (email: string, req: Request) => {
   const { candidateQuerySafe } = await import('@/utils/querySafe');
+  // Same fail-closed check as handlerGetAboutMe above (issue #135) — a
+  // rejected email must not fall through to an unfiltered findOne({}).
   const safeEmailQuery = candidateQuerySafe.safeQuery({}, { email });
-  const candidate = await MODEL.Candidate.findOne(safeEmailQuery).select('_id').exec();
+  const candidate = 'email' in safeEmailQuery ? await MODEL.Candidate.findOne(safeEmailQuery).select('_id').exec() : null;
   // Same response shape as the "email not found" branch of handlerGetAboutMe
   // above (success: false, no throw) — kept consistent with that sibling
   // public endpoint rather than introducing a different error convention
