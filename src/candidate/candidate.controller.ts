@@ -19,6 +19,7 @@ import {
   handlerGetVisits,
 } from '@/candidate/candidate.service';
 import { CV_UPLOAD_DIR } from '@/middlewares/uploadCV.middleware';
+import { parseLinkedInExportZip } from '@/candidate/parseLinkedInExport.service';
 import { t } from '@/utils/i18n';
 
 export const fnGetInformationById = async (req: Request, res: Response) => {
@@ -103,6 +104,38 @@ export const fnDownloadCV = async (req: Request, res: Response, next: NextFuncti
     const filePath = path.join(CV_UPLOAD_DIR, `${candidateId}-cv.pdf`);
     return res.download(filePath, cvFile.originalName || 'CV.pdf');
   } catch (err) {
+    handleError(err, next, (req as any).lang);
+  }
+};
+
+export const fnParseLinkedInExport = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * `uploadLinkedInExportMiddleware` (candidate.route.ts) already
+   * validated the file (.zip only, <= 20 MB) and kept it in memory --
+   * nothing is written to disk or persisted to the DB here. Stateless
+   * parse-and-return (issue #141): the frontend maps the result into its
+   * existing create forms for the user to review/edit before saving.
+   */
+  const file = (req as any).file as Express.Multer.File | undefined;
+  if (!file) {
+    return formatReturn(res, {
+      statusCode: StatusCodes.BAD_REQUEST,
+      success: false,
+      message: t('linkedinImport.noFileUploaded', (req as any).lang),
+    });
+  }
+
+  try {
+    const data = parseLinkedInExportZip(file.buffer);
+    return formatReturn(res, { success: true, message: t('linkedinImport.parseSuccess', (req as any).lang), data });
+  } catch (err) {
+    if (err instanceof Error && err.message === 'INVALID_ZIP') {
+      return formatReturn(res, {
+        statusCode: StatusCodes.BAD_REQUEST,
+        success: false,
+        message: t('linkedinImport.invalidZip', (req as any).lang),
+      });
+    }
     handleError(err, next, (req as any).lang);
   }
 };
