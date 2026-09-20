@@ -223,6 +223,19 @@ const options: swaggerJsdoc.Options = {
             position: { type: 'string' },
           },
         },
+        Application: {
+          type: 'object',
+          properties: {
+            _id: { type: 'string' },
+            candidateId: { type: 'string' },
+            company: { type: 'string' },
+            position: { type: 'string' },
+            appliedDate: { type: 'number' },
+            status: { type: 'string', enum: ['applied', 'interview', 'offer', 'rejected'] },
+            note: { type: 'string' },
+            jobLink: { type: 'string' },
+          },
+        },
         Visit: {
           type: 'object',
           properties: {

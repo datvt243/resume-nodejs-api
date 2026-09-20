@@ -27,6 +27,7 @@ const modelObject: { [key: string]: any } = {
   projects: MODELS.Project,
   certificates: MODELS.Certificate,
   awards: MODELS.Award,
+  applications: MODELS.Application,
 };
 
 export const baseGetAll = async (req: Request, res: Response, next: NextFunction) => {
