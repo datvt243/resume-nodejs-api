@@ -24,6 +24,7 @@ export enum ErrorCode {
   // Authorization errors
   FORBIDDEN = 'FORBIDDEN',
   INSUFFICIENT_PERMISSIONS = 'INSUFFICIENT_PERMISSIONS',
+  CSRF_TOKEN_INVALID = 'CSRF_TOKEN_INVALID',
 }
 
 /**
