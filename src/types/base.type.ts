@@ -15,4 +15,5 @@ export enum Collections {
   CERTIFICATE = 'certificates',
   AWARD = 'awards',
   APPLICATION = 'applications',
+  PROFILE = 'profiles',
 }

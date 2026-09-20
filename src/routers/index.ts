@@ -46,9 +46,15 @@ router.use('/api/v2', routerAPIV2);
  *           enum: [vi, en]
  *           default: vi
  *         description: Language to resolve localized free-text fields (introduction, section descriptions, career/careerGoal) into. Falls back to whichever language has content if the requested one is empty.
+ *       - in: query
+ *         name: profile
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: CV profile id (see /api/v1/profile) — when given, filters each CV section down to the ids listed on that profile. Omitted, or an id that doesn't resolve to a profile owned by this candidate, returns every section unfiltered (existing share-links unaffected).
  *     responses:
  *       200:
- *         description: Aggregated public profile (candidate + general information + all CV sections)
+ *         description: Aggregated public profile (candidate + general information + all CV sections, optionally filtered by ?profile=)
  *         content:
  *           application/json:
  *             schema:
