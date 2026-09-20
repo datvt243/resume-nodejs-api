@@ -1,3 +1,4 @@
+import Application from './application.model';
 import Award from './award.model';
 import Candidate from './candidate.model';
 import Certificate from './certificate.model';
@@ -8,4 +9,4 @@ import Project from './project.model';
 import Reference from './reference.modal';
 import Visit from './visit.model';
 
-export { Award, Candidate, Certificate, Education, Experience, generalInformation, Project, Reference, Visit };
+export { Application, Award, Candidate, Certificate, Education, Experience, generalInformation, Project, Reference, Visit };
