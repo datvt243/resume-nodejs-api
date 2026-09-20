@@ -15,8 +15,10 @@ import {
   fnUploadCV,
   fnDownloadCV,
   fnGetVisits,
+  fnParseLinkedInExport,
 } from '@/candidate/candidate.controller';
 import { uploadCVMiddleware } from '@/middlewares/uploadCV.middleware';
+import { uploadLinkedInExportMiddleware } from '@/middlewares/uploadLinkedInExport.middleware';
 
 /**
  * @swagger
@@ -47,6 +49,66 @@ import { uploadCVMiddleware } from '@/middlewares/uploadCV.middleware';
  *         description: Missing file, wrong type (non-PDF), or too large (> 5MB)
  */
 router.post('/upload-cv', uploadCVMiddleware, fnUploadCV);
+
+/**
+ * @swagger
+ * /api/v1/candidate/parse-linkedin-export:
+ *   post:
+ *     tags: [Candidate]
+ *     summary: Parse a LinkedIn "Data export" ZIP (Education.csv/Positions.csv) into Education/Experience entries for the frontend to review before saving
+ *     description: Stateless parse-and-return endpoint -- nothing is persisted. Best-effort only (dates and free-text fields depend on LinkedIn's export format); the frontend is expected to map the result into its existing create forms for the user to review/edit before saving, never auto-save.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: The LinkedIn export ZIP (max 20MB)
+ *     responses:
+ *       200:
+ *         description: Parsed Education/Experience entries (never persisted)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         educations:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               school: { type: string }
+ *                               major: { type: string }
+ *                               startDate: { type: number, nullable: true }
+ *                               endDate: { type: number, nullable: true }
+ *                               isCurrent: { type: boolean }
+ *                               description: { type: string }
+ *                         experiences:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               company: { type: string }
+ *                               position: { type: string }
+ *                               startDate: { type: number, nullable: true }
+ *                               endDate: { type: number, nullable: true }
+ *                               isCurrent: { type: boolean }
+ *                               description: { type: string }
+ *       400:
+ *         description: Missing file, wrong type (non-ZIP), too large (> 20MB), or the ZIP itself is corrupt/unreadable
+ */
+router.post('/parse-linkedin-export', uploadLinkedInExportMiddleware, fnParseLinkedInExport);
 
 /**
  * @swagger

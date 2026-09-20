@@ -55,6 +55,14 @@ export default {
     cvFileNotFound: 'Chưa có CV nào được tải lên',
     getVisitsSuccess: 'Lấy danh sách lượt ghé thăm thành công',
   },
+  linkedinImport: {
+    noFileUploaded: 'Không có file nào được tải lên',
+    invalidFileType: 'Chỉ chấp nhận file ZIP (LinkedIn Data export)',
+    fileTooLarge: 'File vượt quá dung lượng cho phép (20 MB)',
+    invalidZip: 'File ZIP không hợp lệ hoặc bị hỏng',
+    parseSuccess: 'Đọc dữ liệu LinkedIn thành công',
+    parseFailed: 'Đọc dữ liệu LinkedIn thất bại',
+  },
   generalInformation: {
     alreadyExists: 'Candidate đã có thông tin, không thể lưu thêm',
   },

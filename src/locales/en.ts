@@ -55,6 +55,14 @@ export default {
     cvFileNotFound: 'No CV has been uploaded yet',
     getVisitsSuccess: 'Visits fetched successfully',
   },
+  linkedinImport: {
+    noFileUploaded: 'No file was uploaded',
+    invalidFileType: 'Only ZIP files (LinkedIn Data export) are accepted',
+    fileTooLarge: 'File exceeds the allowed size (20 MB)',
+    invalidZip: 'The ZIP file is invalid or corrupted',
+    parseSuccess: 'LinkedIn data parsed successfully',
+    parseFailed: 'Failed to parse LinkedIn data',
+  },
   generalInformation: {
     alreadyExists: 'Candidate already has information, cannot save',
   },
