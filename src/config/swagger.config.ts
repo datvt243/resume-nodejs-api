@@ -246,6 +246,22 @@ const options: swaggerJsdoc.Options = {
             createdAt: { type: 'string', format: 'date-time' },
           },
         },
+        Profile: {
+          type: 'object',
+          description:
+            'A named subset of the candidate\'s own Education/Experience/Project/Certificate/Award/Reference entries, selectable via ?profile= on GET /api/me/{email}. A "Tổng hợp" (All) profile is synthesized automatically on first GET /api/v1/profile if the candidate has none yet.',
+          properties: {
+            _id: { type: 'string' },
+            candidateId: { type: 'string' },
+            name: { type: 'string' },
+            educationIds: { type: 'array', items: { type: 'string' } },
+            experienceIds: { type: 'array', items: { type: 'string' } },
+            projectIds: { type: 'array', items: { type: 'string' } },
+            certificateIds: { type: 'array', items: { type: 'string' } },
+            awardIds: { type: 'array', items: { type: 'string' } },
+            referenceIds: { type: 'array', items: { type: 'string' } },
+          },
+        },
         GeneralInformation: {
           type: 'object',
           properties: {

@@ -26,6 +26,7 @@ const CV_SECTION_MODELS: any[] = [
   MODELS.Certificate,
   MODELS.Award,
   MODELS.Application,
+  MODELS.Profile,
 ];
 
 // Only these 3 have an images[] field (issue #72) — same on-disk-file
