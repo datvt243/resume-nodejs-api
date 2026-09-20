@@ -10,6 +10,7 @@ const router = express.Router();
 import { authRegister, authLogin, authLogout, authLogoutAll, authRefreshToken, authForgotPassword, authResetPassword, authVerifyEmail } from '@/auth/auth.controller';
 import { createRateLimiter } from '@/middlewares/rateLimit.middleware';
 import { verifyToken } from '@/middlewares/verifyToken.middleware';
+import { verifyCsrf } from '@/middlewares/csrf.middleware';
 
 // Apply rate limit for auth routes (150 requests per 15 minutes)
 const authLimiter = createRateLimiter({ max: 150, windowMs: 15 * 60 * 1000, keyPrefix: 'auth-rl' });
@@ -99,7 +100,7 @@ router.get('/login', authLogin);
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
  */
-router.post('/logout', authLogout);
+router.post('/logout', verifyCsrf('token'), authLogout);
 
 /**
  * @swagger
@@ -152,7 +153,7 @@ router.post('/logout-all', verifyToken, authLogoutAll);
  *       401:
  *         description: Invalid, expired, or revoked refresh token
  */
-router.post('/refresh', authRefreshToken);
+router.post('/refresh', verifyCsrf('refreshToken'), authRefreshToken);
 
 /**
  * @swagger

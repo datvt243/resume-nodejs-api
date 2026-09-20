@@ -19,6 +19,8 @@ import routeGeneralInformation from './generalInformation.route';
 import routeProject from './project.route';
 import routeCertificate from './certificate.route';
 import routeAward from './award.route';
+import routeApplication from './application.route';
+import routeProfile from './profile.route';
 import { fnExportPDF } from '@/candidate_me/index';
 
 router.use('/auth', routeAuth);
@@ -30,6 +32,8 @@ router.use('/reference', verifyToken, routeReference);
 router.use('/general-information', verifyToken, routeGeneralInformation);
 router.use('/project', verifyToken, routeProject);
 router.use('/certificate', verifyToken, routeCertificate);
+router.use('/application', verifyToken, routeApplication);
+router.use('/profile', verifyToken, routeProfile);
 
 /**
  * @swagger

@@ -27,13 +27,18 @@ const resolveLocalizedText = (value: any, lang: string): string => {
 export const fnGetAboutMe = async (req: Request, res: Response, next: NextFunction) => {
   const { email } = req.params;
   const lang = req.query.lang === 'en' ? 'en' : 'vi';
+  // Optional CV profile filter (issue #133) — a named subset of the
+  // candidate's own Education/Experience/Project/Certificate/Award/
+  // Reference entries. Omitted -> unchanged behavior (everything), so
+  // existing share-links keep working.
+  const profileId = typeof req.query.profile === 'string' ? req.query.profile : undefined;
   if (!email) res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('Không tìm thấy Email'));
 
   /**
    * get data
    */
   try {
-    const _me = await handlerGetAboutMe(email, lang);
+    const _me = await handlerGetAboutMe(email, lang, profileId);
     // Private profile (issue #75) — same response shape as "email not
     // found" so a private profile isn't distinguishable from a
     // non-existent one. Only gates this public route; the authenticated
@@ -49,21 +54,52 @@ export const fnGetAboutMe = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-export const handlerGetAboutMe = async (identifier: string, lang: string = 'vi') => {
+// Maps a CV-section collection name to the array field on a Profile
+// document that lists which of that section's ids belong to it.
+// generalInformation has no entry — it's a single document per candidate,
+// not a selectable list.
+const PROFILE_ID_FIELDS: Record<string, string> = {
+  experiences: 'experienceIds',
+  educations: 'educationIds',
+  references: 'referenceIds',
+  projects: 'projectIds',
+  certificates: 'certificateIds',
+  awards: 'awardIds',
+};
+
+export const handlerGetAboutMe = async (identifier: string, lang: string = 'vi', profileId?: string) => {
   const removeFields = { __v: 0, createdAt: 0, updatedAt: 0, candidateId: 0 };
 
   const { candidateQuerySafe } = await import('@/utils/querySafe');
   // Slug-first (issue #120) — a slug is a non-PII, shareable identifier;
   // email lookup stays as a fallback so existing shared links keep working.
+  // QuerySafe silently DROPS a rejected value (e.g. containing "$") instead
+  // of throwing — checking the key survived sanitization keeps a rejected
+  // identifier from collapsing the query to {} and matching an arbitrary
+  // candidate (issue #135).
   const safeSlugQuery = candidateQuerySafe.safeQuery({}, { slug: identifier });
-  let document = await MODEL.Candidate.findOne(safeSlugQuery, { ...removeFields }).exec();
+  let document = 'slug' in safeSlugQuery ? await MODEL.Candidate.findOne(safeSlugQuery, { ...removeFields }).exec() : null;
   if (!document) {
     const safeEmailQuery = candidateQuerySafe.safeQuery({}, { email: identifier });
-    document = await MODEL.Candidate.findOne(safeEmailQuery, { ...removeFields }).exec();
+    document = 'email' in safeEmailQuery ? await MODEL.Candidate.findOne(safeEmailQuery, { ...removeFields }).exec() : null;
   }
   if (!document) return formatReturnFailed('Email không tồn tại');
 
   const { _id } = document;
+
+  // Resolve the optional profile filter (issue #133) — must belong to this
+  // same candidate; an invalid/foreign/deleted profile id is treated the
+  // same as "no profile given" (falls back to unfiltered) rather than
+  // erroring, since this is a public, unauthenticated route.
+  let profileDoc: Record<string, any> | null = null;
+  if (profileId) {
+    const { idQuerySafe: profileIdQuerySafe } = await import('@/utils/querySafe');
+    const safeProfileIdQuery = profileIdQuerySafe.safeQuery({}, { _id: profileId });
+    profileDoc =
+      '_id' in safeProfileIdQuery
+        ? await MODEL.Profile.findOne({ ...safeProfileIdQuery, candidateId: _id, deletedAt: null }).exec()
+        : null;
+  }
 
   /**
    * lấy thông tin liên quan [học vấn, kinh nghiệm, người liên hệ]
@@ -91,8 +127,15 @@ export const handlerGetAboutMe = async (identifier: string, lang: string = 'vi')
     // candidateId filter, so this query returned EVERY candidate's CV
     // section data unfiltered.
     const safeCandidateQuery = idQuerySafe.safeQuery({}, { candidateId: _id?.toString() || '' });
+    // Profile filter (issue #133): the id list comes from the already
+    // ownership-checked `profileDoc` above (server-derived, not raw user
+    // input), so it's safe to merge in directly rather than through
+    // QuerySafe, which only accepts string values anyway.
+    const profileIdsField = PROFILE_ID_FIELDS[collection];
+    const sectionQuery =
+      profileDoc && profileIdsField ? { ...safeCandidateQuery, _id: { $in: profileDoc[profileIdsField] || [] } } : safeCandidateQuery;
     const _find: undefined | Record<string, any> | Record<string, any>[] = await model
-      .find(safeCandidateQuery, { _id: 0, ...removeFields })
+      .find(sectionQuery, { _id: 0, ...removeFields })
       .exec();
     if (!_find) continue;
     // Flatten Mongoose documents to plain objects immediately (same as
@@ -158,8 +201,10 @@ export const fnRecordVisit = async (req: Request, res: Response, next: NextFunct
 
 export const handlerRecordVisit = async (email: string, req: Request) => {
   const { candidateQuerySafe } = await import('@/utils/querySafe');
+  // Same fail-closed check as handlerGetAboutMe above (issue #135) — a
+  // rejected email must not fall through to an unfiltered findOne({}).
   const safeEmailQuery = candidateQuerySafe.safeQuery({}, { email });
-  const candidate = await MODEL.Candidate.findOne(safeEmailQuery).select('_id').exec();
+  const candidate = 'email' in safeEmailQuery ? await MODEL.Candidate.findOne(safeEmailQuery).select('_id').exec() : null;
   // Same response shape as the "email not found" branch of handlerGetAboutMe
   // above (success: false, no throw) — kept consistent with that sibling
   // public endpoint rather than introducing a different error convention

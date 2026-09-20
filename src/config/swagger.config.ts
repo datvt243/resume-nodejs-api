@@ -223,6 +223,19 @@ const options: swaggerJsdoc.Options = {
             position: { type: 'string' },
           },
         },
+        Application: {
+          type: 'object',
+          properties: {
+            _id: { type: 'string' },
+            candidateId: { type: 'string' },
+            company: { type: 'string' },
+            position: { type: 'string' },
+            appliedDate: { type: 'number' },
+            status: { type: 'string', enum: ['applied', 'interview', 'offer', 'rejected'] },
+            note: { type: 'string' },
+            jobLink: { type: 'string' },
+          },
+        },
         Visit: {
           type: 'object',
           properties: {
@@ -231,6 +244,22 @@ const options: swaggerJsdoc.Options = {
             ip: { type: 'string' },
             location: { type: 'string', description: 'Derived from IP via offline geoip-lite lookup; empty when the lookup has no match' },
             createdAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        Profile: {
+          type: 'object',
+          description:
+            'A named subset of the candidate\'s own Education/Experience/Project/Certificate/Award/Reference entries, selectable via ?profile= on GET /api/me/{email}. A "Tổng hợp" (All) profile is synthesized automatically on first GET /api/v1/profile if the candidate has none yet.',
+          properties: {
+            _id: { type: 'string' },
+            candidateId: { type: 'string' },
+            name: { type: 'string' },
+            educationIds: { type: 'array', items: { type: 'string' } },
+            experienceIds: { type: 'array', items: { type: 'string' } },
+            projectIds: { type: 'array', items: { type: 'string' } },
+            certificateIds: { type: 'array', items: { type: 'string' } },
+            awardIds: { type: 'array', items: { type: 'string' } },
+            referenceIds: { type: 'array', items: { type: 'string' } },
           },
         },
         GeneralInformation: {

@@ -9,15 +9,13 @@ import { TOKEN_SECRET } from '@/config/process.config';
 import { jwtVerify } from '@/utils/jwt';
 import { isBlacklisted } from '@/utils/tokenBlacklist';
 import { getSessionsInvalidatedAt, isSessionRevoked } from '@/utils/sessionRevocation';
-import { ErrorCode, TokenExpiredError, TokenRevokedError, InvalidTokenError, AuthenticationError } from '@/errors';
+import { ErrorCode, TokenExpiredError, TokenRevokedError, InvalidTokenError, AuthenticationError, AuthorizationError } from '@/errors';
 
-import { extractTokenFromRequest } from '@/utils/helper-auth';
-
-// note: `fieldName` defaults to 'token', so middleware does not need to pass it
-const extractToken = (req: any): string | null => extractTokenFromRequest(req);
+import { extractTokenWithSource } from '@/utils/helper-auth';
+import { requiresCsrfCheck, isCsrfTokenValid } from '@/utils/csrf';
 
 export const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
-  const token = extractToken(req);
+  const { token, source } = extractTokenWithSource(req);
 
   if (!token) {
     return next(new AuthenticationError('Access denied. No token provided.', ErrorCode.NO_TOKEN));
@@ -42,6 +40,16 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
     const invalidatedAt = await getSessionsInvalidatedAt(_id);
     if (isSessionRevoked(iat, invalidatedAt)) {
       return next(new TokenRevokedError('Token has been revoked.'));
+    }
+
+    // CSRF (issue #134): once the auth cookies use SameSite=None, a
+    // state-changing request that authenticated purely off the cookie
+    // (no Authorization header) must also prove intent via the matching
+    // double-submit CSRF token — a request instead carrying a Bearer
+    // token is immune to classic CSRF (a third-party page can't set that
+    // header on the victim's behalf).
+    if (requiresCsrfCheck(req, source) && !isCsrfTokenValid(req)) {
+      return next(new AuthorizationError('Invalid or missing CSRF token.', ErrorCode.CSRF_TOKEN_INVALID));
     }
 
     // Attach authenticated user info. Also force req.body.candidateId to the

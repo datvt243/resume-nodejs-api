@@ -2,7 +2,8 @@ import { verifyToken } from '@/middlewares/verifyToken.middleware';
 import * as jwtUtils from '@/utils/jwt';
 import * as tokenBlacklist from '@/utils/tokenBlacklist';
 import * as sessionRevocation from '@/utils/sessionRevocation';
-import { AuthenticationError, TokenExpiredError, InvalidTokenError, TokenRevokedError } from '@/errors';
+import { AuthenticationError, TokenExpiredError, InvalidTokenError, TokenRevokedError, AuthorizationError } from '@/errors';
+import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '@/utils/csrf';
 
 jest.mock('@/utils/jwt');
 jest.mock('@/utils/tokenBlacklist');
@@ -14,10 +15,17 @@ const mockedGetSessionsInvalidatedAt = sessionRevocation.getSessionsInvalidatedA
 // isSessionRevoked has real, simple logic — use the actual implementation instead of a mock
 const actualSessionRevocation = jest.requireActual('@/utils/sessionRevocation');
 
-function createMocks(headers?: Record<string, string>, query?: Record<string, any>) {
+function createMocks(
+  headers?: Record<string, string>,
+  query?: Record<string, any>,
+  extra?: { method?: string; cookies?: Record<string, string>; body?: Record<string, any> },
+) {
   const req: any = {
     header: (name: string) => headers?.[name.toLowerCase()] || headers?.[name] || undefined,
     query: query || {},
+    method: extra?.method,
+    cookies: extra?.cookies,
+    body: extra?.body,
   };
   const json = jest.fn();
   const res: any = { status: jest.fn().mockReturnValue({ json }), json };
@@ -116,6 +124,52 @@ describe('verifyToken middleware', () => {
       const { req, res, next } = createMocks({ Authorization: 'Bearer no-iat' });
       await verifyToken(req, res, next);
       expect(next).toHaveBeenCalledWith(expect.any(TokenRevokedError));
+    });
+  });
+
+  describe('CSRF (issue #134)', () => {
+    it('calls next with AuthorizationError on a state-changing request authenticated purely via cookie, with no CSRF header', async () => {
+      mockedIsBlacklisted.mockResolvedValue(false);
+      mockedJwtVerify.mockReturnValue({ _id: 'abc123' } as any);
+      const { req, res, next } = createMocks(undefined, undefined, { method: 'POST', cookies: { token: 'cookie-token' } });
+      await verifyToken(req, res, next);
+      expect(next).toHaveBeenCalledWith(expect.any(AuthorizationError));
+      const error = (next as jest.Mock).mock.calls[0][0];
+      expect(error.errorCode).toBe('CSRF_TOKEN_INVALID');
+    });
+
+    it('calls next and attaches req.user on a state-changing cookie request whose CSRF header matches the CSRF cookie', async () => {
+      mockedIsBlacklisted.mockResolvedValue(false);
+      mockedJwtVerify.mockReturnValue({ _id: 'abc123' } as any);
+      const { req, res, next } = createMocks(
+        { [CSRF_HEADER_NAME]: 'matching' },
+        undefined,
+        { method: 'POST', cookies: { token: 'cookie-token', [CSRF_COOKIE_NAME]: 'matching' } },
+      );
+      await verifyToken(req, res, next);
+      expect(next).toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalledWith(expect.any(AuthorizationError));
+      expect((req as any).user).toEqual({ _id: 'abc123' });
+    });
+
+    it('does not require CSRF for a cookie-sourced token on a safe method (GET)', async () => {
+      mockedIsBlacklisted.mockResolvedValue(false);
+      mockedJwtVerify.mockReturnValue({ _id: 'abc123' } as any);
+      const { req, res, next } = createMocks(undefined, undefined, { method: 'GET', cookies: { token: 'cookie-token' } });
+      await verifyToken(req, res, next);
+      expect(next).toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalledWith(expect.any(AuthorizationError));
+      expect((req as any).user).toEqual({ _id: 'abc123' });
+    });
+
+    it('does not require CSRF when the token came from the Authorization header (existing behavior preserved)', async () => {
+      mockedIsBlacklisted.mockResolvedValue(false);
+      mockedJwtVerify.mockReturnValue({ _id: 'abc123' } as any);
+      const { req, res, next } = createMocks({ Authorization: 'Bearer valid' }, undefined, { method: 'POST' });
+      await verifyToken(req, res, next);
+      expect(next).toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalledWith(expect.any(AuthorizationError));
+      expect((req as any).user).toEqual({ _id: 'abc123' });
     });
   });
 });
