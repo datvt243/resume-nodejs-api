@@ -84,6 +84,9 @@ export default {
   generalInformation: {
     alreadyExists: 'Candidate already has information, cannot save',
   },
+  application: {
+    profileNotFound: 'The selected CV profile does not exist or has been deleted',
+  },
   images: {
     noFilesUploaded: 'No file was uploaded',
     uploadSuccess: 'Images uploaded successfully',

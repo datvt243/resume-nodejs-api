@@ -12,7 +12,7 @@ Một ứng dụng API backend **hoàn chỉnh** để **quản lý hồ sơ ứ
 - 👤 **Profile**: Candidate info + General (skills, languages, career) + shareable vanity slug
 - 📚 **Education** / 💼 **Experience** / 🏆 **Awards** / 📜 **Certificates** / 🚀 **Projects** / 👥 **References**
 - 🗂️ **CV Profiles** (multi-version): named subsets of CV sections for tailoring what a public link shows
-- 📋 **Job Application Tracker**: applied/interview/offer/rejected pipeline per candidate
+- 📋 **Job Application Tracker**: applied/interview/offer/rejected pipeline per candidate, each optionally linked to the CV profile sent
 - 📎 **LinkedIn Import**: parse a LinkedIn "Data export" ZIP into Education/Experience entries for review
 - 🔍 **Public Profile Search**: keyword search over public candidate profiles (skills, position, company, school)
 - 📄 **PDF CV Import**: parse an existing PDF CV into the same Education/Experience entries for review (best-effort)

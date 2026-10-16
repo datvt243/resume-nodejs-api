@@ -84,6 +84,9 @@ export default {
   generalInformation: {
     alreadyExists: 'Candidate đã có thông tin, không thể lưu thêm',
   },
+  application: {
+    profileNotFound: 'CV profile đã chọn không tồn tại hoặc đã bị xoá',
+  },
   images: {
     noFilesUploaded: 'Không có file nào được tải lên',
     uploadSuccess: 'Tải ảnh lên thành công',

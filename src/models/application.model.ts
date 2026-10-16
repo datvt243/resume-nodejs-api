@@ -18,6 +18,8 @@ const schema = new Schema(
     status: { type: String, enum: APPLICATION_STATUSES, default: 'applied' },
     note: { type: String, default: '' },
     jobLink: { type: String, default: '' },
+    // CV profile sent with this application; kept (not nulled) if that profile is soft-deleted later.
+    profileId: { type: ObjectId, default: null, ref: 'profile' },
     candidateId: { type: ObjectId, required: [true, 'Vui lòng nhập ID ứng viên'], ref: 'candidate', index: true },
     // soft-delete — null nghĩa là chưa xoá
     deletedAt: { type: Number, default: null },

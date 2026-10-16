@@ -259,6 +259,12 @@ const options: swaggerJsdoc.Options = {
             status: { type: 'string', enum: ['applied', 'interview', 'offer', 'rejected'] },
             note: { type: 'string' },
             jobLink: { type: 'string' },
+            profileId: {
+              type: 'string',
+              nullable: true,
+              description:
+                "CV profile sent with this application: one of the candidate's own non-deleted profiles (anything else → 400). null or '' unlinks; omit on update to keep the current link. Kept if the profile is deleted later.",
+            },
           },
         },
         Visit: {
