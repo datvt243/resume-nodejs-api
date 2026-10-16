@@ -382,6 +382,9 @@ const slugifyFilename = (value: string): string =>
     .replace(/[^a-zA-Z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '') || 'CV';
 
+/** Attachment filename for an ATS PDF — names only, never the email. */
+export const atsPdfFilename = (content: AtsContent): string => `${slugifyFilename(content.fullName)}_${slugifyFilename(content.headline || 'CV')}_CV.pdf`;
+
 export interface CreateCVAtsOptions {
   lang?: SupportedLang;
   pageFormat?: 'A4' | 'Letter';
@@ -465,8 +468,7 @@ export const createCVAts = async ({
       fs.writeFileSync(path.join(dir, `${slugifyFilename(content.email)}-ats.pdf`), buffer);
     }
 
-    const filename = `${slugifyFilename(content.fullName)}_${slugifyFilename(content.headline || 'CV')}_CV.pdf`;
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${atsPdfFilename(content)}"`);
     res.contentType('application/pdf');
     res.send(buffer);
   } catch (error) {
