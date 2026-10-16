@@ -161,7 +161,7 @@ in-memory store when `REDIS_URL` is unset.
 | POST   | `/login`          | Get tokens (GET also supported, deprecated)   |
 | POST   | `/logout`         | Blacklist current token (CSRF-checked)        |
 | POST   | `/logout-all`     | Revoke every token issued to this candidate   |
-| POST   | `/refresh`        | Renew access token (CSRF-checked)             |
+| POST   | `/refresh`        | Renew access token (CSRF-checked); reusing a rotated refresh token revokes all sessions |
 | POST   | `/forgot-password`| Request password reset (stub, no email sent)  |
 | POST   | `/reset-password` | Reset password using a reset token            |
 | GET    | `/verify-email`   | Verify email using a token issued on register |

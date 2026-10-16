@@ -3,18 +3,20 @@
  * @see https://github.com/datvt243
  */
 
+import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { validateSchema, formatReturn, handleError, setAuthCookies, clearAuthCookies } from '@/utils';
 
 import { schemaAuthRegister, schemaAuthLogin, schemaForgotPassword, schemaResetPassword } from './auth.validate';
 import { handlerRegister, handlerLogin, handlerForgotPassword, handlerResetPassword, handlerVerifyEmail } from './auth.service';
-import { addToBlacklist, isBlacklisted } from '@/utils/tokenBlacklist';
+import { addToBlacklist, isBlacklisted, getRotatedAt } from '@/utils/tokenBlacklist';
 import { invalidateAllSessions, getSessionsInvalidatedAt, isSessionRevoked } from '@/utils/sessionRevocation';
 import { jwtSign, jwtVerify } from '@/utils';
 import { extractTokenFromRequest } from '@/utils/helper-auth';
 import { TOKEN_SECRET, TOKEN_REFRESH, TOKEN_EXP_IN, TOKEN_REFRESH_EXP_IN } from '@/config/process.config';
 import { t } from '@/utils/i18n';
+import { logger } from '@/logger';
 
 /**
  * Chức năng Đăng ký mới
@@ -88,6 +90,33 @@ export const authLogin = async (req: Request, res: Response, next: NextFunction)
   }
 };
 
+const REFRESH_REUSE_GRACE_SECONDS = 10;
+
+/**
+ * A refresh token presented again after it was rotated away means two
+ * parties hold it, so every session of the candidate is revoked (same as
+ * logout-all) — the thief's pair and the owner's pair both stop working.
+ * Skipped within the grace window (two tabs refreshing at once), when the
+ * token can't be verified (its candidate id can't be trusted), and when
+ * the token already predates the candidate's last revocation, so an old
+ * stolen token can't keep logging the owner out.
+ */
+const revokeOnRefreshTokenReuse = async (refreshToken: string, rotatedAt: number): Promise<void> => {
+  if (Math.floor(Date.now() / 1000) - rotatedAt <= REFRESH_REUSE_GRACE_SECONDS) return;
+
+  let decoded: { _id?: string; iat?: number };
+  try {
+    decoded = jwtVerify(refreshToken, TOKEN_REFRESH);
+  } catch {
+    return;
+  }
+  const { _id, iat } = decoded;
+  if (!_id || isSessionRevoked(iat, await getSessionsInvalidatedAt(_id))) return;
+
+  await invalidateAllSessions(_id);
+  logger.warn('[auth] Rotated refresh token reused — all sessions revoked', { candidateId: _id });
+};
+
 /**
  * Chức năng Refresh token
  */
@@ -100,6 +129,17 @@ export const authRefreshToken = async (req: Request, res: Response, next: NextFu
         statusCode: StatusCodes.UNAUTHORIZED,
         success: false,
         message: t('auth.noRefreshToken', req.lang),
+      });
+    }
+
+    // Answered exactly like any other revoked token, so the detection isn't observable.
+    const rotatedAt = await getRotatedAt(refreshToken);
+    if (rotatedAt !== null) {
+      await revokeOnRefreshTokenReuse(refreshToken, rotatedAt);
+      return formatReturn(res, {
+        statusCode: StatusCodes.FORBIDDEN,
+        success: false,
+        message: t('auth.refreshTokenRevoked', req.lang),
       });
     }
 
@@ -132,10 +172,11 @@ export const authRefreshToken = async (req: Request, res: Response, next: NextFu
     }
 
     // rotate: blacklist old refresh token
-    await addToBlacklist(refreshToken);
+    await addToBlacklist(refreshToken, Math.floor(Date.now() / 1000));
 
     const newAccess = jwtSign({ data: { _id }, secretKey: TOKEN_SECRET, props: { expiresIn: TOKEN_EXP_IN || '1h' } });
-    const newRefresh = jwtSign({ data: { _id }, secretKey: TOKEN_REFRESH, props: { expiresIn: TOKEN_REFRESH_EXP_IN } });
+    // Unique `jti`, same reason as handlerLogin: a same-second copy of the rotated token would read as reuse.
+    const newRefresh = jwtSign({ data: { _id, jti: crypto.randomUUID() }, secretKey: TOKEN_REFRESH, props: { expiresIn: TOKEN_REFRESH_EXP_IN } });
 
     // Rotate the httpOnly cookies to match the rotated tokens
     setAuthCookies(res, { token: newAccess, tokenRefresh: newRefresh });

@@ -185,6 +185,11 @@ describe('auth.controller', () => {
   });
 
   describe('authRefreshToken', () => {
+    beforeEach(() => {
+      // Automocked modules resolve undefined; the real getRotatedAt answers null for a never-rotated token.
+      (tokenBlacklist.getRotatedAt as jest.Mock).mockResolvedValue(null);
+    });
+
     it('should refresh token successfully', async () => {
       const req = mockRequest({}, { authorization: 'Bearer refresh_token' });
       const res = mockResponse();
