@@ -1,8 +1,8 @@
 /**
  * Aggregated public-profile visit stats for the authenticated candidate —
  * time-bucketed counts (zero-filled, so a chart needs no gap handling)
- * plus country and referrer-source breakdowns, computed with one
- * aggregation over the `Visit` collection.
+ * plus country, referrer-source and CV-profile breakdowns, computed with
+ * one aggregation over the `Visit` collection.
  *
  * Bucket boundaries follow the caller's IANA time zone (default
  * Asia/Ho_Chi_Minh): a visit at 00:30 local belongs to that local day,
@@ -49,6 +49,7 @@ export interface VisitStats {
   series: { bucket: string; count: number }[];
   countries: { country: string | null; count: number }[];
   sources: { source: string | null; count: number }[];
+  profiles: { profileId: string | null; name: string | null; deleted: boolean; count: number }[];
 }
 
 const pad = (value: number, length = 2): string => String(value).padStart(length, '0');
@@ -183,6 +184,7 @@ interface FacetResult {
   series: { _id: string; count: number }[];
   countries: { _id: string | null; count: number }[];
   sources: { _id: string | null; count: number }[];
+  profiles: { _id: Types.ObjectId | null; count: number; found: boolean; name?: string; deletedAt?: number | null }[];
 }
 
 /**
@@ -205,6 +207,25 @@ export const handlerGetVisitStats = async (candidateId: string, query: VisitStat
         countries: [{ $group: { _id: COUNTRY_EXPRESSION, count: { $sum: 1 } } }, { $sort: { count: -1, _id: 1 } }],
         // `$group` buckets a missing field as null, so visits recorded before `referrer` existed land there.
         sources: [{ $group: { _id: '$referrer', count: { $sum: 1 } } }, { $sort: { count: -1, _id: 1 } }],
+        /**
+         * The name is looked up by `_id` alone: a stored `profileId` was
+         * ownership-checked when the visit was recorded. A soft-deleted
+         * (or since-removed) profile keeps its own row rather than folding
+         * into null, so restoring it doesn't shift the history.
+         */
+        profiles: [
+          { $group: { _id: '$profileId', count: { $sum: 1 } } },
+          { $sort: { count: -1, _id: 1 } },
+          { $lookup: { from: MODELS.Profile.collection.name, localField: '_id', foreignField: '_id', as: 'profile' } },
+          {
+            $project: {
+              count: 1,
+              found: { $gt: [{ $size: '$profile' }, 0] },
+              name: { $arrayElemAt: ['$profile.name', 0] },
+              deletedAt: { $arrayElemAt: ['$profile.deletedAt', 0] },
+            },
+          },
+        ],
       },
     },
   ]).exec();
@@ -221,5 +242,11 @@ export const handlerGetVisitStats = async (candidateId: string, query: VisitStat
     series,
     countries: (facets?.countries ?? []).map((row) => ({ country: row._id, count: row.count })),
     sources: (facets?.sources ?? []).map((row) => ({ source: row._id, count: row.count })),
+    profiles: (facets?.profiles ?? []).map((row) => ({
+      profileId: row._id ? String(row._id) : null,
+      name: row.name ?? null,
+      deleted: row._id !== null && (!row.found || row.deletedAt != null),
+      count: row.count,
+    })),
   };
 };

@@ -5,7 +5,7 @@
 
 import { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import type { Model } from 'mongoose';
+import type { Model, Types } from 'mongoose';
 import geoip from 'geoip-lite';
 
 import { formatReturn, handleError } from '@/utils';
@@ -264,11 +264,30 @@ export const handlerRecordVisit = async (email: string, req: Request) => {
   const geo = ip && ip !== 'unknown' ? geoip.lookup(ip) : null;
   const location = geo ? [geo.city, geo.region, geo.country].filter(Boolean).join(', ') : '';
 
-  const referrer = normalizeReferrer((req.body as { referrer?: unknown } | undefined)?.referrer);
+  const body = req.body as { referrer?: unknown; profile?: unknown } | undefined;
+  const referrer = normalizeReferrer(body?.referrer);
+  const profileId = await resolveVisitProfileId(body?.profile, candidate._id);
 
-  await MODEL.Visit.create({ candidateId: candidate._id, ip, location, referrer });
+  await MODEL.Visit.create({ candidateId: candidate._id, ip, location, referrer, profileId });
 
   return { success: true, message: 'Ghi nhận lượt ghé thăm thành công', data: null };
+};
+
+/**
+ * The visited candidate's own non-deleted profile id, or null for
+ * anything else (absent, malformed, foreign, deleted). The visit POST is
+ * public, so a visitor must not be able to plant an arbitrary or another
+ * candidate's id in someone's stats — and a bad value must never fail
+ * the visit. Malformed ids are rejected before the query because
+ * Mongoose would throw a CastError on them.
+ */
+export const resolveVisitProfileId = async (raw: unknown, candidateId: Types.ObjectId | null): Promise<Types.ObjectId | null> => {
+  if (!candidateId || typeof raw !== 'string' || !/^[a-f\d]{24}$/i.test(raw)) return null;
+  const { idQuerySafe } = await import('@/utils/querySafe');
+  const safeProfileIdQuery = idQuerySafe.safeQuery({}, { _id: raw });
+  if (!('_id' in safeProfileIdQuery)) return null;
+  const profile = await MODEL.Profile.findOne({ ...safeProfileIdQuery, candidateId, deletedAt: null }).select('_id').exec();
+  return profile?._id ?? null;
 };
 
 const REFERRER_MAX_LENGTH = 2048;

@@ -30,6 +30,8 @@ const schema = new Schema(
     location: { type: String, default: '' },
     // Hostname only (never path/query, which can carry personal data); null = direct/unknown.
     referrer: { type: String, default: null },
+    // CV profile the visitor was shown; only ever an id owned by candidateId, null = default link.
+    profileId: { type: ObjectId, default: null, ref: 'profile' },
   },
   { timestamps: true },
 );

@@ -143,6 +143,10 @@ router.get('/api/me/:email', fnGetAboutMe);
  *                 type: string
  *                 description: The visitor's document.referrer; only its hostname is stored (www./m. stripped), invalid values are stored as null
  *                 example: https://www.linkedin.com/feed/
+ *               profile:
+ *                 type: string
+ *                 description: The CV profile id the visitor was shown (the `?profile=` of the profile URL); stored only if it is a non-deleted profile of this candidate, otherwise null
+ *                 example: 64b7f0c2a1b2c3d4e5f60799
  *     responses:
  *       200:
  *         description: Visit recorded
