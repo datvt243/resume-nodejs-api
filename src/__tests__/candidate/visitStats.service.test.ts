@@ -15,6 +15,7 @@ const mockAggregate = jest.fn();
 
 jest.mock('@/models', () => ({
   Visit: { aggregate: (...args: unknown[]) => mockAggregate(...args) },
+  Profile: { collection: { name: 'profiles' } },
 }));
 
 const aggregateResolving = (facets: unknown) => mockAggregate.mockReturnValue({ exec: jest.fn().mockResolvedValue([facets]) });
@@ -99,7 +100,11 @@ describe('handlerGetVisitStats', () => {
   });
 
   it('zero-fills every day in range and totals the counts', async () => {
-    aggregateResolving({ series: [{ _id: '2026-10-02', count: 3 }], countries: [{ _id: 'VN', count: 2 }, { _id: null, count: 1 }] });
+    aggregateResolving({
+      series: [{ _id: '2026-10-02', count: 3 }],
+      countries: [{ _id: 'VN', count: 2 }, { _id: null, count: 1 }],
+      sources: [{ _id: 'linkedin.com', count: 2 }, { _id: null, count: 1 }],
+    });
 
     const stats = await handlerGetVisitStats(candidateId, resolved({ from: '2026-10-01', to: '2026-10-03' }));
 
@@ -118,6 +123,11 @@ describe('handlerGetVisitStats', () => {
         { country: 'VN', count: 2 },
         { country: null, count: 1 },
       ],
+      sources: [
+        { source: 'linkedin.com', count: 2 },
+        { source: null, count: 1 },
+      ],
+      profiles: [],
     });
   });
 
@@ -149,6 +159,54 @@ describe('handlerGetVisitStats', () => {
     const countryGroup = mockAggregate.mock.calls[0][0][1].$facet.countries;
     expect(countryGroup[0].$group._id.$let.vars.last.$trim.input).toEqual({ $arrayElemAt: [{ $split: [{ $ifNull: ['$location', ''] }, ','] }, -1] });
     expect(countryGroup[1]).toEqual({ $sort: { count: -1, _id: 1 } });
+  });
+
+  it('groups sources on the stored referrer hostname, missing as null', async () => {
+    aggregateResolving({ series: [], countries: [] });
+
+    const stats = await handlerGetVisitStats(candidateId, resolved({}));
+
+    expect(mockAggregate.mock.calls[0][0][1].$facet.sources).toEqual([{ $group: { _id: '$referrer', count: { $sum: 1 } } }, { $sort: { count: -1, _id: 1 } }]);
+    expect(stats.sources).toEqual([]);
+  });
+
+  it('groups profiles on the stored profileId and looks up each name', async () => {
+    aggregateResolving({ series: [], countries: [] });
+
+    const stats = await handlerGetVisitStats(candidateId, resolved({}));
+
+    const profilesStages = mockAggregate.mock.calls[0][0][1].$facet.profiles;
+    expect(profilesStages.slice(0, 3)).toEqual([
+      { $group: { _id: '$profileId', count: { $sum: 1 } } },
+      { $sort: { count: -1, _id: 1 } },
+      { $lookup: { from: 'profiles', localField: '_id', foreignField: '_id', as: 'profile' } },
+    ]);
+    expect(stats.profiles).toEqual([]);
+  });
+
+  it('maps profiles to id/name/deleted, keeping soft-deleted and missing profiles on their own row', async () => {
+    const live = new Types.ObjectId();
+    const softDeleted = new Types.ObjectId();
+    const missing = new Types.ObjectId();
+    aggregateResolving({
+      series: [],
+      countries: [],
+      profiles: [
+        { _id: live, count: 4, found: true, name: 'Frontend', deletedAt: null },
+        { _id: null, count: 3, found: false },
+        { _id: softDeleted, count: 2, found: true, name: 'Old', deletedAt: 1760000000000 },
+        { _id: missing, count: 1, found: false },
+      ],
+    });
+
+    const stats = await handlerGetVisitStats(candidateId, resolved({}));
+
+    expect(stats.profiles).toEqual([
+      { profileId: String(live), name: 'Frontend', deleted: false, count: 4 },
+      { profileId: null, name: null, deleted: false, count: 3 },
+      { profileId: String(softDeleted), name: 'Old', deleted: true, count: 2 },
+      { profileId: String(missing), name: null, deleted: true, count: 1 },
+    ]);
   });
 });
 

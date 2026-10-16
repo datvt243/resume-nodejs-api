@@ -9,6 +9,7 @@ const router = express.Router();
 
 import { fnGetAboutMe, fnRecordVisit } from '@/candidate_me';
 import { fnSearchPublicProfiles } from '@/candidate_me/search';
+import { fnDownloadPublicPdf } from '@/candidate_me/public-pdf';
 import routerAPI from './api/v1/index';
 import routerAPIV2 from './api/v2/index';
 
@@ -131,6 +132,21 @@ router.get('/api/me/:email', fnGetAboutMe);
  *         schema:
  *           type: string
  *           format: email
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               referrer:
+ *                 type: string
+ *                 description: The visitor's document.referrer; only its hostname is stored (www./m. stripped), invalid values are stored as null
+ *                 example: https://www.linkedin.com/feed/
+ *               profile:
+ *                 type: string
+ *                 description: The CV profile id the visitor was shown (the `?profile=` of the profile URL); stored only if it is a non-deleted profile of this candidate, otherwise null
+ *                 example: 64b7f0c2a1b2c3d4e5f60799
  *     responses:
  *       200:
  *         description: Visit recorded
@@ -142,6 +158,62 @@ router.get('/api/me/:email', fnGetAboutMe);
  *         description: Email not found
  */
 router.post('/api/me/:email/visit', fnRecordVisit);
+
+/**
+ * @swagger
+ * /api/me/{identifier}/download-pdf:
+ *   get:
+ *     tags: [CandidateMe]
+ *     summary: Download a public profile's ATS-optimized CV as PDF, no auth required
+ *     description: >
+ *       Same data as GET /api/me/{identifier} and the same renderer (incl.
+ *       PDF metadata) as the owner's GET /api/v1/download-pdf?template=ats.
+ *       A private profile gets the same response as an unknown identifier.
+ *       Rendered PDFs are cached in memory per exact CV content + lang, so
+ *       a repeat request doesn't re-render until the CV changes (or after
+ *       1 hour). Rate-limited like other public routes.
+ *     parameters:
+ *       - in: path
+ *         name: identifier
+ *         required: true
+ *         description: Vanity slug (checked first) or email
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: template
+ *         required: false
+ *         description: Only `ats` is available publicly
+ *         schema:
+ *           type: string
+ *           enum: [ats]
+ *           default: ats
+ *       - in: query
+ *         name: lang
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [vi, en]
+ *           default: vi
+ *       - in: query
+ *         name: profile
+ *         required: false
+ *         description: CV profile id; filters sections like GET /api/me/{identifier}?profile=
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: PDF file (Content-Disposition attachment)
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Unknown identifier or private profile (same response), or a template other than ats
+ *       429:
+ *         description: Too many requests
+ */
+router.get('/api/me/:identifier/download-pdf', fnDownloadPublicPdf);
 
 router.get('/api/*', (_req: Request, res: Response) => {
   res.status(404).json({

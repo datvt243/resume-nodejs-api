@@ -13,7 +13,7 @@
  */
 
 import * as MODEL from '@/models';
-import { handlerGetAboutMe, handlerRecordVisit } from '@/candidate_me';
+import { handlerGetAboutMe, handlerRecordVisit, normalizeReferrer } from '@/candidate_me';
 
 jest.mock('@/models', () => ({
   Candidate: { findOne: jest.fn() },
@@ -58,6 +58,88 @@ describe('candidate_me/index.ts (issue #135)', () => {
       expect(result.success).toBe(false);
       expect(MODEL.Candidate.findOne).not.toHaveBeenCalled();
       expect(MODEL.Visit.create).not.toHaveBeenCalled();
+    });
+
+    it('stores only the normalized referrer hostname from the body, ignoring the Referer header', async () => {
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
+      const req = { ip: '', socket: {}, headers: { referer: 'https://datvt243.github.io/' }, body: { referrer: 'https://www.LinkedIn.com/feed/?trk=abc' } };
+
+      const result = await handlerRecordVisit('votan.it@gmail.com', req as any);
+
+      expect(result.success).toBe(true);
+      expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ candidateId: 'c1', referrer: 'linkedin.com' }));
+    });
+
+    it('still records the visit with a null referrer when the body has none', async () => {
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
+
+      const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {} } as any);
+
+      expect(result.success).toBe(true);
+      expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ referrer: null }));
+    });
+
+    const ownProfileId = '64b7f0c2a1b2c3d4e5f60799';
+    const candidateFound = () =>
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
+    const profileLookupResolving = (doc: unknown) =>
+      (MODEL.Profile.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue(doc) }) });
+
+    it('stores the body profile id when it is a non-deleted profile of the visited candidate', async () => {
+      candidateFound();
+      profileLookupResolving({ _id: ownProfileId });
+
+      const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, body: { profile: ownProfileId } } as any);
+
+      expect(result.success).toBe(true);
+      expect(jest.mocked(MODEL.Profile).findOne).toHaveBeenCalledWith({ _id: ownProfileId, candidateId: 'c1', deletedAt: null });
+      expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ profileId: ownProfileId }));
+    });
+
+    it('stores null, without failing the visit, for a foreign or deleted profile id', async () => {
+      candidateFound();
+      profileLookupResolving(null);
+
+      const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, body: { profile: ownProfileId } } as any);
+
+      expect(result.success).toBe(true);
+      expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ profileId: null }));
+    });
+
+    it.each([undefined, '', 'abc', '$gt', `${ownProfileId}0`, { $ne: null }, [ownProfileId], 42])(
+      'stores null and never queries Profile for %p',
+      async (profile) => {
+        candidateFound();
+
+        const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, body: { profile } } as any);
+
+        expect(result.success).toBe(true);
+        expect(jest.mocked(MODEL.Profile).findOne).not.toHaveBeenCalled();
+        expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ profileId: null }));
+      },
+    );
+  });
+
+  describe('normalizeReferrer', () => {
+    it.each([
+      ['https://www.linkedin.com/in/someone?trk=x', 'linkedin.com'],
+      ['https://m.facebook.com/', 'facebook.com'],
+      ['http://L.Facebook.com/l.php?u=x', 'l.facebook.com'],
+      ['https://lnkd.in/abc', 'lnkd.in'],
+      ['https://www.google.com.vn/', 'google.com.vn'],
+    ])('%s -> %s', (raw, expected) => {
+      expect(normalizeReferrer(raw)).toBe(expected);
+    });
+
+    it.each([[undefined], [null], [''], [42], [{ href: 'https://x.com' }], ['not a url'], ['linkedin.com'], ['android-app://com.linkedin.android/'], ['javascript:alert(1)']])(
+      'returns null for %p',
+      (raw) => {
+        expect(normalizeReferrer(raw)).toBeNull();
+      },
+    );
+
+    it('returns null for a value over the 2048-char cap', () => {
+      expect(normalizeReferrer(`https://a.com/${'x'.repeat(2048)}`)).toBeNull();
     });
   });
 

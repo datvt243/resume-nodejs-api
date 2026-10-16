@@ -28,6 +28,10 @@ const schema = new Schema(
     candidateId: { type: ObjectId, required: true, ref: 'candidate', index: true },
     ip: { type: String, default: '' },
     location: { type: String, default: '' },
+    // Hostname only (never path/query, which can carry personal data); null = direct/unknown.
+    referrer: { type: String, default: null },
+    // CV profile the visitor was shown; only ever an id owned by candidateId, null = default link.
+    profileId: { type: ObjectId, default: null, ref: 'profile' },
   },
   { timestamps: true },
 );

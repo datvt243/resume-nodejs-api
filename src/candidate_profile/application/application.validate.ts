@@ -17,5 +17,9 @@ export const schemaApplication = Joi.object({
     .required(),
   note: Joi.string().allow('').max(1000).trim(),
   jobLink: Joi.string().allow('').max(500).trim(),
+  // null or '' unlinks; ownership is checked in application.service.ts.
+  profileId: Joi.string()
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .allow(null, ''),
   candidateId,
 });

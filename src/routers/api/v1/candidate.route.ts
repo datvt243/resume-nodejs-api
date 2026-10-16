@@ -230,8 +230,8 @@ router.get('/visits', fnGetVisits);
  * /api/v1/candidate/visits/stats:
  *   get:
  *     tags: [Candidate]
- *     summary: Aggregated stats for the authenticated candidate's own profile visits — zero-filled time series + country breakdown
- *     description: Buckets follow the given IANA time zone (default Asia/Ho_Chi_Minh); from/to are inclusive local dates and default to the last 30 days. Week buckets are ISO weeks (YYYY-Www, Monday start). Country is taken from the recorded geo location; visits without one are grouped under country null. At most 400 buckets per request.
+ *     summary: Aggregated stats for the authenticated candidate's own profile visits — zero-filled time series + country, referrer-source and CV-profile breakdowns
+ *     description: Buckets follow the given IANA time zone (default Asia/Ho_Chi_Minh); from/to are inclusive local dates and default to the last 30 days. Week buckets are ISO weeks (YYYY-Www, Monday start). Country is taken from the recorded geo location; visits without one are grouped under country null. Source is the referrer hostname recorded with the visit; visits without one (direct/unknown, or recorded before referrer tracking) are grouped under source null. Profile is the CV profile the visitor was shown; visits via the default link (or recorded before profile tracking) are grouped under profileId null, and a profile deleted since keeps its own row with deleted true. At most 400 buckets per request.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -281,6 +281,22 @@ router.get('/visits', fnGetVisits);
  *                             type: object
  *                             properties:
  *                               country: { type: string, nullable: true, example: VN }
+ *                               count: { type: number }
+ *                         sources:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               source: { type: string, nullable: true, example: linkedin.com }
+ *                               count: { type: number }
+ *                         profiles:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               profileId: { type: string, nullable: true }
+ *                               name: { type: string, nullable: true, example: Frontend }
+ *                               deleted: { type: boolean }
  *                               count: { type: number }
  *       400:
  *         description: Invalid interval, date, time zone, from after to, or more than 400 buckets

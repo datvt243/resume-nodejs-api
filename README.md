@@ -12,12 +12,12 @@ Một ứng dụng API backend **hoàn chỉnh** để **quản lý hồ sơ ứ
 - 👤 **Profile**: Candidate info + General (skills, languages, career) + shareable vanity slug
 - 📚 **Education** / 💼 **Experience** / 🏆 **Awards** / 📜 **Certificates** / 🚀 **Projects** / 👥 **References**
 - 🗂️ **CV Profiles** (multi-version): named subsets of CV sections for tailoring what a public link shows
-- 📋 **Job Application Tracker**: applied/interview/offer/rejected pipeline per candidate
+- 📋 **Job Application Tracker**: applied/interview/offer/rejected pipeline per candidate, each optionally linked to the CV profile sent
 - 📎 **LinkedIn Import**: parse a LinkedIn "Data export" ZIP into Education/Experience entries for review
 - 🔍 **Public Profile Search**: keyword search over public candidate profiles (skills, position, company, school)
 - 📄 **PDF CV Import**: parse an existing PDF CV into the same Education/Experience entries for review (best-effort)
 - 📤 **CV File Upload/Download**: store and retrieve a candidate's own PDF résumé
-- 📊 **Public Profile Visits**: per-visit analytics (IP + geo) on public profile views
+- 📊 **Public Profile Visits**: per-visit analytics (IP + geo + referrer host + viewed CV profile) on public profile views
 - 🗑️ **Soft Delete + Restore**: recoverable deletes across all CV sections
 - 🌐 **i18n**: Vietnamese/English via `Accept-Language`, localized free-text fields (career, descriptions, introduction)
 - 📄 **PDF/JSON/DOCX Export** (Pug + PDFKit/Puppeteer/docx)
@@ -161,7 +161,7 @@ in-memory store when `REDIS_URL` is unset.
 | POST   | `/login`          | Get tokens (GET also supported, deprecated)   |
 | POST   | `/logout`         | Blacklist current token (CSRF-checked)        |
 | POST   | `/logout-all`     | Revoke every token issued to this candidate   |
-| POST   | `/refresh`        | Renew access token (CSRF-checked)             |
+| POST   | `/refresh`        | Renew access token (CSRF-checked); reusing a rotated refresh token revokes all sessions |
 | POST   | `/forgot-password`| Request password reset (stub, no email sent)  |
 | POST   | `/reset-password` | Reset password using a reset token            |
 | GET    | `/verify-email`   | Verify email using a token issued on register |
@@ -179,7 +179,7 @@ in-memory store when `REDIS_URL` is unset.
 | POST   | `/parse-linkedin-export`  | Parse a LinkedIn export ZIP (stateless, not persisted) |
 | POST   | `/parse-cv-pdf`           | Parse a PDF CV, max 5MB (stateless, not persisted) |
 | GET    | `/visits`                 | Own public-profile visit count + list      |
-| GET    | `/visits/stats`           | Own visit stats: day/week/month series + countries (`tz`-aware) |
+| GET    | `/visits/stats`           | Own visit stats: day/week/month series + countries + sources + profiles (`tz`-aware) |
 
 ### CRUD Pattern (CV sections + Application + Profile)
 
@@ -207,7 +207,8 @@ best-effort bulk create (up to 100 items per request).
 | GET    | `/health`                  | None | Health check                                                 |
 | GET    | `/api/me/search`           | None | Keyword search over public profiles with a slug (`?q=`, `page`/`limit`) |
 | GET    | `/api/me/:email`           | None | Public profile by vanity slug or email, optional `?profile=` filter |
-| POST   | `/api/me/:email/visit`     | None | Record a visit (count/timestamp/IP/geo)                      |
+| POST   | `/api/me/:email/visit`     | None | Record a visit (count/timestamp/IP/geo; optional body `referrer` → hostname, `profile` → owned profile id) |
+| GET    | `/api/me/:identifier/download-pdf` | None | Public profile's ATS PDF (`?lang=`, `?profile=`; cached per CV content) |
 | GET    | `/api/v1/download-pdf`     | Token via query | Export own CV as `pdf` (default), `json`, or `docx`; `?template=classic\|modern\|ats` picks the visual template/theme (`classic`/`modern` apply to `pdf` and `docx`; `ats` is PDF-only) |
 | POST   | `/api/v1/cv/ats-check`     | Bearer/cookie | Render own CV in memory, extract its text, score 10 ATS-safety checks + optional JD keyword match |
 | GET    | `/api-docs`                | None | Swagger UI (OpenAPI docs)                                    |

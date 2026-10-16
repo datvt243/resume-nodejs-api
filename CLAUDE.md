@@ -109,9 +109,9 @@ src/
 │   ├── certificate.model.ts
 │   ├── award.model.ts
 │   ├── reference.modal.ts
-│   ├── application.model.ts   # Job application tracker (applied/interview/offer/rejected)
+│   ├── application.model.ts   # Job application tracker (applied/interview/offer/rejected), optional linked CV profile
 │   ├── profile.model.ts       # Named CV profile (multi-version): subset of section ids
-│   ├── visit.model.ts         # One doc per public-profile visit (ip + geo, no soft-delete)
+│   ├── visit.model.ts         # One doc per public-profile visit (ip + geo + referrer host + viewed CV profile, no soft-delete)
 │   └── part/index.ts          # Reusable sub-schemas (skills, languages, socialMedia, localizedText)
 ├── routers/
 │   ├── api/v1/                # All active routes (see API section), incl. cv.route.ts (ATS self-check)
@@ -124,7 +124,7 @@ src/
 │   ├── candidate.service.ts
 │   ├── candidate.validate.ts
 │   ├── parseLinkedInExport.service.ts # Parses LinkedIn "Data export" ZIP → Education/Experience (stateless)
-│   ├── visitStats.service.ts  # Visit stats aggregation: tz-aware zero-filled day/week/month series + country breakdown
+│   ├── visitStats.service.ts  # Visit stats aggregation: tz-aware zero-filled day/week/month series + country/source/profile breakdown
 │   └── parseCvPdf.service.ts  # Parses an uploaded PDF CV's text → Education/Experience (heuristic, stateless)
 ├── candidate_profile/         # One controller+service+validate per CV section
 │   ├── experience/
@@ -134,7 +134,7 @@ src/
 │   ├── certificates/
 │   ├── project/
 │   ├── reference_information/
-│   ├── application/            # Job application tracker CRUD
+│   ├── application/            # Job application tracker CRUD + owned-profile check on profileId
 │   ├── profile/                # CV profile CRUD + ensureDefaultProfile()
 │   ├── BaseController.ts      # baseGetAll()/baseDelete()/baseRestore()/baseUploadImages() shared
 │   └── BaseService.ts         # createCrudService() factory shared across section services
@@ -142,6 +142,7 @@ src/
 │   ├── index.ts               # Public profile aggregation (slug/email, i18n, ?profile= filter),
 │   │                           # visit recording, PDF/JSON/DOCX export
 │   ├── search.ts              # GET /api/me/search: keyword search over public, slugged profiles
+│   ├── public-pdf.ts          # GET /api/me/:identifier/download-pdf: public ATS PDF, in-memory render cache
 │   └── ats-check.ts           # POST /cv/ats-check: renders either PDF template in memory,
 │                               # extracts text, scores the 10 ATS checks + optional JD keyword match
 ├── services/
@@ -160,7 +161,7 @@ src/
 ├── utils/
 │   ├── jwt.ts                 # jwtSign(), jwtVerify()
 │   ├── bcrypt.ts              # bcryptGenerateSalt(), bcryptCompareHash()
-│   ├── tokenBlacklist.ts      # Redis/mem blacklist; cleanup every 60s; key: blacklist:{token}
+│   ├── tokenBlacklist.ts      # Redis/mem blacklist; cleanup every 60s; key: blacklist:{token}; rotated refresh tokens carry a rotated-at marker
 │   ├── sessionRevocation.ts   # "Logout of all devices" — per-candidate invalidated-at timestamp
 │   ├── authCookies.ts         # Sets/clears httpOnly access+refresh JWT cookies
 │   ├── csrf.ts                # requiresCsrfCheck()/isCsrfTokenValid() double-submit CSRF check
@@ -221,7 +222,7 @@ state-changing requests must also pass the double-submit CSRF check (see Securit
 | POST / GET | `/login` | Validate + return access + refresh tokens (GET deprecated) |
 | POST | `/logout` | Blacklist current token (CSRF-checked) |
 | POST | `/logout-all` | Revoke every token issued to this candidate up to now |
-| POST | `/refresh` | Rotate tokens; blacklist old refresh token (CSRF-checked) |
+| POST | `/refresh` | Rotate tokens; blacklist old refresh token (CSRF-checked); reuse of a rotated token > 10s later revokes all sessions |
 | POST | `/forgot-password` | Request password reset (stub — logged, not emailed) |
 | POST | `/reset-password` | Reset password using a reset token |
 | GET | `/verify-email` | Verify email using a token issued on register (stub) |
@@ -241,7 +242,7 @@ state-changing requests must also pass the double-submit CSRF check (see Securit
 | POST | `/parse-linkedin-export` | Parse a LinkedIn "Data export" ZIP → Education/Experience entries; stateless, nothing persisted |
 | POST | `/parse-cv-pdf` | Parse an existing PDF CV (max 5MB, memory only) → same Education/Experience shape + `extractedText`; best-effort heading/date-range heuristic (vi + en), stateless, nothing persisted |
 | GET | `/visits` | Own public-profile visit count + list |
-| GET | `/visits/stats` | Own visit stats: `?interval=day\|week\|month` (default `day`), inclusive local `from`/`to` (`YYYY-MM-DD`, default last 30 days), `?tz=` IANA zone (default `Asia/Ho_Chi_Minh`); zero-filled `series` (ISO weeks `YYYY-Www`) + `countries` from the recorded geo location; ≤ 400 buckets |
+| GET | `/visits/stats` | Own visit stats: `?interval=day\|week\|month` (default `day`), inclusive local `from`/`to` (`YYYY-MM-DD`, default last 30 days), `?tz=` IANA zone (default `Asia/Ho_Chi_Minh`); zero-filled `series` (ISO weeks `YYYY-Www`) + `countries` from the recorded geo location + `sources` from the recorded referrer hostname (null = direct/unknown) + `profiles` (`{ profileId, name, deleted, count }`, null = default link; a profile deleted since keeps its row with `deleted: true`); ≤ 400 buckets |
 
 ### CV Sections + Application + Profile (all follow same CRUD pattern)
 
@@ -270,7 +271,8 @@ best-effort — each item validated/created independently via the same
 | GET | `/health` | None | Health check |
 | GET | `/api/me/search` | None | Keyword search (`?q=` 2–100 chars, `page`/`limit` ≤ 100) over public profiles that have a slug — escaped case-insensitive substring on GeneralInformation `positionDesired`/`professionalSkills.name`, Experience `company`/`position`/`skills`, Education `school`/`major`; returns `{ items: [{ slug, firstName, lastName, positionDesired }], pagination }`, never email. Registered before `/api/me/:email` (a slug literally `search` is shadowed) |
 | GET | `/api/me/:email` | None | Public profile by vanity slug (checked first) or email; `?lang=vi\|en` and `?profile=<id>` (filters sections to that CV profile) |
-| POST | `/api/me/:email/visit` | None | Record a visit (count, timestamp, IP, geo via `geoip-lite`) |
+| GET | `/api/me/:identifier/download-pdf` | None | Public profile's ATS PDF (attachment, same renderer + metadata as the owner's `download-pdf?template=ats`); `?template=ats` only (anything else → 400), `?lang=`, `?profile=`. Private profile answers exactly like an unknown identifier. Rendered buffer cached in memory per sha256(resolved data) + lang (1h TTL, 50 entries, concurrent requests share one render), so a CV edit re-renders on the next request. Nothing written to disk |
+| POST | `/api/me/:email/visit` | None | Record a visit (count, timestamp, IP, geo via `geoip-lite`); optional body `referrer` (the SPA's `document.referrer` — the request's own `Referer` header is ignored) stored as hostname only, `www.`/`m.` stripped, invalid → null; optional body `profile` (the `?profile=` id the visitor was shown) stored only if it is a non-deleted profile of that candidate, else null |
 | GET | `/api/v1/download-pdf` | Token via query | Export own CV; `?format=pdf\|json\|docx` (default `pdf`), `?lang=vi\|en`, `?template=classic\|modern\|ats` (default `classic`; `modern` is an additional visual theme, applies to `pdf` and `docx`; `ats` is the ATS-optimized single-column template, PDF-only; `template` ignored for `format=json`) |
 | POST | `/api/v1/cv/ats-check` | Bearer/cookie | Renders the candidate's own CV in memory (`template`/`lang` default `ats`/`vi`), extracts its text (`pdf-parse`), and scores it against 10 ATS-safety checks; optional `jobDescription` body field adds a keyword-coverage report |
 | GET | `/api-docs` | None | Swagger UI (OpenAPI docs) |
@@ -283,7 +285,7 @@ best-effort — each item validated/created independently via the same
 1. `POST /auth/register` → validate Joi → check duplicate email → bcrypt(password, 12) → create Candidate doc
 2. `POST /auth/login` → find by email → bcryptCompare → sign `accessToken` (TOKEN_SECRET) + `refreshToken` (TOKEN_REFRESH) with payload `{ _id: candidateId }` → set as httpOnly cookies (`utils/authCookies.ts`) and returned in the response body
 3. All protected requests → `verifyToken` middleware → extract token (Bearer header, cookie, body, or query via `extractTokenWithSource`) → `jwtVerify` → check blacklist → check per-candidate session-revocation timestamp (`sessionRevocation.ts`) → if the request authenticated purely off the cookie, require a valid double-submit CSRF token → attach `req.user._id` and force `req.body.candidateId` to it
-4. `POST /auth/refresh` → CSRF-checked → verify refresh token → blacklist old refresh token → issue new pair
+4. `POST /auth/refresh` → CSRF-checked → if the token was already rotated away: 403, and if that rotation was more than 10s ago (not a concurrent refresh) treat it as theft → `invalidateAllSessions` (once — a token already predating the last revocation doesn't re-trigger it) → otherwise verify refresh token → blacklist old refresh token with a rotated-at marker → issue new pair (refresh tokens carry a random `jti` so two issued in the same second never collide)
 5. `POST /auth/logout` → CSRF-checked → add token to blacklist (Redis TTL = token remaining exp; mem fallback)
 6. `POST /auth/logout-all` → bump the candidate's session-invalidated-at timestamp so every token issued before now is rejected on next use, even if not individually blacklisted or expired
 
@@ -303,9 +305,9 @@ All models use Mongoose with `timestamps: true` and `candidateId` foreign key (e
 | Certificate | candidateId, name, organization, startDate, endDate, isNoExpiration, link, images[], description |
 | Award | candidateId, name, organization, issueDate, link, images[], description |
 | Reference | candidateId, fullName, phone, company, position |
-| Application | candidateId, company, position, appliedDate, status (`applied`\|`interview`\|`offer`\|`rejected`), note, jobLink |
+| Application | candidateId, company, position, appliedDate, status (`applied`\|`interview`\|`offer`\|`rejected`), note, jobLink, profileId (CV profile sent; must be the candidate's own non-deleted profile on create/update, else 400; `null`/`''` unlinks; kept if the profile is deleted later) |
 | Profile | candidateId, name, educationIds[], experienceIds[], projectIds[], certificateIds[], awardIds[], referenceIds[] |
-| Visit | candidateId, ip, location (no `_id` override — see comment in `visit.model.ts` on why) |
+| Visit | candidateId, ip, location, referrer (hostname only, nullable), profileId (owned profile, nullable) (no `_id` override — see comment in `visit.model.ts` on why) |
 
 Free-text fields on several models (e.g. Award/Certificate `description`, GeneralInformation `career`/`careerGoal`, Candidate `introduction`) use `localizedTextSchema` (`{ vi, en }`) resolved per-request by `?lang=`.
 
@@ -356,7 +358,8 @@ Global error middleware catches all `AppError` instances, logs via Winston, and 
 
 - **NoSQL injection**: `QuerySafe` class in `utils/querySafe.ts` blocks `$` operators and `javascript:` patterns before any DB query
 - **Password**: bcrypt with 12 salt rounds
-- **Token blacklist**: Redis `blacklist:{token}` with TTL; in-memory Map fallback; cleanup job every 60s
+- **Token blacklist**: Redis `blacklist:{token}` with TTL; in-memory Map fallback; cleanup job every 60s. Value `revoked` (logout) or `rotated:<unix s>` (refresh rotation)
+- **Refresh-token reuse detection**: a rotated-away refresh token presented again after a 10s grace window revokes every session of that candidate (same mechanism as logout-all); the response is the same 403 as any revoked token
 - **Session revocation**: `utils/sessionRevocation.ts` — logout-all invalidates every token issued before the recorded timestamp, independent of blacklist/expiry
 - **CSRF**: double-submit check (`utils/csrf.ts`) required whenever a state-changing request authenticated purely off the httpOnly cookie (no Bearer header) — enforced inline in `verifyToken` and standalone via `csrf.middleware.ts` on `/auth/refresh` and `/auth/logout`, which sit outside `verifyToken`
 - **IDOR**: `verifyToken` always overwrites `req.body.candidateId` with the authenticated `req.user._id` — handlers must never trust a client-supplied `candidateId`
@@ -380,19 +383,22 @@ npm test                         # run all tests
 |---|---|
 | auth/auth.service.test.ts | register, login, email check (mocks: CandidateModel, bcrypt, JWT) |
 | auth/auth.controller.test.ts | controller layer |
-| auth/refreshToken.test.ts | token rotation |
+| auth/refreshToken.test.ts | token rotation + reuse of a rotated token (grace window, unverifiable token, no repeat revocation, same 403 as logout) |
+| auth/refreshTokenReuse.test.ts | end-to-end reuse-after-rotation on real jwt + in-memory blacklist/session stores (fake clock) |
 | auth/tokenExpiry.test.ts | real `jwtSign`/`jwtVerify` — access vs refresh `TOKEN_EXP_IN`/`TOKEN_REFRESH_EXP_IN` wiring |
 | auth/v2AuthRoute.test.ts | v2 auth route wiring (register/login only) |
 | candidate/candidate.controller.test.ts | candidate controller (upload/download CV, visits, etc.) |
 | candidate/candidate.service.test.ts | password field exclusion + `handlerDelete` cascade/file cleanup |
 | candidate/parseLinkedInExport.service.test.ts | LinkedIn export ZIP/CSV parsing |
-| candidate/visitStats.service.test.ts | visit stats: query validation/defaults, tz + DST bucket boundaries, ISO-week/month labels, zero-fill, own-id-only |
+| candidate/visitStats.service.test.ts | visit stats: query validation/defaults, tz + DST bucket boundaries, ISO-week/month labels, zero-fill, own-id-only, `sources` + `profiles` facets |
 | candidate/parseCvPdf.service.test.ts | PDF CV parsing heuristics (vi + en fixture text) + unreadable-PDF rejection |
-| candidate_me/index.test.ts | public profile aggregation, visit recording, export |
+| candidate_me/index.test.ts | public profile aggregation, visit recording (incl. referrer hostname normalization, owned-profile-id check), export |
+| candidate_me/public-pdf.test.ts | public ATS PDF: attachment headers, private == unknown response, template allow-list, cache hit/miss/TTL/eviction, concurrent dedupe, failed render not cached |
 | candidate_me/search.test.ts | public search: only public + slugged candidates, field whitelist, regex escaping, pagination, `q` validation |
 | candidate_profile/BaseController.test.ts | shared getAll/delete/restore/upload-images controller |
 | candidate_profile/BaseService.test.ts | `createCrudService().handlerCreate` real CV-section create flow |
 | candidate_profile/profile.service.test.ts | CV profile CRUD + default-profile synthesis |
+| candidate_profile/application.service.test.ts | application ↔ CV profile link: `profileId` shape, ownership check (foreign/deleted → 400, nothing written), unlink/omit semantics, controller 400 |
 | config/cors.config.test.ts | CORS allow-list behavior |
 | middlewares/verifyToken.test.ts | token extraction + blacklist + session-revocation + CSRF check |
 | middlewares/csrf.test.ts | CSRF middleware |
@@ -411,6 +417,7 @@ npm test                         # run all tests
 | services/keywordMatcher.test.ts | JD keyword matcher — alias handling, case-insensitivity, Vietnamese diacritics |
 | services/atsPdfIntegration.test.ts | Real Puppeteer + `pdf-parse` end-to-end: renders a fixture CV, extracts text, asserts the full ATS check suite passes, and round-trips it (vi + en) through the PDF CV import parser (skipped via `CI_NO_CHROME`) |
 | utils/authCookies.test.ts | httpOnly cookie set/clear |
+| utils/tokenBlacklist.test.ts | rotated-at marker vs logout entry, Redis + in-memory |
 | utils/csrf.test.ts | double-submit CSRF token validation |
 | utils/bcrypt.test.ts | hash + compare |
 | utils/valid.test.ts | Joi + Mongoose validation |
