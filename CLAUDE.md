@@ -142,6 +142,7 @@ src/
 │   ├── index.ts               # Public profile aggregation (slug/email, i18n, ?profile= filter),
 │   │                           # visit recording, PDF/JSON/DOCX export
 │   ├── search.ts              # GET /api/me/search: keyword search over public, slugged profiles
+│   ├── public-pdf.ts          # GET /api/me/:identifier/download-pdf: public ATS PDF, in-memory render cache
 │   └── ats-check.ts           # POST /cv/ats-check: renders either PDF template in memory,
 │                               # extracts text, scores the 10 ATS checks + optional JD keyword match
 ├── services/
@@ -270,6 +271,7 @@ best-effort — each item validated/created independently via the same
 | GET | `/health` | None | Health check |
 | GET | `/api/me/search` | None | Keyword search (`?q=` 2–100 chars, `page`/`limit` ≤ 100) over public profiles that have a slug — escaped case-insensitive substring on GeneralInformation `positionDesired`/`professionalSkills.name`, Experience `company`/`position`/`skills`, Education `school`/`major`; returns `{ items: [{ slug, firstName, lastName, positionDesired }], pagination }`, never email. Registered before `/api/me/:email` (a slug literally `search` is shadowed) |
 | GET | `/api/me/:email` | None | Public profile by vanity slug (checked first) or email; `?lang=vi\|en` and `?profile=<id>` (filters sections to that CV profile) |
+| GET | `/api/me/:identifier/download-pdf` | None | Public profile's ATS PDF (attachment, same renderer + metadata as the owner's `download-pdf?template=ats`); `?template=ats` only (anything else → 400), `?lang=`, `?profile=`. Private profile answers exactly like an unknown identifier. Rendered buffer cached in memory per sha256(resolved data) + lang (1h TTL, 50 entries, concurrent requests share one render), so a CV edit re-renders on the next request. Nothing written to disk |
 | POST | `/api/me/:email/visit` | None | Record a visit (count, timestamp, IP, geo via `geoip-lite`); optional body `referrer` (the SPA's `document.referrer` — the request's own `Referer` header is ignored) stored as hostname only, `www.`/`m.` stripped, invalid → null |
 | GET | `/api/v1/download-pdf` | Token via query | Export own CV; `?format=pdf\|json\|docx` (default `pdf`), `?lang=vi\|en`, `?template=classic\|modern\|ats` (default `classic`; `modern` is an additional visual theme, applies to `pdf` and `docx`; `ats` is the ATS-optimized single-column template, PDF-only; `template` ignored for `format=json`) |
 | POST | `/api/v1/cv/ats-check` | Bearer/cookie | Renders the candidate's own CV in memory (`template`/`lang` default `ats`/`vi`), extracts its text (`pdf-parse`), and scores it against 10 ATS-safety checks; optional `jobDescription` body field adds a keyword-coverage report |
@@ -389,6 +391,7 @@ npm test                         # run all tests
 | candidate/visitStats.service.test.ts | visit stats: query validation/defaults, tz + DST bucket boundaries, ISO-week/month labels, zero-fill, own-id-only, `sources` facet |
 | candidate/parseCvPdf.service.test.ts | PDF CV parsing heuristics (vi + en fixture text) + unreadable-PDF rejection |
 | candidate_me/index.test.ts | public profile aggregation, visit recording (incl. referrer hostname normalization), export |
+| candidate_me/public-pdf.test.ts | public ATS PDF: attachment headers, private == unknown response, template allow-list, cache hit/miss/TTL/eviction, concurrent dedupe, failed render not cached |
 | candidate_me/search.test.ts | public search: only public + slugged candidates, field whitelist, regex escaping, pagination, `q` validation |
 | candidate_profile/BaseController.test.ts | shared getAll/delete/restore/upload-images controller |
 | candidate_profile/BaseService.test.ts | `createCrudService().handlerCreate` real CV-section create flow |
