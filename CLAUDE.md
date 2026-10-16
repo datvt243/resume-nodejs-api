@@ -109,7 +109,7 @@ src/
 │   ├── certificate.model.ts
 │   ├── award.model.ts
 │   ├── reference.modal.ts
-│   ├── application.model.ts   # Job application tracker (applied/interview/offer/rejected)
+│   ├── application.model.ts   # Job application tracker (applied/interview/offer/rejected), optional linked CV profile
 │   ├── profile.model.ts       # Named CV profile (multi-version): subset of section ids
 │   ├── visit.model.ts         # One doc per public-profile visit (ip + geo + referrer host + viewed CV profile, no soft-delete)
 │   └── part/index.ts          # Reusable sub-schemas (skills, languages, socialMedia, localizedText)
@@ -134,7 +134,7 @@ src/
 │   ├── certificates/
 │   ├── project/
 │   ├── reference_information/
-│   ├── application/            # Job application tracker CRUD
+│   ├── application/            # Job application tracker CRUD + owned-profile check on profileId
 │   ├── profile/                # CV profile CRUD + ensureDefaultProfile()
 │   ├── BaseController.ts      # baseGetAll()/baseDelete()/baseRestore()/baseUploadImages() shared
 │   └── BaseService.ts         # createCrudService() factory shared across section services
@@ -305,7 +305,7 @@ All models use Mongoose with `timestamps: true` and `candidateId` foreign key (e
 | Certificate | candidateId, name, organization, startDate, endDate, isNoExpiration, link, images[], description |
 | Award | candidateId, name, organization, issueDate, link, images[], description |
 | Reference | candidateId, fullName, phone, company, position |
-| Application | candidateId, company, position, appliedDate, status (`applied`\|`interview`\|`offer`\|`rejected`), note, jobLink |
+| Application | candidateId, company, position, appliedDate, status (`applied`\|`interview`\|`offer`\|`rejected`), note, jobLink, profileId (CV profile sent; must be the candidate's own non-deleted profile on create/update, else 400; `null`/`''` unlinks; kept if the profile is deleted later) |
 | Profile | candidateId, name, educationIds[], experienceIds[], projectIds[], certificateIds[], awardIds[], referenceIds[] |
 | Visit | candidateId, ip, location, referrer (hostname only, nullable), profileId (owned profile, nullable) (no `_id` override — see comment in `visit.model.ts` on why) |
 
@@ -398,6 +398,7 @@ npm test                         # run all tests
 | candidate_profile/BaseController.test.ts | shared getAll/delete/restore/upload-images controller |
 | candidate_profile/BaseService.test.ts | `createCrudService().handlerCreate` real CV-section create flow |
 | candidate_profile/profile.service.test.ts | CV profile CRUD + default-profile synthesis |
+| candidate_profile/application.service.test.ts | application ↔ CV profile link: `profileId` shape, ownership check (foreign/deleted → 400, nothing written), unlink/omit semantics, controller 400 |
 | config/cors.config.test.ts | CORS allow-list behavior |
 | middlewares/verifyToken.test.ts | token extraction + blacklist + session-revocation + CSRF check |
 | middlewares/csrf.test.ts | CSRF middleware |
