@@ -161,7 +161,7 @@ src/
 ├── utils/
 │   ├── jwt.ts                 # jwtSign(), jwtVerify()
 │   ├── bcrypt.ts              # bcryptGenerateSalt(), bcryptCompareHash()
-│   ├── tokenBlacklist.ts      # Redis/mem blacklist; cleanup every 60s; key: blacklist:{token}
+│   ├── tokenBlacklist.ts      # Redis/mem blacklist; cleanup every 60s; key: blacklist:{token}; rotated refresh tokens carry a rotated-at marker
 │   ├── sessionRevocation.ts   # "Logout of all devices" — per-candidate invalidated-at timestamp
 │   ├── authCookies.ts         # Sets/clears httpOnly access+refresh JWT cookies
 │   ├── csrf.ts                # requiresCsrfCheck()/isCsrfTokenValid() double-submit CSRF check
@@ -222,7 +222,7 @@ state-changing requests must also pass the double-submit CSRF check (see Securit
 | POST / GET | `/login` | Validate + return access + refresh tokens (GET deprecated) |
 | POST | `/logout` | Blacklist current token (CSRF-checked) |
 | POST | `/logout-all` | Revoke every token issued to this candidate up to now |
-| POST | `/refresh` | Rotate tokens; blacklist old refresh token (CSRF-checked) |
+| POST | `/refresh` | Rotate tokens; blacklist old refresh token (CSRF-checked); reuse of a rotated token > 10s later revokes all sessions |
 | POST | `/forgot-password` | Request password reset (stub — logged, not emailed) |
 | POST | `/reset-password` | Reset password using a reset token |
 | GET | `/verify-email` | Verify email using a token issued on register (stub) |
@@ -285,7 +285,7 @@ best-effort — each item validated/created independently via the same
 1. `POST /auth/register` → validate Joi → check duplicate email → bcrypt(password, 12) → create Candidate doc
 2. `POST /auth/login` → find by email → bcryptCompare → sign `accessToken` (TOKEN_SECRET) + `refreshToken` (TOKEN_REFRESH) with payload `{ _id: candidateId }` → set as httpOnly cookies (`utils/authCookies.ts`) and returned in the response body
 3. All protected requests → `verifyToken` middleware → extract token (Bearer header, cookie, body, or query via `extractTokenWithSource`) → `jwtVerify` → check blacklist → check per-candidate session-revocation timestamp (`sessionRevocation.ts`) → if the request authenticated purely off the cookie, require a valid double-submit CSRF token → attach `req.user._id` and force `req.body.candidateId` to it
-4. `POST /auth/refresh` → CSRF-checked → verify refresh token → blacklist old refresh token → issue new pair
+4. `POST /auth/refresh` → CSRF-checked → if the token was already rotated away: 403, and if that rotation was more than 10s ago (not a concurrent refresh) treat it as theft → `invalidateAllSessions` (once — a token already predating the last revocation doesn't re-trigger it) → otherwise verify refresh token → blacklist old refresh token with a rotated-at marker → issue new pair (refresh tokens carry a random `jti` so two issued in the same second never collide)
 5. `POST /auth/logout` → CSRF-checked → add token to blacklist (Redis TTL = token remaining exp; mem fallback)
 6. `POST /auth/logout-all` → bump the candidate's session-invalidated-at timestamp so every token issued before now is rejected on next use, even if not individually blacklisted or expired
 
@@ -358,7 +358,8 @@ Global error middleware catches all `AppError` instances, logs via Winston, and 
 
 - **NoSQL injection**: `QuerySafe` class in `utils/querySafe.ts` blocks `$` operators and `javascript:` patterns before any DB query
 - **Password**: bcrypt with 12 salt rounds
-- **Token blacklist**: Redis `blacklist:{token}` with TTL; in-memory Map fallback; cleanup job every 60s
+- **Token blacklist**: Redis `blacklist:{token}` with TTL; in-memory Map fallback; cleanup job every 60s. Value `revoked` (logout) or `rotated:<unix s>` (refresh rotation)
+- **Refresh-token reuse detection**: a rotated-away refresh token presented again after a 10s grace window revokes every session of that candidate (same mechanism as logout-all); the response is the same 403 as any revoked token
 - **Session revocation**: `utils/sessionRevocation.ts` — logout-all invalidates every token issued before the recorded timestamp, independent of blacklist/expiry
 - **CSRF**: double-submit check (`utils/csrf.ts`) required whenever a state-changing request authenticated purely off the httpOnly cookie (no Bearer header) — enforced inline in `verifyToken` and standalone via `csrf.middleware.ts` on `/auth/refresh` and `/auth/logout`, which sit outside `verifyToken`
 - **IDOR**: `verifyToken` always overwrites `req.body.candidateId` with the authenticated `req.user._id` — handlers must never trust a client-supplied `candidateId`
@@ -382,7 +383,8 @@ npm test                         # run all tests
 |---|---|
 | auth/auth.service.test.ts | register, login, email check (mocks: CandidateModel, bcrypt, JWT) |
 | auth/auth.controller.test.ts | controller layer |
-| auth/refreshToken.test.ts | token rotation |
+| auth/refreshToken.test.ts | token rotation + reuse of a rotated token (grace window, unverifiable token, no repeat revocation, same 403 as logout) |
+| auth/refreshTokenReuse.test.ts | end-to-end reuse-after-rotation on real jwt + in-memory blacklist/session stores (fake clock) |
 | auth/tokenExpiry.test.ts | real `jwtSign`/`jwtVerify` — access vs refresh `TOKEN_EXP_IN`/`TOKEN_REFRESH_EXP_IN` wiring |
 | auth/v2AuthRoute.test.ts | v2 auth route wiring (register/login only) |
 | candidate/candidate.controller.test.ts | candidate controller (upload/download CV, visits, etc.) |
@@ -414,6 +416,7 @@ npm test                         # run all tests
 | services/keywordMatcher.test.ts | JD keyword matcher — alias handling, case-insensitivity, Vietnamese diacritics |
 | services/atsPdfIntegration.test.ts | Real Puppeteer + `pdf-parse` end-to-end: renders a fixture CV, extracts text, asserts the full ATS check suite passes, and round-trips it (vi + en) through the PDF CV import parser (skipped via `CI_NO_CHROME`) |
 | utils/authCookies.test.ts | httpOnly cookie set/clear |
+| utils/tokenBlacklist.test.ts | rotated-at marker vs logout entry, Redis + in-memory |
 | utils/csrf.test.ts | double-submit CSRF token validation |
 | utils/bcrypt.test.ts | hash + compare |
 | utils/valid.test.ts | Joi + Mongoose validation |

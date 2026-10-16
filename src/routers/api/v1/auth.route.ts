@@ -132,6 +132,12 @@ router.post('/logout-all', verifyToken, authLogoutAll);
  *   post:
  *     tags: [Auth]
  *     summary: Rotate access/refresh tokens using a valid refresh token
+ *     description: >
+ *       Each refresh token is single-use. Presenting one that was already
+ *       rotated more than 10 seconds ago is treated as token theft and
+ *       revokes every session of that candidate (same as logout-all), so
+ *       the user must log in again. A reuse within 10 seconds (e.g. two
+ *       tabs refreshing at once) is only rejected.
  *     requestBody:
  *       required: true
  *       content:
@@ -151,6 +157,8 @@ router.post('/logout-all', verifyToken, authLogoutAll);
  *               $ref: '#/components/schemas/AuthTokenResponse'
  *       401:
  *         description: Invalid, expired, or revoked refresh token
+ *       403:
+ *         description: Refresh token revoked (logged out, rotated already, or predating logout-all)
  */
 router.post('/refresh', verifyCsrf('refreshToken'), authRefreshToken);
 

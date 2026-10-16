@@ -9,6 +9,8 @@ jest.mock('@/utils/sessionRevocation');
 
 const mockedIsBlacklisted = tokenBlacklist.isBlacklisted as jest.MockedFunction<typeof tokenBlacklist.isBlacklisted>;
 const mockedAddToBlacklist = tokenBlacklist.addToBlacklist as jest.MockedFunction<typeof tokenBlacklist.addToBlacklist>;
+const mockedGetRotatedAt = tokenBlacklist.getRotatedAt as jest.MockedFunction<typeof tokenBlacklist.getRotatedAt>;
+const mockedInvalidateAllSessions = sessionRevocation.invalidateAllSessions as jest.MockedFunction<typeof sessionRevocation.invalidateAllSessions>;
 const mockedJwtVerify = jwtUtils.jwtVerify as jest.MockedFunction<typeof jwtUtils.jwtVerify>;
 const mockedJwtSign = jwtUtils.jwtSign as jest.MockedFunction<typeof jwtUtils.jwtSign>;
 const mockedGetSessionsInvalidatedAt = sessionRevocation.getSessionsInvalidatedAt as jest.MockedFunction<typeof sessionRevocation.getSessionsInvalidatedAt>;
@@ -31,6 +33,7 @@ describe('authRefreshToken controller', () => {
     jest.resetAllMocks();
     (sessionRevocation.isSessionRevoked as jest.Mock).mockImplementation(actualSessionRevocation.isSessionRevoked);
     mockedGetSessionsInvalidatedAt.mockResolvedValue(null); // no logout-all in effect by default
+    mockedGetRotatedAt.mockResolvedValue(null); // not a rotated-away token by default
   });
 
   it('returns 401 when missing refresh token', async () => {
@@ -55,7 +58,9 @@ describe('authRefreshToken controller', () => {
     const { req, res, next } = createMocks({}, { authorization: 'Bearer oldRefresh' });
     await authRefreshToken(req, res, next);
 
-    expect(mockedAddToBlacklist).toHaveBeenCalledWith('oldRefresh');
+    expect(mockedAddToBlacklist).toHaveBeenCalledWith('oldRefresh', expect.any(Number));
+    expect(mockedJwtSign).toHaveBeenNthCalledWith(2, expect.objectContaining({ data: { _id: 'user1', jti: expect.any(String) } }));
+    expect(mockedInvalidateAllSessions).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.status().json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
@@ -70,5 +75,78 @@ describe('authRefreshToken controller', () => {
 
     expect(mockedAddToBlacklist).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  describe('reuse of a rotated-away refresh token', () => {
+    const nowSeconds = () => Math.floor(Date.now() / 1000);
+
+    const expectRejectedWithoutMinting = (res: any) => {
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(mockedJwtSign).not.toHaveBeenCalled();
+      expect(mockedAddToBlacklist).not.toHaveBeenCalled();
+    };
+
+    it('revokes every session of the candidate once past the grace window', async () => {
+      mockedGetRotatedAt.mockResolvedValue(nowSeconds() - 60);
+      mockedJwtVerify.mockReturnValue({ _id: 'user1', iat: nowSeconds() - 120 } as any);
+
+      const { req, res, next } = createMocks({}, { authorization: 'Bearer stolen' });
+      await authRefreshToken(req, res, next);
+
+      expect(mockedInvalidateAllSessions).toHaveBeenCalledWith('user1');
+      expectRejectedWithoutMinting(res);
+    });
+
+    it('only rejects inside the grace window (concurrent refresh), without verifying or revoking', async () => {
+      mockedGetRotatedAt.mockResolvedValue(nowSeconds() - 5);
+
+      const { req, res, next } = createMocks({}, { authorization: 'Bearer raced' });
+      await authRefreshToken(req, res, next);
+
+      expect(mockedJwtVerify).not.toHaveBeenCalled();
+      expect(mockedInvalidateAllSessions).not.toHaveBeenCalled();
+      expectRejectedWithoutMinting(res);
+    });
+
+    it('does not revoke when the reused token fails verification', async () => {
+      mockedGetRotatedAt.mockResolvedValue(nowSeconds() - 60);
+      mockedJwtVerify.mockImplementation(() => {
+        throw new Error('jwt expired');
+      });
+
+      const { req, res, next } = createMocks({}, { authorization: 'Bearer stolen' });
+      await authRefreshToken(req, res, next);
+
+      expect(mockedInvalidateAllSessions).not.toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalled();
+      expectRejectedWithoutMinting(res);
+    });
+
+    it('does not revoke again for a token that already predates the last revocation', async () => {
+      mockedGetRotatedAt.mockResolvedValue(nowSeconds() - 60);
+      mockedJwtVerify.mockReturnValue({ _id: 'user1', iat: 1000 } as any);
+      mockedGetSessionsInvalidatedAt.mockResolvedValue(2000);
+
+      const { req, res, next } = createMocks({}, { authorization: 'Bearer stolen' });
+      await authRefreshToken(req, res, next);
+
+      expect(mockedInvalidateAllSessions).not.toHaveBeenCalled();
+      expectRejectedWithoutMinting(res);
+    });
+
+    it('answers a reused token exactly like a logged-out one', async () => {
+      mockedGetRotatedAt.mockResolvedValue(nowSeconds() - 60);
+      mockedJwtVerify.mockReturnValue({ _id: 'user1', iat: nowSeconds() - 120 } as any);
+      const reused = createMocks({}, { authorization: 'Bearer stolen' });
+      await authRefreshToken(reused.req, reused.res, reused.next);
+
+      mockedGetRotatedAt.mockResolvedValue(null);
+      mockedIsBlacklisted.mockResolvedValue(true);
+      const loggedOut = createMocks({}, { authorization: 'Bearer loggedOut' });
+      await authRefreshToken(loggedOut.req, loggedOut.res, loggedOut.next);
+
+      expect(reused.res.status.mock.calls).toEqual(loggedOut.res.status.mock.calls);
+      expect(reused.json.mock.calls).toEqual(loggedOut.json.mock.calls);
+    });
   });
 });

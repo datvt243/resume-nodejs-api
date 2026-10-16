@@ -128,6 +128,8 @@ describe('auth.service', () => {
         secretKey: expect.any(String),
         props: expect.objectContaining({ expiresIn: expect.any(String) }),
       });
+      // A fresh `jti` per refresh token, so two logins in the same second never produce the same token.
+      expect(jwt.jwtSign).toHaveBeenNthCalledWith(2, expect.objectContaining({ data: { _id: 'user_id', jti: expect.any(String) } }));
       expect(result).toEqual({
         success: true,
         message: 'Đăng nhập thành công',
