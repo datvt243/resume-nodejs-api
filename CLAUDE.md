@@ -111,7 +111,7 @@ src/
 │   ├── reference.modal.ts
 │   ├── application.model.ts   # Job application tracker (applied/interview/offer/rejected)
 │   ├── profile.model.ts       # Named CV profile (multi-version): subset of section ids
-│   ├── visit.model.ts         # One doc per public-profile visit (ip + geo + referrer host, no soft-delete)
+│   ├── visit.model.ts         # One doc per public-profile visit (ip + geo + referrer host + viewed CV profile, no soft-delete)
 │   └── part/index.ts          # Reusable sub-schemas (skills, languages, socialMedia, localizedText)
 ├── routers/
 │   ├── api/v1/                # All active routes (see API section), incl. cv.route.ts (ATS self-check)
@@ -124,7 +124,7 @@ src/
 │   ├── candidate.service.ts
 │   ├── candidate.validate.ts
 │   ├── parseLinkedInExport.service.ts # Parses LinkedIn "Data export" ZIP → Education/Experience (stateless)
-│   ├── visitStats.service.ts  # Visit stats aggregation: tz-aware zero-filled day/week/month series + country/source breakdown
+│   ├── visitStats.service.ts  # Visit stats aggregation: tz-aware zero-filled day/week/month series + country/source/profile breakdown
 │   └── parseCvPdf.service.ts  # Parses an uploaded PDF CV's text → Education/Experience (heuristic, stateless)
 ├── candidate_profile/         # One controller+service+validate per CV section
 │   ├── experience/
@@ -242,7 +242,7 @@ state-changing requests must also pass the double-submit CSRF check (see Securit
 | POST | `/parse-linkedin-export` | Parse a LinkedIn "Data export" ZIP → Education/Experience entries; stateless, nothing persisted |
 | POST | `/parse-cv-pdf` | Parse an existing PDF CV (max 5MB, memory only) → same Education/Experience shape + `extractedText`; best-effort heading/date-range heuristic (vi + en), stateless, nothing persisted |
 | GET | `/visits` | Own public-profile visit count + list |
-| GET | `/visits/stats` | Own visit stats: `?interval=day\|week\|month` (default `day`), inclusive local `from`/`to` (`YYYY-MM-DD`, default last 30 days), `?tz=` IANA zone (default `Asia/Ho_Chi_Minh`); zero-filled `series` (ISO weeks `YYYY-Www`) + `countries` from the recorded geo location + `sources` from the recorded referrer hostname (null = direct/unknown); ≤ 400 buckets |
+| GET | `/visits/stats` | Own visit stats: `?interval=day\|week\|month` (default `day`), inclusive local `from`/`to` (`YYYY-MM-DD`, default last 30 days), `?tz=` IANA zone (default `Asia/Ho_Chi_Minh`); zero-filled `series` (ISO weeks `YYYY-Www`) + `countries` from the recorded geo location + `sources` from the recorded referrer hostname (null = direct/unknown) + `profiles` (`{ profileId, name, deleted, count }`, null = default link; a profile deleted since keeps its row with `deleted: true`); ≤ 400 buckets |
 
 ### CV Sections + Application + Profile (all follow same CRUD pattern)
 
@@ -272,7 +272,7 @@ best-effort — each item validated/created independently via the same
 | GET | `/api/me/search` | None | Keyword search (`?q=` 2–100 chars, `page`/`limit` ≤ 100) over public profiles that have a slug — escaped case-insensitive substring on GeneralInformation `positionDesired`/`professionalSkills.name`, Experience `company`/`position`/`skills`, Education `school`/`major`; returns `{ items: [{ slug, firstName, lastName, positionDesired }], pagination }`, never email. Registered before `/api/me/:email` (a slug literally `search` is shadowed) |
 | GET | `/api/me/:email` | None | Public profile by vanity slug (checked first) or email; `?lang=vi\|en` and `?profile=<id>` (filters sections to that CV profile) |
 | GET | `/api/me/:identifier/download-pdf` | None | Public profile's ATS PDF (attachment, same renderer + metadata as the owner's `download-pdf?template=ats`); `?template=ats` only (anything else → 400), `?lang=`, `?profile=`. Private profile answers exactly like an unknown identifier. Rendered buffer cached in memory per sha256(resolved data) + lang (1h TTL, 50 entries, concurrent requests share one render), so a CV edit re-renders on the next request. Nothing written to disk |
-| POST | `/api/me/:email/visit` | None | Record a visit (count, timestamp, IP, geo via `geoip-lite`); optional body `referrer` (the SPA's `document.referrer` — the request's own `Referer` header is ignored) stored as hostname only, `www.`/`m.` stripped, invalid → null |
+| POST | `/api/me/:email/visit` | None | Record a visit (count, timestamp, IP, geo via `geoip-lite`); optional body `referrer` (the SPA's `document.referrer` — the request's own `Referer` header is ignored) stored as hostname only, `www.`/`m.` stripped, invalid → null; optional body `profile` (the `?profile=` id the visitor was shown) stored only if it is a non-deleted profile of that candidate, else null |
 | GET | `/api/v1/download-pdf` | Token via query | Export own CV; `?format=pdf\|json\|docx` (default `pdf`), `?lang=vi\|en`, `?template=classic\|modern\|ats` (default `classic`; `modern` is an additional visual theme, applies to `pdf` and `docx`; `ats` is the ATS-optimized single-column template, PDF-only; `template` ignored for `format=json`) |
 | POST | `/api/v1/cv/ats-check` | Bearer/cookie | Renders the candidate's own CV in memory (`template`/`lang` default `ats`/`vi`), extracts its text (`pdf-parse`), and scores it against 10 ATS-safety checks; optional `jobDescription` body field adds a keyword-coverage report |
 | GET | `/api-docs` | None | Swagger UI (OpenAPI docs) |
@@ -307,7 +307,7 @@ All models use Mongoose with `timestamps: true` and `candidateId` foreign key (e
 | Reference | candidateId, fullName, phone, company, position |
 | Application | candidateId, company, position, appliedDate, status (`applied`\|`interview`\|`offer`\|`rejected`), note, jobLink |
 | Profile | candidateId, name, educationIds[], experienceIds[], projectIds[], certificateIds[], awardIds[], referenceIds[] |
-| Visit | candidateId, ip, location, referrer (hostname only, nullable) (no `_id` override — see comment in `visit.model.ts` on why) |
+| Visit | candidateId, ip, location, referrer (hostname only, nullable), profileId (owned profile, nullable) (no `_id` override — see comment in `visit.model.ts` on why) |
 
 Free-text fields on several models (e.g. Award/Certificate `description`, GeneralInformation `career`/`careerGoal`, Candidate `introduction`) use `localizedTextSchema` (`{ vi, en }`) resolved per-request by `?lang=`.
 
@@ -388,9 +388,9 @@ npm test                         # run all tests
 | candidate/candidate.controller.test.ts | candidate controller (upload/download CV, visits, etc.) |
 | candidate/candidate.service.test.ts | password field exclusion + `handlerDelete` cascade/file cleanup |
 | candidate/parseLinkedInExport.service.test.ts | LinkedIn export ZIP/CSV parsing |
-| candidate/visitStats.service.test.ts | visit stats: query validation/defaults, tz + DST bucket boundaries, ISO-week/month labels, zero-fill, own-id-only, `sources` facet |
+| candidate/visitStats.service.test.ts | visit stats: query validation/defaults, tz + DST bucket boundaries, ISO-week/month labels, zero-fill, own-id-only, `sources` + `profiles` facets |
 | candidate/parseCvPdf.service.test.ts | PDF CV parsing heuristics (vi + en fixture text) + unreadable-PDF rejection |
-| candidate_me/index.test.ts | public profile aggregation, visit recording (incl. referrer hostname normalization), export |
+| candidate_me/index.test.ts | public profile aggregation, visit recording (incl. referrer hostname normalization, owned-profile-id check), export |
 | candidate_me/public-pdf.test.ts | public ATS PDF: attachment headers, private == unknown response, template allow-list, cache hit/miss/TTL/eviction, concurrent dedupe, failed render not cached |
 | candidate_me/search.test.ts | public search: only public + slugged candidates, field whitelist, regex escaping, pagination, `q` validation |
 | candidate_profile/BaseController.test.ts | shared getAll/delete/restore/upload-images controller |

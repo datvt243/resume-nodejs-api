@@ -78,6 +78,46 @@ describe('candidate_me/index.ts (issue #135)', () => {
       expect(result.success).toBe(true);
       expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ referrer: null }));
     });
+
+    const ownProfileId = '64b7f0c2a1b2c3d4e5f60799';
+    const candidateFound = () =>
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
+    const profileLookupResolving = (doc: unknown) =>
+      (MODEL.Profile.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue(doc) }) });
+
+    it('stores the body profile id when it is a non-deleted profile of the visited candidate', async () => {
+      candidateFound();
+      profileLookupResolving({ _id: ownProfileId });
+
+      const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, body: { profile: ownProfileId } } as any);
+
+      expect(result.success).toBe(true);
+      expect(jest.mocked(MODEL.Profile).findOne).toHaveBeenCalledWith({ _id: ownProfileId, candidateId: 'c1', deletedAt: null });
+      expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ profileId: ownProfileId }));
+    });
+
+    it('stores null, without failing the visit, for a foreign or deleted profile id', async () => {
+      candidateFound();
+      profileLookupResolving(null);
+
+      const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, body: { profile: ownProfileId } } as any);
+
+      expect(result.success).toBe(true);
+      expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ profileId: null }));
+    });
+
+    it.each([undefined, '', 'abc', '$gt', `${ownProfileId}0`, { $ne: null }, [ownProfileId], 42])(
+      'stores null and never queries Profile for %p',
+      async (profile) => {
+        candidateFound();
+
+        const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, body: { profile } } as any);
+
+        expect(result.success).toBe(true);
+        expect(jest.mocked(MODEL.Profile).findOne).not.toHaveBeenCalled();
+        expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ profileId: null }));
+      },
+    );
   });
 
   describe('normalizeReferrer', () => {
