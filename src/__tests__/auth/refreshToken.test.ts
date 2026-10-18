@@ -8,7 +8,7 @@ jest.mock('@/utils/jwt');
 jest.mock('@/utils/sessionRevocation');
 
 const mockedIsBlacklisted = tokenBlacklist.isBlacklisted as jest.MockedFunction<typeof tokenBlacklist.isBlacklisted>;
-const mockedAddToBlacklist = tokenBlacklist.addToBlacklist as jest.MockedFunction<typeof tokenBlacklist.addToBlacklist>;
+const mockedClaimRotation = tokenBlacklist.claimRotation as jest.MockedFunction<typeof tokenBlacklist.claimRotation>;
 const mockedGetRotatedAt = tokenBlacklist.getRotatedAt as jest.MockedFunction<typeof tokenBlacklist.getRotatedAt>;
 const mockedInvalidateAllSessions = sessionRevocation.invalidateAllSessions as jest.MockedFunction<typeof sessionRevocation.invalidateAllSessions>;
 const mockedJwtVerify = jwtUtils.jwtVerify as jest.MockedFunction<typeof jwtUtils.jwtVerify>;
@@ -52,17 +52,32 @@ describe('authRefreshToken controller', () => {
   it('returns 200 and rotates tokens on valid refresh', async () => {
     mockedIsBlacklisted.mockResolvedValue(false);
     mockedJwtVerify.mockReturnValue({ _id: 'user1' } as any);
-    mockedAddToBlacklist.mockResolvedValue(true);
+    mockedClaimRotation.mockResolvedValue(true);
     mockedJwtSign.mockReturnValueOnce('newAccess').mockReturnValueOnce('newRefresh');
 
     const { req, res, next } = createMocks({}, { authorization: 'Bearer oldRefresh' });
     await authRefreshToken(req, res, next);
 
-    expect(mockedAddToBlacklist).toHaveBeenCalledWith('oldRefresh', expect.any(Number));
+    expect(mockedClaimRotation).toHaveBeenCalledWith('oldRefresh', expect.any(Number));
     expect(mockedJwtSign).toHaveBeenNthCalledWith(2, expect.objectContaining({ data: { _id: 'user1', jti: expect.any(String) } }));
     expect(mockedInvalidateAllSessions).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.status().json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+  });
+
+  it('returns 403 without minting when a concurrent refresh already claimed the token', async () => {
+    mockedIsBlacklisted.mockResolvedValue(false);
+    mockedJwtVerify.mockReturnValue({ _id: 'user1' });
+    mockedClaimRotation.mockResolvedValue(false);
+
+    const { req, res, next } = createMocks({}, { authorization: 'Bearer raced' });
+    await authRefreshToken(req, res, next);
+
+    expect(mockedClaimRotation).toHaveBeenCalledWith('raced', expect.any(Number));
+    expect(mockedJwtSign).not.toHaveBeenCalled();
+    expect(res.cookie).not.toHaveBeenCalled();
+    expect(mockedInvalidateAllSessions).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
   });
 
   it('returns 403 when the refresh token predates the last logout-all (issue #74)', async () => {
@@ -73,7 +88,7 @@ describe('authRefreshToken controller', () => {
     const { req, res, next } = createMocks({}, { authorization: 'Bearer oldRefresh' });
     await authRefreshToken(req, res, next);
 
-    expect(mockedAddToBlacklist).not.toHaveBeenCalled();
+    expect(mockedClaimRotation).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(403);
   });
 
@@ -83,7 +98,7 @@ describe('authRefreshToken controller', () => {
     const expectRejectedWithoutMinting = (res: any) => {
       expect(res.status).toHaveBeenCalledWith(403);
       expect(mockedJwtSign).not.toHaveBeenCalled();
-      expect(mockedAddToBlacklist).not.toHaveBeenCalled();
+      expect(mockedClaimRotation).not.toHaveBeenCalled();
     };
 
     it('revokes every session of the candidate once past the grace window', async () => {

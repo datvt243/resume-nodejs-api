@@ -197,7 +197,7 @@ describe('auth.controller', () => {
       (helperAuth.extractTokenFromRequest as jest.Mock).mockReturnValue('refresh_token');
       (tokenBlacklist.isBlacklisted as jest.Mock).mockResolvedValue(false);
       (jwt.jwtVerify as jest.Mock).mockReturnValue({ _id: 'user_id' });
-      (tokenBlacklist.addToBlacklist as jest.Mock).mockResolvedValue(undefined);
+      (tokenBlacklist.claimRotation as jest.Mock).mockResolvedValue(true);
       (jwt.jwtSign as jest.Mock).mockReturnValueOnce('new_access').mockReturnValueOnce('new_refresh');
 
       await authRefreshToken(req, res, mockNext);
