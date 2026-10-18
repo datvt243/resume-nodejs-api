@@ -115,7 +115,8 @@ export const handlerGetAboutMe = async ({
    * erroring, since this is a public, unauthenticated route.
    */
   let profileDoc: Awaited<ReturnType<typeof MODEL.Profile.findOne>> = null;
-  if (profileId) {
+  // A non-ObjectId value would make Mongoose throw a CastError (500) instead of falling back.
+  if (profileId && /^[a-f\d]{24}$/i.test(profileId)) {
     const { idQuerySafe: profileIdQuerySafe } = await import('@/utils/querySafe');
     const safeProfileIdQuery = profileIdQuerySafe.safeQuery({}, { _id: profileId });
     profileDoc =
@@ -171,7 +172,8 @@ export const handlerGetAboutMe = async ({
      * runtime. Narrowed to exactly the shape read here.
      */
     const profileIds = profileDoc && profileIdsField ? (profileDoc as unknown as Record<string, unknown[]>)[profileIdsField] : undefined;
-    const sectionQuery = profileDoc && profileIdsField ? { ...safeCandidateQuery, _id: { $in: profileIds || [] } } : safeCandidateQuery;
+    const baseQuery = { ...safeCandidateQuery, deletedAt: null };
+    const sectionQuery = profileDoc && profileIdsField ? { ...baseQuery, _id: { $in: profileIds || [] } } : baseQuery;
     // Real hydrated Mongoose documents — immediately flattened via JSON.parse(JSON.stringify(...)) below, so the exact document shape isn't needed here.
     const _find = await model.find(sectionQuery, { _id: 0, ...removeFields }).exec();
     if (!_find) continue;

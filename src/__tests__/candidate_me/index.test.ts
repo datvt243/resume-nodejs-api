@@ -199,6 +199,30 @@ describe('candidate_me/index.ts (issue #135)', () => {
       expect(MODEL.Profile.findOne).not.toHaveBeenCalled();
       expect(MODEL.Education.find).toHaveBeenCalledWith(expect.not.objectContaining({ _id: expect.anything() }), expect.anything());
     });
+
+    it.each(['abc', '507f1f77bcf86cd79943909', '507f1f77bcf86cd799439099z'])(
+      'treats a malformed profile id (%s) like no profile, without querying Profile',
+      async (profileId) => {
+        const result = await handlerGetAboutMe({ identifier: 'votan.it@gmail.com', lang: 'vi', profileId });
+
+        expect(result.success).toBe(true);
+        expect(jest.mocked(MODEL.Profile).findOne).not.toHaveBeenCalled();
+        expect(jest.mocked(MODEL.Education).find).toHaveBeenCalledWith(expect.not.objectContaining({ _id: expect.anything() }), expect.anything());
+      },
+    );
+
+    it('excludes soft-deleted entries from every section, with or without a profile filter', async () => {
+      const models = [MODEL.generalInformation, MODEL.Experience, MODEL.Education, MODEL.Reference, MODEL.Project, MODEL.Certificate, MODEL.Award];
+
+      await handlerGetAboutMe({ identifier: 'votan.it@gmail.com', lang: 'vi' });
+      for (const model of models) expect(jest.mocked(model).find).toHaveBeenLastCalledWith(expect.objectContaining({ deletedAt: null }), expect.anything());
+
+      (MODEL.Profile.findOne as jest.Mock).mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ educationIds: [], experienceIds: [], projectIds: [], certificateIds: [], awardIds: [], referenceIds: [] }),
+      });
+      await handlerGetAboutMe({ identifier: 'votan.it@gmail.com', lang: 'vi', profileId: '507f1f77bcf86cd799439099' });
+      for (const model of models) expect(jest.mocked(model).find).toHaveBeenLastCalledWith(expect.objectContaining({ deletedAt: null }), expect.anything());
+    });
   });
 });
 
