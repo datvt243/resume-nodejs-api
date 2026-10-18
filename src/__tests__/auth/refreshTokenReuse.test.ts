@@ -87,6 +87,17 @@ describe('refresh-token reuse after rotation (end-to-end, in-memory stores)', ()
     expect((await refresh(firstTab.data!.tokenRefresh)).status).toBe(200);
   });
 
+  it('mints exactly one new pair when two refreshes race with the same token', async () => {
+    const original = loginRefreshToken('cand-race');
+
+    const results = await Promise.all([refresh(original), refresh(original)]);
+
+    expect(results.map((r) => r.status).sort()).toEqual([200, 403]);
+    const winner = results.find((r) => r.status === 200)!;
+    expect(await getSessionsInvalidatedAt('cand-race')).toBeNull();
+    expect((await refresh(winner.data!.tokenRefresh)).status).toBe(200);
+  });
+
   it('issues a distinct refresh token on every rotation within the same second, so a later refresh is not taken for reuse', async () => {
     const first = await refresh(loginRefreshToken('cand-fast'));
     const second = await refresh(first.data!.tokenRefresh);

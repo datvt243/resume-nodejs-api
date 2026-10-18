@@ -53,6 +53,39 @@ export const addToBlacklist = async (token: string, rotatedAt?: number): Promise
   }
 };
 
+/**
+ * Atomically marks a refresh token as rotated at `rotatedAt`, only if it
+ * has no live blacklist entry yet. Returns true for the single caller that
+ * won; two concurrent refreshes with the same token can't both mint a new
+ * pair. Errors return false so a failed write never lets the token rotate twice.
+ */
+export const claimRotation = async (token: string, rotatedAt: number): Promise<boolean> => {
+  try {
+    const decoded = jwt.decode(token);
+    const exp = decoded && typeof decoded === 'object' ? decoded.exp : undefined;
+    const now = Math.floor(Date.now() / 1000);
+    const expiresAt = exp || now + 60 * 60; // default 1h
+
+    if (isRedisAvailable()) {
+      const redis = getRedisClient();
+      if (redis) {
+        // Redis rejects EX 0, so a token expiring this very second still gets a 1s entry.
+        const result = await redis.set(`blacklist:${token}`, `rotated:${rotatedAt}`, { EX: Math.max(expiresAt - now, 1), NX: true });
+        return result === 'OK';
+      }
+    }
+
+    // No await between the check and the set, so this is atomic within the process.
+    const entry = memoryStore.get(token);
+    if (entry && entry.expiresAt > Date.now() / 1000) return false;
+    memoryStore.set(token, { expiresAt, rotatedAt });
+    return true;
+  } catch (err) {
+    logger.error('[tokenBlacklist] Error claiming refresh token rotation', { err: (err as Error).message, stack: (err as Error).stack });
+    return false;
+  }
+};
+
 export const isBlacklisted = async (token: string): Promise<boolean> => {
   if (!token) return false;
 
@@ -102,4 +135,4 @@ export const getRotatedAt = async (token: string): Promise<number | null> => {
   }
 };
 
-export default { addToBlacklist, isBlacklisted, getRotatedAt };
+export default { addToBlacklist, claimRotation, isBlacklisted, getRotatedAt };

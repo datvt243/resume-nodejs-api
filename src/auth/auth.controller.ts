@@ -10,7 +10,7 @@ import { validateSchema, formatReturn, handleError, setAuthCookies, clearAuthCoo
 
 import { schemaAuthRegister, schemaAuthLogin, schemaForgotPassword, schemaResetPassword } from './auth.validate';
 import { handlerRegister, handlerLogin, handlerForgotPassword, handlerResetPassword, handlerVerifyEmail } from './auth.service';
-import { addToBlacklist, isBlacklisted, getRotatedAt } from '@/utils/tokenBlacklist';
+import { addToBlacklist, claimRotation, isBlacklisted, getRotatedAt } from '@/utils/tokenBlacklist';
 import { invalidateAllSessions, getSessionsInvalidatedAt, isSessionRevoked } from '@/utils/sessionRevocation';
 import { jwtSign, jwtVerify } from '@/utils';
 import { extractTokenFromRequest } from '@/utils/helper-auth';
@@ -171,8 +171,14 @@ export const authRefreshToken = async (req: Request, res: Response, next: NextFu
       });
     }
 
-    // rotate: blacklist old refresh token
-    await addToBlacklist(refreshToken, Math.floor(Date.now() / 1000));
+    // Claimed atomically before signing: a concurrent refresh that already passed the checks above loses here.
+    if (!(await claimRotation(refreshToken, Math.floor(Date.now() / 1000)))) {
+      return formatReturn(res, {
+        statusCode: StatusCodes.FORBIDDEN,
+        success: false,
+        message: t('auth.refreshTokenRevoked', req.lang),
+      });
+    }
 
     const newAccess = jwtSign({ data: { _id }, secretKey: TOKEN_SECRET, props: { expiresIn: TOKEN_EXP_IN || '1h' } });
     // Unique `jti`, same reason as handlerLogin: a same-second copy of the rotated token would read as reuse.
