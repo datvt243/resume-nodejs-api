@@ -4,7 +4,7 @@
  */
 
 import jwt from 'jsonwebtoken';
-import { addToBlacklist, getRotatedAt, isBlacklisted } from '@/utils/tokenBlacklist';
+import { addToBlacklist, claimRotation, getRotatedAt, isBlacklisted } from '@/utils/tokenBlacklist';
 
 const mockStore = new Map<string, string>();
 let mockRedisUp = false;
@@ -13,6 +13,11 @@ jest.mock('@/services/redis', () => ({
   isRedisAvailable: () => mockRedisUp,
   getRedisClient: () => ({
     setEx: (key: string, _ttl: number, value: string) => Promise.resolve(void mockStore.set(key, value)),
+    set: (key: string, value: string, options?: { NX?: boolean }) => {
+      if (options?.NX && mockStore.has(key)) return Promise.resolve(null);
+      mockStore.set(key, value);
+      return Promise.resolve('OK');
+    },
     get: (key: string) => Promise.resolve(mockStore.get(key) ?? null),
   }),
 }));
@@ -43,5 +48,26 @@ describe.each([
     expect(await getRotatedAt(loggedOut)).toBeNull();
     expect(await isBlacklisted(loggedOut)).toBe(true);
     expect(await getRotatedAt(tokenFor(`unknown-${label}`))).toBeNull();
+  });
+
+  it('lets only the first of two concurrent claims rotate a token', async () => {
+    const token = tokenFor(`race-${label}`);
+
+    const results = await Promise.all([claimRotation(token, 1_760_000_000), claimRotation(token, 1_760_000_001)]);
+
+    expect(results.sort()).toEqual([false, true]);
+    expect(await getRotatedAt(token)).toBe(1_760_000_000);
+  });
+
+  it('refuses to claim a token that is already rotated or logged out', async () => {
+    const rotated = tokenFor(`claimed-${label}`);
+    const loggedOut = tokenFor(`logged-out-${label}`);
+    await claimRotation(rotated, 1_760_000_000);
+    await addToBlacklist(loggedOut);
+
+    expect(await claimRotation(rotated, 1_760_000_100)).toBe(false);
+    expect(await claimRotation(loggedOut, 1_760_000_100)).toBe(false);
+    expect(await getRotatedAt(rotated)).toBe(1_760_000_000);
+    expect(await getRotatedAt(loggedOut)).toBeNull();
   });
 });
