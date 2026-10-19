@@ -15,6 +15,7 @@
  */
 import { Response } from 'express';
 import { Document, Packer, Paragraph, HeadingLevel, TextRun, BorderStyle } from 'docx';
+import { t } from '@/utils/i18n';
 import { AggregatedCandidateData, GeneralInformationData, Skill, EducationData, ExperienceData, ProjectData, Award, Certificate, Reference, Language } from '@/types/candidate.type';
 
 export interface DocxSection {
@@ -108,7 +109,10 @@ export const buildDocxContent = (RECORD: AggregatedCandidateData = {}): DocxCont
       heading: 'Kinh nghiệm làm việc',
       lines: experiences.map((e: ExperienceData) => {
         const range = formatRange({ startDate: e.startDate, endDate: e.endDate, isCurrent: e.isCurrent });
-        return `${e.position} — ${e.company} (${range})${e.description ? `: ${e.description}` : ''}`;
+        const title = e.isCareerBreak
+          ? `${t('cv.careerBreak', 'vi')} — ${t(`cv.careerBreakTypes.${e.careerBreakType ?? ''}`, 'vi')}`
+          : `${e.position} — ${e.company}`;
+        return `${title} (${range})${e.description ? `: ${e.description}` : ''}`;
       }),
     });
   }

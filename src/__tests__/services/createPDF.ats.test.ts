@@ -242,3 +242,30 @@ describe('ATS PDF failure handling (issue #225)', () => {
   });
 });
 
+describe('career break entries (#267)', () => {
+  const withBreak: AggregatedCandidateData = {
+    ...fixture,
+    experiences: [
+      ...(fixture.experiences ?? []),
+      {
+        company: '',
+        position: '',
+        startDate: new Date(2021, 5, 1).getTime(),
+        endDate: new Date(2021, 8, 1).getTime(),
+        isCurrent: false,
+        description: '',
+        isCareerBreak: true,
+        careerBreakType: 'caregiving',
+      },
+    ],
+  };
+
+  it.each([
+    ['en', 'Career break — Caregiving'],
+    ['vi', 'Nghỉ việc tạm thời — Chăm sóc người thân'],
+  ] as const)('renders a localized career-break title (%s), not "position — company"', (lang, title) => {
+    const { html } = pageRenderAts({ RECORD: withBreak, lang });
+    expect(html).toContain(`<p class="entry-title">${title}</p>`);
+    expect(html).not.toContain('<p class="entry-title"> — </p>');
+  });
+});

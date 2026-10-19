@@ -304,3 +304,18 @@ describe('modern theme (issue #162)', () => {
   });
 });
 
+
+describe('career break entries', () => {
+  it('renders a career break with the localized label + type, not an empty position/company', () => {
+    const { html } = pageRender({
+      email: 'test@example.com',
+      firstName: 'John',
+      lastName: 'Doe',
+      experiences: [
+        { position: '', company: '', startDate: 1600000000000, endDate: 1700000000000, isCurrent: false, description: '', isCareerBreak: true, careerBreakType: 'gapYear' },
+      ],
+    });
+    expect(html).toContain('Nghỉ việc tạm thời');
+    expect(html).toContain('Năm nghỉ (gap year)');
+  });
+});

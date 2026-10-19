@@ -86,6 +86,8 @@ export interface ExperienceData {
   isCurrent: boolean;
   description: string;
   skills?: string[];
+  isCareerBreak?: boolean;
+  careerBreakType?: string;
 }
 
 export interface ProjectData {
