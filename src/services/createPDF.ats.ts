@@ -155,7 +155,11 @@ const buildExperienceSection = (list: ExperienceData[], lang: SupportedLang): { 
       const stack = e.skills && e.skills.length ? `<p class="entry-stack">${t('cv.stackLabel', lang)}: ${e.skills.map(escapeHtml).join(', ')}</p>` : '';
       return `
         <div class="entry">
-          <p class="entry-title">${escapeHtml(e.position)} — ${escapeHtml(e.company)}</p>
+          <p class="entry-title">${
+            e.isCareerBreak
+              ? `${t('cv.careerBreak', lang)} — ${t(`cv.careerBreakTypes.${e.careerBreakType ?? ''}`, lang)}`
+              : `${escapeHtml(e.position)} — ${escapeHtml(e.company)}`
+          }</p>
           <p class="entry-meta">${range}</p>
           <div class="entry-body">${sanitizeDescription(e.description)}</div>
           ${stack}

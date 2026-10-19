@@ -9,6 +9,7 @@ import path from 'path';
 import fs from 'fs';
 import { Response } from 'express';
 import { logger } from '@/logger';
+import { t } from '@/utils/i18n';
 import {
   informationPersonal,
   Skill,
@@ -362,8 +363,9 @@ const _helper = () => {
         .map((el) => {
           const { company: subTitle, position: title, startDate, endDate, description, isCurrent, skills } = el;
           return _layoutItem({
-            title,
-            subTitle: `${subTitle}`,
+            ...(el.isCareerBreak
+              ? { title: t('cv.careerBreak', 'vi'), subTitle: t(`cv.careerBreakTypes.${el.careerBreakType ?? ''}`, 'vi') }
+              : { title, subTitle: `${subTitle}` }),
             startDate,
             endDate,
             isCurrent,

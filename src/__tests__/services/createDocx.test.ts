@@ -138,3 +138,17 @@ describe('renderDocxDocument + Packer (real .docx generation, no mocks)', () => 
     expect(classicBuffer.length).toBeGreaterThan(0);
   });
 });
+
+describe('career break entries', () => {
+  it('renders a career break as "Nghỉ việc tạm thời — <type>" instead of "position — company"', () => {
+    const content = buildDocxContent({
+      firstName: 'A',
+      lastName: 'B',
+      experiences: [
+        { position: '', company: '', startDate: 1600000000000, endDate: 1700000000000, isCurrent: false, description: '', isCareerBreak: true, careerBreakType: 'travel' },
+      ],
+    });
+    const line = content.sections.find((s) => s.heading === 'Kinh nghiệm làm việc')?.lines[0];
+    expect(line).toMatch(/^Nghỉ việc tạm thời — Du lịch \(/);
+  });
+});
