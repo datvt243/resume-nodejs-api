@@ -7,6 +7,7 @@
 
 import swaggerJsdoc from 'swagger-jsdoc';
 import path from 'path';
+import { CAREER_BREAK_TYPES } from '@/models/experience.model';
 
 // swagger-jsdoc reads route files at runtime; resolve the right extension
 // whether running via ts-node (dev, .ts) or the compiled build (prod, .js)
@@ -178,6 +179,8 @@ const options: swaggerJsdoc.Options = {
             isCurrent: { type: 'boolean' },
             description: { type: 'string' },
             skills: { type: 'array', items: { type: 'string' } },
+            isCareerBreak: { type: 'boolean', description: 'LinkedIn-style career break; company/position may be empty' },
+            careerBreakType: { type: 'string', enum: CAREER_BREAK_TYPES, description: 'Required when isCareerBreak is true' },
           },
         },
         Education: {
