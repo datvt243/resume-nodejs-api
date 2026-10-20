@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import { asyncHandler } from '@/utils/asyncHandler';
 const router = express.Router();
 
 import {
@@ -50,7 +51,7 @@ import { uploadCvPdfParseMiddleware } from '@/middlewares/uploadCvPdfParse.middl
  *       400:
  *         description: Missing file, wrong type (non-PDF), or too large (> 5MB)
  */
-router.post('/upload-cv', uploadCVMiddleware, fnUploadCV);
+router.post('/upload-cv', uploadCVMiddleware, asyncHandler(fnUploadCV));
 
 /**
  * @swagger
@@ -110,7 +111,7 @@ router.post('/upload-cv', uploadCVMiddleware, fnUploadCV);
  *       400:
  *         description: Missing file, wrong type (non-ZIP), too large (> 20MB), or the ZIP itself is corrupt/unreadable
  */
-router.post('/parse-linkedin-export', uploadLinkedInExportMiddleware, fnParseLinkedInExport);
+router.post('/parse-linkedin-export', uploadLinkedInExportMiddleware, asyncHandler(fnParseLinkedInExport));
 
 /**
  * @swagger
@@ -173,7 +174,7 @@ router.post('/parse-linkedin-export', uploadLinkedInExportMiddleware, fnParseLin
  *       400:
  *         description: Missing file, wrong type (non-PDF), too large (> 5MB), or the PDF itself is corrupt/unreadable
  */
-router.post('/parse-cv-pdf', uploadCvPdfParseMiddleware, fnParseCvPdf);
+router.post('/parse-cv-pdf', uploadCvPdfParseMiddleware, asyncHandler(fnParseCvPdf));
 
 /**
  * @swagger
@@ -194,7 +195,7 @@ router.post('/parse-cv-pdf', uploadCvPdfParseMiddleware, fnParseCvPdf);
  *       404:
  *         description: No CV has been uploaded yet
  */
-router.get('/cv-file', fnDownloadCV);
+router.get('/cv-file', asyncHandler(fnDownloadCV));
 
 /**
  * @swagger
@@ -223,7 +224,7 @@ router.get('/cv-file', fnDownloadCV);
  *                           items:
  *                             $ref: '#/components/schemas/Visit'
  */
-router.get('/visits', fnGetVisits);
+router.get('/visits', asyncHandler(fnGetVisits));
 
 /**
  * @swagger
@@ -301,7 +302,7 @@ router.get('/visits', fnGetVisits);
  *       400:
  *         description: Invalid interval, date, time zone, from after to, or more than 400 buckets
  */
-router.get('/visits/stats', fnGetVisitStats);
+router.get('/visits/stats', asyncHandler(fnGetVisitStats));
 
 /**
  * @swagger
@@ -331,7 +332,7 @@ router.get('/visits/stats', fnGetVisitStats);
  *                     data:
  *                       $ref: '#/components/schemas/Candidate'
  */
-router.get('/:email', fnGetInformationByEmail);
+router.get('/:email', asyncHandler(fnGetInformationByEmail));
 
 /**
  * @swagger
@@ -357,7 +358,7 @@ router.get('/:email', fnGetInformationByEmail);
  *       400:
  *         description: Validation error
  */
-router.put('/update', fnUpdate);
+router.put('/update', asyncHandler(fnUpdate));
 
 /**
  * @swagger
@@ -383,7 +384,7 @@ router.put('/update', fnUpdate);
  *       400:
  *         description: Validation error
  */
-router.patch('/update', fnUpdateFields);
+router.patch('/update', asyncHandler(fnUpdateFields));
 
 /**
  * @swagger
@@ -401,6 +402,6 @@ router.patch('/update', fnUpdateFields);
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
  */
-router.delete('/', fnDelete);
+router.delete('/', asyncHandler(fnDelete));
 
 export default router;

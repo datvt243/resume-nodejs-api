@@ -20,14 +20,17 @@
 import v2AuthRouter from '@/routers/api/v2/auth.route';
 import { authRegister } from '@/auth/auth.controller';
 
+jest.mock('@/auth/auth.controller', () => ({ authRegister: jest.fn().mockResolvedValue(undefined), authLogin: jest.fn().mockResolvedValue(undefined) }));
+
 describe('v2 auth route wiring (issue #156)', () => {
   it('POST /register delegates to the same authRegister controller as v1 — no separate, unfixed v2-only code path', () => {
     const registerLayer = (v2AuthRouter as any).stack.find((layer: any) => layer.route?.path === '/register');
 
     expect(registerLayer).toBeDefined();
     expect(registerLayer.route.methods.post).toBe(true);
-    // Same function reference as v1's — not a re-implementation that
-    // could independently regress.
-    expect(registerLayer.route.stack[0].handle).toBe(authRegister);
+    // The asyncHandler wrapper must call v1's authRegister itself — not a re-implementation that could independently regress.
+    const req = {}, res = {}, next = jest.fn();
+    registerLayer.route.stack[0].handle(req, res, next);
+    expect(authRegister).toHaveBeenCalledWith(req, res, next);
   });
 });

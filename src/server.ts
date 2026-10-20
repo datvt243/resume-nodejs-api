@@ -16,13 +16,18 @@ import cors from 'cors';
 import session from 'express-session';
 import swaggerUi from 'swagger-ui-express';
 
-import { errorsMiddleware, rateLimitMiddleware, startMemStoreCleanup, requestLogger, languageMiddleware } from '@/middlewares';
+import { errorsMiddleware, notFoundHandler, rateLimitMiddleware, startMemStoreCleanup, requestLogger, languageMiddleware } from '@/middlewares';
 import { sessionConfig, corsConfig, swaggerSpec } from '@/config';
 import { logger } from '@/logger';
 import router from '@/routers';
 import { initRedis } from '@/services/redis';
 
 dotenv.config();
+
+// Last safety net: Node ≥15 exits on an unhandled rejection; asyncHandler should make this unreachable.
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled promise rejection', { error: reason instanceof Error ? reason.message : String(reason), stack: reason instanceof Error ? reason.stack : undefined });
+});
 
 const runServer = async ({ portNumber }: { portNumber: number }) => {
   const app = express();
@@ -83,6 +88,7 @@ const runServer = async ({ portNumber }: { portNumber: number }) => {
   app.use(rateLimitMiddleware);
   app.use(express.static(path.join(__dirname, 'public')));
   app.use(router);
+  app.use(notFoundHandler);
   app.use(errorsMiddleware);
 
   app.set('view engine', 'pug');
