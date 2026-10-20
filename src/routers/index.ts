@@ -4,6 +4,7 @@
  */
 
 import express, { Request, Response } from 'express';
+import { asyncHandler } from '@/utils/asyncHandler';
 
 const router = express.Router();
 
@@ -78,7 +79,7 @@ router.use('/api/v2', routerAPIV2);
  *       400:
  *         description: Missing, too short (< 2) or too long (> 100) query
  */
-router.get('/api/me/search', fnSearchPublicProfiles);
+router.get('/api/me/search', asyncHandler(fnSearchPublicProfiles));
 
 /**
  * @swagger
@@ -117,7 +118,7 @@ router.get('/api/me/search', fnSearchPublicProfiles);
  *       400:
  *         description: Email not found
  */
-router.get('/api/me/:email', fnGetAboutMe);
+router.get('/api/me/:email', asyncHandler(fnGetAboutMe));
 
 /**
  * @swagger
@@ -157,7 +158,7 @@ router.get('/api/me/:email', fnGetAboutMe);
  *       400:
  *         description: Email not found
  */
-router.post('/api/me/:email/visit', fnRecordVisit);
+router.post('/api/me/:email/visit', asyncHandler(fnRecordVisit));
 
 /**
  * @swagger
@@ -213,18 +214,10 @@ router.post('/api/me/:email/visit', fnRecordVisit);
  *       429:
  *         description: Too many requests
  */
-router.get('/api/me/:identifier/download-pdf', fnDownloadPublicPdf);
+router.get('/api/me/:identifier/download-pdf', asyncHandler(fnDownloadPublicPdf));
 
-router.get('/api/*', (_req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    message: 'Page not found',
-    errors: null,
-    data: null,
-  });
-});
-
-router.get('/*', (_req: Request, res: Response) => {
+// Intentional landing page on the exact root only; every other unknown path falls through to notFoundHandler.
+router.get('/', (_req: Request, res: Response) => {
   res.send(
     `<div style="text-align: center; padding: 50px">
             <h1 style="font-size: 8vw; text-transform: uppercase; letter-spacing: .1em;">Hello World!</h1> 

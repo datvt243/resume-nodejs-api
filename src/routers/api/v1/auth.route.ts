@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import { asyncHandler } from '@/utils/asyncHandler';
 const router = express.Router();
 
 import { authRegister, authLogin, authLogout, authLogoutAll, authRefreshToken, authForgotPassword, authResetPassword, authVerifyEmail } from '@/auth/auth.controller';
@@ -37,7 +38,7 @@ router.use(authLimiter);
  *       400:
  *         description: Validation error or email already exists
  */
-router.post('/register', authRegister);
+router.post('/register', asyncHandler(authRegister));
 
 /**
  * @swagger
@@ -80,8 +81,8 @@ router.post('/register', authRegister);
  *       401:
  *         description: Invalid credentials
  */
-router.post('/login', authLogin);
-router.get('/login', authLogin);
+router.post('/login', asyncHandler(authLogin));
+router.get('/login', asyncHandler(authLogin));
 
 /**
  * @swagger
@@ -99,7 +100,7 @@ router.get('/login', authLogin);
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
  */
-router.post('/logout', verifyCsrf('token'), authLogout);
+router.post('/logout', verifyCsrf('token'), asyncHandler(authLogout));
 
 /**
  * @swagger
@@ -124,7 +125,7 @@ router.post('/logout', verifyCsrf('token'), authLogout);
  *       401:
  *         description: Missing, invalid, expired, or already-revoked token
  */
-router.post('/logout-all', verifyToken, authLogoutAll);
+router.post('/logout-all', asyncHandler(verifyToken), asyncHandler(authLogoutAll));
 
 /**
  * @swagger
@@ -160,7 +161,7 @@ router.post('/logout-all', verifyToken, authLogoutAll);
  *       403:
  *         description: Refresh token revoked (logged out, rotated already, or predating logout-all)
  */
-router.post('/refresh', verifyCsrf('refreshToken'), authRefreshToken);
+router.post('/refresh', verifyCsrf('refreshToken'), asyncHandler(authRefreshToken));
 
 /**
  * @swagger
@@ -186,7 +187,7 @@ router.post('/refresh', verifyCsrf('refreshToken'), authRefreshToken);
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
  */
-router.post('/forgot-password', authForgotPassword);
+router.post('/forgot-password', asyncHandler(authForgotPassword));
 
 /**
  * @swagger
@@ -218,7 +219,7 @@ router.post('/forgot-password', authForgotPassword);
  *       400:
  *         description: Invalid, expired, or already-used reset token
  */
-router.post('/reset-password', authResetPassword);
+router.post('/reset-password', asyncHandler(authResetPassword));
 
 /**
  * @swagger
@@ -242,6 +243,6 @@ router.post('/reset-password', authResetPassword);
  *       400:
  *         description: Invalid, expired, or already-used verification token
  */
-router.get('/verify-email', authVerifyEmail);
+router.get('/verify-email', asyncHandler(authVerifyEmail));
 
 export default router;

@@ -7,6 +7,7 @@
  * @see https://github.com/datvt243
  */
 import express from 'express';
+import { asyncHandler } from '@/utils/asyncHandler';
 const router = express.Router();
 
 import { fnAtsCheck } from '@/candidate_me/ats-check';
@@ -76,6 +77,6 @@ import { fnAtsCheck } from '@/candidate_me/ats-check';
  *                             missing: { type: array, items: { type: string } }
  *                             coverage: { type: number }
  */
-router.post('/ats-check', fnAtsCheck);
+router.post('/ats-check', asyncHandler(fnAtsCheck));
 
 export default router;

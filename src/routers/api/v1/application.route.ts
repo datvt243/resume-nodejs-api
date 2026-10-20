@@ -4,6 +4,7 @@
  */
 
 import express, { Request, Response, NextFunction } from 'express';
+import { asyncHandler } from '@/utils/asyncHandler';
 import { Collections } from '@/types/base.type';
 import { baseDelete, baseGetAll, baseRestore } from '@/candidate_profile/BaseController';
 import { fnCreate, fnUpdate } from '@/candidate_profile/application/application.controller';
@@ -43,7 +44,7 @@ router.get(
     req.body.collection = Collections.APPLICATION;
     next();
   },
-  baseGetAll,
+  asyncHandler(baseGetAll),
 );
 
 /**
@@ -70,7 +71,7 @@ router.get(
  *       400:
  *         description: Validation error
  */
-router.post('/create', fnCreate);
+router.post('/create', asyncHandler(fnCreate));
 
 /**
  * @swagger
@@ -96,7 +97,7 @@ router.post('/create', fnCreate);
  *       400:
  *         description: Validation error
  */
-router.put('/update', fnUpdate);
+router.put('/update', asyncHandler(fnUpdate));
 
 /**
  * @swagger
@@ -126,7 +127,7 @@ router.delete(
     req.params['collection'] = Collections.APPLICATION;
     next();
   },
-  baseDelete,
+  asyncHandler(baseDelete),
 );
 
 /**
@@ -157,7 +158,7 @@ router.post(
     req.params['collection'] = Collections.APPLICATION;
     next();
   },
-  baseRestore,
+  asyncHandler(baseRestore),
 );
 
 export default router;

@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import { asyncHandler } from '@/utils/asyncHandler';
 import { verifyToken, verifyTokenByQuery } from '@/middlewares/verifyToken.middleware';
 
 const router = express.Router();
@@ -23,17 +24,17 @@ import routeCv from './cv.route';
 import { fnExportPDF } from '@/candidate_me/index';
 
 router.use('/auth', routeAuth);
-router.use('/candidate', verifyToken, routeCandidate);
-router.use('/education', verifyToken, routeEducation);
-router.use('/award', verifyToken, routeAward);
-router.use('/experience', verifyToken, routeExperience);
-router.use('/reference', verifyToken, routeReference);
-router.use('/general-information', verifyToken, routeGeneralInformation);
-router.use('/project', verifyToken, routeProject);
-router.use('/certificate', verifyToken, routeCertificate);
-router.use('/application', verifyToken, routeApplication);
-router.use('/profile', verifyToken, routeProfile);
-router.use('/cv', verifyToken, routeCv);
+router.use('/candidate', asyncHandler(verifyToken), routeCandidate);
+router.use('/education', asyncHandler(verifyToken), routeEducation);
+router.use('/award', asyncHandler(verifyToken), routeAward);
+router.use('/experience', asyncHandler(verifyToken), routeExperience);
+router.use('/reference', asyncHandler(verifyToken), routeReference);
+router.use('/general-information', asyncHandler(verifyToken), routeGeneralInformation);
+router.use('/project', asyncHandler(verifyToken), routeProject);
+router.use('/certificate', asyncHandler(verifyToken), routeCertificate);
+router.use('/application', asyncHandler(verifyToken), routeApplication);
+router.use('/profile', asyncHandler(verifyToken), routeProfile);
+router.use('/cv', asyncHandler(verifyToken), routeCv);
 
 /**
  * @swagger
@@ -116,15 +117,6 @@ router.use('/cv', verifyToken, routeCv);
  *               type: string
  *               format: binary
  */
-router.get('/download-pdf', verifyTokenByQuery, fnExportPDF);
-
-router.get('/*', (_req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Page not found',
-    errors: null,
-    data: null,
-  });
-});
+router.get('/download-pdf', asyncHandler(verifyTokenByQuery), asyncHandler(fnExportPDF));
 
 export default router;
