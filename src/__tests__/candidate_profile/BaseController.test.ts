@@ -6,6 +6,7 @@
 import Joi from 'joi';
 import { baseGetAll, createCrudController } from '@/candidate_profile/BaseController';
 import * as services from '@/services';
+import { BadRequestError } from '@/errors';
 
 jest.mock('@/services');
 
@@ -152,15 +153,17 @@ describe('createCrudController status codes', () => {
     return { req, res, next: jest.fn(), json };
   }
 
-  it('fnCreate answers a failed create with 400, never 201', async () => {
-    const handlerCreate = jest.fn().mockResolvedValue({ success: false, message: 'Create failed', errors: null });
+  it('fnCreate never answers 2xx for a failed create: the thrown AppError goes to errorsMiddleware', async () => {
+    const failure = new BadRequestError('Create failed');
+    const handlerCreate = jest.fn().mockRejectedValue(failure);
     const { fnCreate } = createCrudController({ schema, service: { handlerCreate, handlerUpdate: jest.fn() } });
-    const { req, res, next, json } = createMocks({ name: 'Valid Name', candidateId: 'user-1' });
+    const { req, res, next } = createMocks({ name: 'Valid Name', candidateId: 'user-1' });
 
     await fnCreate(req, res, next);
 
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(json.mock.calls[0][0]).toMatchObject({ success: false, message: 'Create failed' });
+    expect(res.status).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(failure);
+    expect(failure.statusCode).toBe(400);
   });
 
   it('fnCreate still answers a successful create with 201', async () => {
@@ -174,7 +177,7 @@ describe('createCrudController status codes', () => {
   });
 
   it('fnBulkCreate answers 400 with success:false when every item fails, keeping results/summary', async () => {
-    const handlerCreate = jest.fn().mockResolvedValue({ success: false, message: 'Create failed' });
+    const handlerCreate = jest.fn().mockRejectedValue(new BadRequestError('Create failed'));
     const { fnBulkCreate } = createCrudController({ schema, service: { handlerCreate, handlerUpdate: jest.fn() } });
     const { req, res, next, json } = createMocks({ items: [{ name: 'x' }, { name: 'Valid Name' }] }); // 'x' fails validation, the other fails in the service
 
@@ -186,5 +189,24 @@ describe('createCrudController status codes', () => {
     expect(payload.success).toBe(false);
     expect(payload.data.summary).toEqual({ total: 2, succeeded: 0, failed: 2 });
     expect(payload.data.results.map((r: any) => r.success)).toEqual([false, false]);
+    expect(payload.data.results[1].message).toBe('Create failed');
+  });
+
+  it("fnBulkCreate keeps going after an item throws, and hides an unexpected error's text", async () => {
+    const handlerCreate = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('connection reset by peer'))
+      .mockResolvedValueOnce({ success: true, message: 'ok', data: { _id: 'created' } });
+    const { fnBulkCreate } = createCrudController({ schema, service: { handlerCreate, handlerUpdate: jest.fn() } });
+    const { req, res, next, json } = createMocks({ items: [{ name: 'Valid Name' }, { name: 'Valid Name' }] });
+
+    await fnBulkCreate(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    const { results, summary } = json.mock.calls[0][0].data;
+    expect(summary).toEqual({ total: 2, succeeded: 1, failed: 1 });
+    expect(results[0]).toMatchObject({ index: 0, success: false });
+    expect(results[0].message).not.toContain('connection reset');
+    expect(next).not.toHaveBeenCalled();
   });
 });

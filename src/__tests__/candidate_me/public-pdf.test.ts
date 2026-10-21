@@ -6,12 +6,15 @@
 
 import { StatusCodes } from 'http-status-codes';
 import { clearPublicPdfCache, fnDownloadPublicPdf, PUBLIC_PDF_CACHE_MAX_ENTRIES, PUBLIC_PDF_CACHE_TTL_MS } from '@/candidate_me/public-pdf';
+import { errorsMiddleware } from '@/middlewares/errors.middleware';
+import { NotFoundError } from '@/errors';
 
 const mockGetAboutMe = jest.fn();
 const mockRenderAts = jest.fn();
 
 jest.mock('@/candidate_me/index', () => ({
   handlerGetAboutMe: (...args: unknown[]) => mockGetAboutMe(...args),
+  PROFILE_NOT_FOUND: 'Email không tồn tại',
 }));
 jest.mock('@/services/createPDF.ats', () => ({
   ...jest.requireActual('@/services/createPDF.ats'),
@@ -34,7 +37,10 @@ const mockRes = () => {
 const download = async (params: Record<string, string>, query: Record<string, unknown> = {}) => {
   const res = mockRes();
   const next = jest.fn();
-  await fnDownloadPublicPdf({ params, query, lang: 'vi' } as any, res, next);
+  const req = { params, query, lang: 'vi' } as any;
+  await fnDownloadPublicPdf(req, res, next);
+  // Errors are written by errorsMiddleware, so run it to see the real response.
+  if (next.mock.calls[0]) errorsMiddleware(next.mock.calls[0][0], req, res, jest.fn());
   return { res, next };
 };
 
@@ -64,14 +70,15 @@ describe('fnDownloadPublicPdf', () => {
   });
 
   it('answers a private profile exactly like an unknown identifier, without rendering', async () => {
-    mockGetAboutMe.mockResolvedValueOnce({ success: false, message: 'Email không tồn tại', errors: null, data: null });
+    mockGetAboutMe.mockRejectedValueOnce(new NotFoundError('Email không tồn tại'));
     const unknown = await download({ identifier: 'nobody' });
     mockGetAboutMe.mockResolvedValueOnce({ success: true, data: publicData({ isPublic: false }) });
     const privateProfile = await download({ identifier: 'dat-vo' });
 
     expect(privateProfile.res.status.mock.calls).toEqual(unknown.res.status.mock.calls);
     expect(privateProfile.res.json.mock.calls).toEqual(unknown.res.json.mock.calls);
-    expect(unknown.res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
+    expect(unknown.res.status).toHaveBeenCalledWith(StatusCodes.NOT_FOUND);
+    expect(unknown.res.json.mock.calls[0][0]).toMatchObject({ success: false, errorCode: 'NOT_FOUND' });
     expect(privateProfile.res.send).not.toHaveBeenCalled();
     expect(mockRenderAts).not.toHaveBeenCalled();
   });

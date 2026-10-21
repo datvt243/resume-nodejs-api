@@ -9,7 +9,9 @@ import { Schema } from 'joi';
 import multer from 'multer';
 
 import type { Model } from 'mongoose';
-import { formatReturn, handleError, validateSchema } from '@/utils/index';
+import { created, formatReturn, handleError, ok, toAppError, validateSchema } from '@/utils/index';
+import type { BaseReturn } from '@/types/base.type';
+import { logger } from '@/logger';
 import { baseDeleteDocument, baseFindDocument, baseRestoreDocument, CrudDocument } from '@/services';
 import * as MODELS from '@/models';
 import { t } from '@/utils/i18n';
@@ -81,7 +83,7 @@ export const baseGetAll = async (req: Request, res: Response, next: NextFunction
       limit: limit !== undefined ? parseInt(limit, 10) : undefined,
       sort: sort && SORT_FIELD_REGEX.test(sort) ? sort : undefined,
     });
-    return formatReturn(res, { ..._result });
+    return ok(res, _result.data, _result.message);
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }
@@ -102,7 +104,7 @@ export const baseDelete = async (req: Request, res: Response, next: NextFunction
       name: '',
       lang: req.lang,
     });
-    return formatReturn(res, { ..._result });
+    return ok(res, null, _result.message);
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }
@@ -128,7 +130,7 @@ export const baseRestore = async (req: Request, res: Response, next: NextFunctio
       name: '',
       lang: req.lang,
     });
-    return formatReturn(res, { ..._result });
+    return ok(res, null, _result.message);
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }
@@ -196,12 +198,12 @@ export const baseUploadImages = async (req: Request, res: Response, next: NextFu
 export const createCrudController = (props: {
   schema: Schema;
   service: {
-    handlerCreate: (item: Record<string, unknown>, lang?: string) => Promise<{ success: boolean; [key: string]: unknown }>;
+    handlerCreate: (item: Record<string, unknown>, lang?: string) => Promise<BaseReturn>;
     handlerUpdate: (args: {
       item: Record<string, unknown>;
       userID?: string | undefined;
       lang?: string | undefined;
-    }) => Promise<{ success: boolean; [key: string]: unknown }>;
+    }) => Promise<BaseReturn>;
   };
   booleanDefaultField?: string;
 }) => {
@@ -214,7 +216,7 @@ export const createCrudController = (props: {
     try {
       if (booleanDefaultField && !value[booleanDefaultField]) value[booleanDefaultField] = false;
       const _result = await service.handlerCreate(value, req.lang);
-      return formatReturn(res, { statusCode: _result.success ? StatusCodes.CREATED : StatusCodes.BAD_REQUEST, ..._result });
+      return created(res, _result.data, _result.message);
     } catch (err) {
       handleError({ err, next, lang: req.lang });
     }
@@ -227,7 +229,7 @@ export const createCrudController = (props: {
     try {
       if (booleanDefaultField && !value[booleanDefaultField]) value[booleanDefaultField] = false;
       const _result = await service.handlerUpdate({ item: value, userID: req.user?._id, lang: req.lang });
-      return formatReturn(res, { ..._result });
+      return ok(res, _result.data, _result.message);
     } catch (err) {
       handleError({ err, next, lang: req.lang });
     }
@@ -271,8 +273,15 @@ export const createCrudController = (props: {
         }
 
         if (booleanDefaultField && !value[booleanDefaultField]) value[booleanDefaultField] = false;
-        const result = await service.handlerCreate(value, lang);
-        results.push({ index, ...result });
+        try {
+          const result = await service.handlerCreate(value, lang);
+          results.push({ index, ...result, success: true });
+        } catch (err) {
+          // One item failing must not abort the rest; an unexpected error's text stays out of the response.
+          const e = toAppError(err, lang);
+          if (!e.isOperational) logger.error('Bulk create item failed', { index, error: e.message, stack: e.stack });
+          results.push({ index, success: false, message: e.isOperational ? e.message : t('common.createFailed', lang), errors: e.errors });
+        }
       }
 
       const succeeded = results.filter((r) => r.success).length;

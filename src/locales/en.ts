@@ -130,6 +130,7 @@ export default {
     internalServerError: 'Internal Server Error',
     malformedJson: 'Malformed JSON request body',
     payloadTooLarge: 'Request body is too large',
+    serviceUnavailable: 'Service temporarily unavailable, please try again',
   },
   joiErrors: {
     'any.required': '{{label}} is required',

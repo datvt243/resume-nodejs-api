@@ -29,7 +29,32 @@ export enum ErrorCode {
   FORBIDDEN = 'FORBIDDEN',
   INSUFFICIENT_PERMISSIONS = 'INSUFFICIENT_PERMISSIONS',
   CSRF_TOKEN_INVALID = 'CSRF_TOKEN_INVALID',
+
+  // Infrastructure errors
+  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
 }
+
+// The one place an HTTP status is decided: every AppError takes its status from its code.
+export const ERROR_STATUS: Record<ErrorCode, number> = {
+  [ErrorCode.INTERNAL_SERVER_ERROR]: StatusCodes.INTERNAL_SERVER_ERROR,
+  [ErrorCode.BAD_REQUEST]: StatusCodes.BAD_REQUEST,
+  [ErrorCode.VALIDATION_ERROR]: StatusCodes.BAD_REQUEST,
+  [ErrorCode.NOT_FOUND]: StatusCodes.NOT_FOUND,
+  [ErrorCode.CONFLICT]: StatusCodes.CONFLICT,
+  [ErrorCode.MALFORMED_JSON]: StatusCodes.BAD_REQUEST,
+  [ErrorCode.PAYLOAD_TOO_LARGE]: StatusCodes.REQUEST_TOO_LONG,
+  [ErrorCode.UNAUTHORIZED]: StatusCodes.UNAUTHORIZED,
+  [ErrorCode.INVALID_TOKEN]: StatusCodes.UNAUTHORIZED,
+  [ErrorCode.TOKEN_EXPIRED]: StatusCodes.UNAUTHORIZED,
+  [ErrorCode.TOKEN_REVOKED]: StatusCodes.UNAUTHORIZED,
+  [ErrorCode.NO_TOKEN]: StatusCodes.UNAUTHORIZED,
+  [ErrorCode.INVALID_CREDENTIALS]: StatusCodes.UNAUTHORIZED,
+  [ErrorCode.EMAIL_EXISTS]: StatusCodes.CONFLICT,
+  [ErrorCode.FORBIDDEN]: StatusCodes.FORBIDDEN,
+  [ErrorCode.INSUFFICIENT_PERMISSIONS]: StatusCodes.FORBIDDEN,
+  [ErrorCode.CSRF_TOKEN_INVALID]: StatusCodes.FORBIDDEN,
+  [ErrorCode.SERVICE_UNAVAILABLE]: StatusCodes.SERVICE_UNAVAILABLE,
+};
 
 /**
  * The real shapes `errors` is constructed with across the codebase: a
@@ -46,8 +71,7 @@ export interface IErrorOptions {
   errors?: AppErrorDetails;
 }
 
-export interface IErrorOptionsWithStatus extends IErrorOptions {
-  statusCode?: number;
+export interface IAppErrorOptions extends IErrorOptions {
   // false = an unexpected failure (a bug): its message is never shown to the client in production
   isOperational?: boolean;
 }
@@ -59,36 +83,14 @@ export class AppError extends Error {
   public readonly isOperational: boolean;
   public readonly errors?: AppErrorDetails;
 
-  constructor(options: IErrorOptionsWithStatus);
-  constructor(message: string, statusCode?: number, errorCode?: ErrorCode, errors?: AppErrorDetails);
-  constructor(messageOrOptions: string | IErrorOptionsWithStatus, statusCode?: number, errorCode?: ErrorCode, errors?: AppErrorDetails) {
-    let message: string;
-    let finalStatusCode: number;
-    let finalErrorCode: ErrorCode;
-    let finalErrors: AppErrorDetails;
-    let isOperational = true;
-
-    if (typeof messageOrOptions === 'object') {
-      // Called with options object: new AppError({ message, errorCode, errors })
-      message = messageOrOptions.message || 'Internal Server Error';
-      finalStatusCode = messageOrOptions.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
-      finalErrorCode = messageOrOptions.errorCode || ErrorCode.INTERNAL_SERVER_ERROR;
-      finalErrors = messageOrOptions.errors;
-      isOperational = messageOrOptions.isOperational ?? true;
-    } else {
-      // Called with positional arguments: new AppError(message, statusCode, errorCode, errors)
-      message = messageOrOptions || 'Internal Server Error';
-      finalStatusCode = statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
-      finalErrorCode = errorCode || ErrorCode.INTERNAL_SERVER_ERROR;
-      finalErrors = errors;
-    }
-
+  constructor(options: IAppErrorOptions) {
+    const message = options.message || 'Internal Server Error';
     super(message);
-    this.statusCode = finalStatusCode;
+    this.errorCode = options.errorCode || ErrorCode.INTERNAL_SERVER_ERROR;
+    this.statusCode = ERROR_STATUS[this.errorCode];
     this.message = message;
-    this.errorCode = finalErrorCode;
-    this.isOperational = isOperational;
-    this.errors = finalErrors;
+    this.isOperational = options.isOperational ?? true;
+    this.errors = options.errors;
 
     // Maintains proper stack trace in V8 environments (Node.js)
     if (Error.captureStackTrace) {
@@ -112,7 +114,7 @@ export class ValidationError extends AppError {
       finalErrors = errors;
     }
 
-    super({ message, statusCode: StatusCodes.BAD_REQUEST, errorCode: ErrorCode.VALIDATION_ERROR, errors: finalErrors });
+    super({ message, errorCode: ErrorCode.VALIDATION_ERROR, errors: finalErrors });
   }
 }
 
@@ -134,7 +136,7 @@ export class AuthenticationError extends AppError {
       finalErrors = errors;
     }
 
-    super({ message, statusCode: StatusCodes.UNAUTHORIZED, errorCode: finalErrorCode, errors: finalErrors });
+    super({ message, errorCode: finalErrorCode, errors: finalErrors });
   }
 }
 
@@ -156,7 +158,7 @@ export class AuthorizationError extends AppError {
       finalErrors = errors;
     }
 
-    super({ message, statusCode: StatusCodes.FORBIDDEN, errorCode: finalErrorCode, errors: finalErrors });
+    super({ message, errorCode: finalErrorCode, errors: finalErrors });
   }
 }
 
@@ -175,7 +177,7 @@ export class NotFoundError extends AppError {
       finalErrors = errors;
     }
 
-    super({ message, statusCode: StatusCodes.NOT_FOUND, errorCode: ErrorCode.NOT_FOUND, errors: finalErrors });
+    super({ message, errorCode: ErrorCode.NOT_FOUND, errors: finalErrors });
   }
 }
 
@@ -197,7 +199,7 @@ export class ConflictError extends AppError {
       finalErrors = errors;
     }
 
-    super({ message, statusCode: StatusCodes.CONFLICT, errorCode: ErrorCode.CONFLICT, errors: finalErrors });
+    super({ message, errorCode: ErrorCode.CONFLICT, errors: finalErrors });
   }
 }
 
@@ -216,7 +218,7 @@ export class BadRequestError extends AppError {
       finalErrors = errors;
     }
 
-    super({ message, statusCode: StatusCodes.BAD_REQUEST, errorCode: ErrorCode.BAD_REQUEST, errors: finalErrors });
+    super({ message, errorCode: ErrorCode.BAD_REQUEST, errors: finalErrors });
   }
 }
 
@@ -285,7 +287,7 @@ export class InvalidTokenError extends AuthenticationError {
  * (`AppError.isOperational` is always `true`), i.e. an anticipated,
  * known failure mode rather than a programming bug.
  */
-export const throwError = (options: IErrorOptionsWithStatus): never => {
+export const throwError = (options: IAppErrorOptions): never => {
   throw new AppError(options);
 };
 

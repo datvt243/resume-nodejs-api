@@ -30,10 +30,9 @@ describe('baseUpdateDocument excludes soft-deleted documents (issue #136)', () =
   it('fails without touching the document when it has been soft-deleted', async () => {
     const model = createFakeModel({ _id: '1', candidateId: 'c1', deletedAt: Date.now() });
 
-    const result = await baseUpdateDocument({ document: { _id: '1', name: 'x' }, model: asModel(model), userID: 'c1' });
+    await expect(baseUpdateDocument({ document: { _id: '1', name: 'x' }, model: asModel(model), userID: 'c1' })).rejects.toMatchObject({ statusCode: 404, errorCode: 'NOT_FOUND' });
 
     expect(model.updateOne).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
   });
 
   it('still updates a normal (non-deleted) document (regression check)', async () => {
@@ -44,16 +43,32 @@ describe('baseUpdateDocument excludes soft-deleted documents (issue #136)', () =
     expect(model.updateOne).toHaveBeenCalledWith({ _id: '1' }, { _id: '1', name: 'x' });
     expect(result.success).toBe(true);
   });
+
+  it("answers 403 without touching another candidate's document", async () => {
+    const model = createFakeModel({ _id: '1', candidateId: 'c1', deletedAt: null });
+
+    await expect(baseUpdateDocument({ document: { _id: '1', name: 'x' }, model: asModel(model), userID: 'someone-else' })).rejects.toMatchObject({
+      statusCode: 403,
+      errorCode: 'FORBIDDEN',
+    });
+
+    expect(model.updateOne).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 for an id that does not exist', async () => {
+    const model = createFakeModel(null);
+
+    await expect(baseUpdateDocument({ document: { _id: 'missing', name: 'x' }, model: asModel(model), userID: 'c1' })).rejects.toMatchObject({ statusCode: 404 });
+  });
 });
 
 describe('basePatchDocument excludes soft-deleted documents (issue #136)', () => {
   it('fails without touching the document when it has been soft-deleted', async () => {
     const model = createFakeModel({ _id: '1', candidateId: 'c1', deletedAt: Date.now() });
 
-    const result = await basePatchDocument({ document: { _id: '1', name: 'x' }, model: asModel(model) });
+    await expect(basePatchDocument({ document: { _id: '1', name: 'x' }, model: asModel(model) })).rejects.toMatchObject({ statusCode: 404, errorCode: 'NOT_FOUND' });
 
     expect(model.updateOne).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
   });
 
   it('still patches a normal (non-deleted) document (regression check)', async () => {

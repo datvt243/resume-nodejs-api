@@ -13,7 +13,9 @@
  */
 
 import * as MODEL from '@/models';
-import { handlerGetAboutMe, handlerRecordVisit, normalizeReferrer } from '@/candidate_me';
+import { fnExportPDF, fnGetAboutMe, handlerGetAboutMe, handlerRecordVisit, normalizeReferrer } from '@/candidate_me';
+import { fnAtsCheck } from '@/candidate_me/ats-check';
+import { errorsMiddleware } from '@/middlewares/errors.middleware';
 
 jest.mock('@/models', () => ({
   Candidate: { findOne: jest.fn() },
@@ -35,27 +37,24 @@ describe('candidate_me/index.ts (issue #135)', () => {
 
   describe('handlerGetAboutMe', () => {
     it('fails closed and never queries the DB when the identifier is rejected by QuerySafe', async () => {
-      const result = await handlerGetAboutMe({ identifier: '$where:1', lang: 'vi' });
+      await expect(handlerGetAboutMe({ identifier: '$where:1', lang: 'vi' })).rejects.toMatchObject({ statusCode: 404, errorCode: 'NOT_FOUND' });
 
-      expect(result.success).toBe(false);
       expect(MODEL.Candidate.findOne).not.toHaveBeenCalled();
     });
 
     it('still looks up a valid identifier normally (regression check)', async () => {
       (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
 
-      const result = await handlerGetAboutMe({ identifier: 'votan.it@gmail.com', lang: 'vi' });
+      await expect(handlerGetAboutMe({ identifier: 'votan.it@gmail.com', lang: 'vi' })).rejects.toMatchObject({ statusCode: 404 });
 
-      expect(result.success).toBe(false);
       expect(MODEL.Candidate.findOne).toHaveBeenCalledTimes(2); // slug attempt, then email fallback
     });
   });
 
   describe('handlerRecordVisit', () => {
     it('fails closed and never queries the DB when the email is rejected by QuerySafe', async () => {
-      const result = await handlerRecordVisit('$where:1', { ip: '1.2.3.4', socket: {} } as any);
+      await expect(handlerRecordVisit('$where:1', { ip: '1.2.3.4', socket: {} } as any)).rejects.toMatchObject({ statusCode: 404 });
 
-      expect(result.success).toBe(false);
       expect(MODEL.Candidate.findOne).not.toHaveBeenCalled();
       expect(MODEL.Visit.create).not.toHaveBeenCalled();
     });
@@ -157,6 +156,26 @@ describe('candidate_me/index.ts (issue #135)', () => {
       (MODEL.Project.find as jest.Mock).mockReturnValue(emptyFind);
       (MODEL.Certificate.find as jest.Mock).mockReturnValue(emptyFind);
       (MODEL.Award.find as jest.Mock).mockReturnValue(emptyFind);
+    });
+
+    it('GET /api/me/:email answers a private profile with the same 404 body as an unknown one', async () => {
+      const respond = async () => {
+        const json = jest.fn();
+        const res: any = { status: jest.fn().mockReturnValue({ json }) };
+        const req: any = { params: { email: 'votan.it@gmail.com' }, query: {}, lang: 'vi' };
+        const next = jest.fn();
+        await fnGetAboutMe(req, res, next);
+        errorsMiddleware(next.mock.calls[0][0], req, res, jest.fn());
+        return { status: res.status.mock.calls, body: json.mock.calls };
+      };
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+      const unknown = await respond();
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue({ ...candidateDoc, isPublic: false }) });
+      const privateProfile = await respond();
+
+      expect(unknown.status).toEqual([[404]]);
+      expect(unknown.body[0][0]).toMatchObject({ success: false, errorCode: 'NOT_FOUND' });
+      expect(privateProfile).toEqual(unknown);
     });
 
     it('never queries Profile when no profile param is given (existing share-links unaffected)', async () => {
@@ -265,5 +284,27 @@ describe('handlerGetAboutMe — candidateId filter with an ObjectId _id (issue #
     // Never the raw object itself, and never silently dropped ({} filter).
     expect(MODEL.Education.find).not.toHaveBeenCalledWith(expect.objectContaining({ candidateId: objectIdLike }), expect.anything());
     expect(MODEL.Education.find).not.toHaveBeenCalledWith({}, expect.anything());
+  });
+});
+
+describe('own-CV endpoints when the candidate no longer exists', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it.each([
+    ['GET /api/v1/download-pdf', fnExportPDF],
+    ['POST /api/v1/cv/ats-check', fnAtsCheck],
+  ])('%s answers 404 NOT_FOUND, not 400', async (_label, handler) => {
+    (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+    const json = jest.fn();
+    const res: any = { status: jest.fn().mockReturnValue({ json }) };
+    const req: any = { user: { _id: '507f1f77bcf86cd799439011' }, query: {}, body: {}, lang: 'en' };
+    const next = jest.fn();
+
+    await handler(req, res, next);
+    errorsMiddleware(next.mock.calls[0][0], req, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(json.mock.calls[0][0]).toMatchObject({ success: false, errorCode: 'NOT_FOUND' });
   });
 });

@@ -73,15 +73,14 @@ export const toAppError = (err: unknown, lang: string | undefined = DEFAULT_LANG
   // body-parser and jsonwebtoken errors are recognized by their documented `type`/`name`.
   const { type, name } = (typeof err === 'object' && err !== null ? err : {}) as { type?: unknown; name?: unknown };
   if (type === 'entity.parse.failed')
-    return new AppError({ message: t('errors.malformedJson', lang), statusCode: StatusCodes.BAD_REQUEST, errorCode: ErrorCode.MALFORMED_JSON });
+    return new AppError({ message: t('errors.malformedJson', lang), errorCode: ErrorCode.MALFORMED_JSON });
   if (type === 'entity.too.large')
-    return new AppError({ message: t('errors.payloadTooLarge', lang), statusCode: StatusCodes.REQUEST_TOO_LONG, errorCode: ErrorCode.PAYLOAD_TOO_LARGE });
+    return new AppError({ message: t('errors.payloadTooLarge', lang), errorCode: ErrorCode.PAYLOAD_TOO_LARGE });
   if (name === 'TokenExpiredError') return new TokenExpiredError(t('auth.tokenExpired', lang));
   if (name === 'JsonWebTokenError') return new InvalidTokenError(t('auth.invalidToken', lang));
 
   const unexpected = new AppError({
     message: (err instanceof Error && err.message) || t('errors.internalServerError', lang),
-    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
     isOperational: false,
   });
   // Keep the original stack so the log points at the real failure, not here.

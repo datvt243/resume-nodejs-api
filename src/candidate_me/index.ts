@@ -10,10 +10,14 @@ import geoip from 'geoip-lite';
 
 import { formatReturn, handleError } from '@/utils';
 import { formatReturnFailed } from '@/services';
+import { NotFoundError } from '@/errors';
 import { createCV } from '@/services/createPDF';
 import { createCVAts } from '@/services/createPDF.ats';
 import { createCVDocx } from '@/services/createDocx';
 import * as MODEL from '@/models';
+
+// One message for unknown and private profiles, so a private profile can't be told apart from a missing one.
+export const PROFILE_NOT_FOUND = 'Email không tồn tại';
 
 /**
  * Localized ({vi, en}) fields get resolved down to a single string for
@@ -54,9 +58,7 @@ export const fnGetAboutMe = async (req: Request, res: Response, next: NextFuncti
      * and is unaffected — a candidate can always see/export their own
      * data regardless of this flag.
      */
-    if (_me.success && _me.data?.isPublic === false) {
-      return formatReturn(res, formatReturnFailed('Email không tồn tại'));
-    }
+    if (_me.data?.isPublic === false) return next(new NotFoundError(PROFILE_NOT_FOUND));
     return formatReturn(res, _me);
   } catch (err) {
     handleError({ err, next, lang: req.lang });
@@ -104,7 +106,7 @@ export const handlerGetAboutMe = async ({
     const safeEmailQuery = candidateQuerySafe.safeQuery({}, { email: identifier });
     document = 'email' in safeEmailQuery ? await MODEL.Candidate.findOne(safeEmailQuery, { ...removeFields }).exec() : null;
   }
-  if (!document) return formatReturnFailed('Email không tồn tại');
+  if (!document) throw new NotFoundError(PROFILE_NOT_FOUND);
 
   const { _id } = document;
 
@@ -248,13 +250,8 @@ export const handlerRecordVisit = async (email: string, req: Request) => {
   // email must not fall through to an unfiltered findOne({}).
   const safeEmailQuery = candidateQuerySafe.safeQuery({}, { email });
   const candidate = 'email' in safeEmailQuery ? await MODEL.Candidate.findOne(safeEmailQuery).select('_id').exec() : null;
-  /**
-   * Same response shape as the "email not found" branch of handlerGetAboutMe
-   * above (success: false, no throw) — kept consistent with that sibling
-   * public endpoint rather than introducing a different error convention
-   * (e.g. NotFoundError/404) for this one route.
-   */
-  if (!candidate) return formatReturnFailed('Email không tồn tại');
+  // Same 404 as handlerGetAboutMe above for an unknown email.
+  if (!candidate) throw new NotFoundError(PROFILE_NOT_FOUND);
 
   /**
    * Same IP-extraction pattern already used by rateLimit.middleware.ts —
@@ -324,10 +321,7 @@ export const fnExportPDF = async (req: Request, res: Response, next: NextFunctio
 
   const { idQuerySafe } = await import('@/utils/querySafe');
   const find = await MODEL.Candidate.findOne(idQuerySafe.safeQuery({}, { _id })).exec();
-  if (!find) {
-    res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('Candidate not found'));
-    return;
-  }
+  if (!find) return next(new NotFoundError('Candidate not found'));
 
   const { email } = find;
   if (!email) {
@@ -338,10 +332,6 @@ export const fnExportPDF = async (req: Request, res: Response, next: NextFunctio
   try {
     const lang = req.query['lang'] === 'en' ? 'en' : 'vi';
     const { success, message, data } = await handlerGetAboutMe({ identifier: email, lang });
-    if (!success) {
-      res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('Lấy thông tin ứng viên thất bại'));
-      return;
-    }
 
     // ?format=json reuses the same aggregated data already assembled for
     // the PDF path — no new dependency, no new data-fetch.

@@ -7,7 +7,8 @@
  */
 
 import { StatusCodes } from 'http-status-codes';
-import { fnParseLinkedInExport, fnParseCvPdf, fnUpdate, fnUpdateFields } from '@/candidate/candidate.controller';
+import { fnGetInformationByEmail, fnGetInformationById, fnParseLinkedInExport, fnParseCvPdf, fnUpdate, fnUpdateFields } from '@/candidate/candidate.controller';
+import * as candidateService from '@/candidate/candidate.service';
 import * as parseService from '@/candidate/parseLinkedInExport.service';
 import * as parseCvPdfService from '@/candidate/parseCvPdf.service';
 
@@ -173,3 +174,20 @@ describe('candidate update validation failures', () => {
   });
 });
 
+describe('candidate lookup not found', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it.each([
+    ['GET /:id', fnGetInformationById, 'handlerGetInformationById' as const, { id: '507f1f77bcf86cd799439011' }],
+    ['GET /:email', fnGetInformationByEmail, 'handlerGetInformationByEmail' as const, { email: 'nobody@example.com' }],
+  ])('%s answers 404, not 400', async (_label, handler, serviceFn, params) => {
+    jest.spyOn(candidateService, serviceFn).mockResolvedValue(null);
+    const res = mockRes();
+    const next = jest.fn();
+
+    await handler({ params, lang: 'en' } as any, res, next);
+
+    expect(res.status).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: StatusCodes.NOT_FOUND, errorCode: 'NOT_FOUND' }));
+  });
+});

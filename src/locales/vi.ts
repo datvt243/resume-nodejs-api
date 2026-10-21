@@ -130,6 +130,7 @@ export default {
     internalServerError: 'Lỗi hệ thống',
     malformedJson: 'Nội dung JSON không hợp lệ',
     payloadTooLarge: 'Nội dung yêu cầu quá lớn',
+    serviceUnavailable: 'Dịch vụ tạm thời không khả dụng, vui lòng thử lại',
   },
   joiErrors: {
     'any.required': '{{label}} là bắt buộc',
