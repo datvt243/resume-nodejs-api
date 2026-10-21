@@ -22,7 +22,8 @@ const refresh = async (refreshToken: string) => {
   const next = jest.fn();
   await authRefreshToken(req, res, next);
   const body = json.mock.calls[0]?.[0];
-  return { status: res.status.mock.calls[0]?.[0] as number, data: body?.data as { token: string; tokenRefresh: string } | undefined, next };
+  // A rejected refresh goes to errorsMiddleware via next(err), so its status is the error's.
+  return { status: (res.status.mock.calls[0]?.[0] ?? next.mock.calls[0]?.[0]?.statusCode) as number, data: body?.data as { token: string; tokenRefresh: string } | undefined, next };
 };
 
 const accessTokenRevoked = async (candidateId: string, accessToken: string) => {
@@ -52,11 +53,11 @@ describe('refresh-token reuse after rotation (end-to-end, in-memory stores)', ()
 
     advanceSeconds(30);
     const thief = await refresh(original);
-    expect(thief.status).toBe(403);
-    expect(thief.data).toBeNull();
+    expect(thief.status).toBe(401);
+    expect(thief.data).toBeUndefined(); // no body written by the controller, so no new pair
 
     expect(await accessTokenRevoked('cand-theft', ownerPair.token)).toBe(true);
-    expect((await refresh(ownerPair.tokenRefresh)).status).toBe(403);
+    expect((await refresh(ownerPair.tokenRefresh)).status).toBe(401);
   });
 
   it('lets the owner log in again, and a later replay of the old token does not revoke the new session', async () => {
@@ -71,7 +72,7 @@ describe('refresh-token reuse after rotation (end-to-end, in-memory stores)', ()
     expect(relogin.status).toBe(200);
 
     advanceSeconds(60);
-    expect((await refresh(original)).status).toBe(403);
+    expect((await refresh(original)).status).toBe(401);
     expect(await getSessionsInvalidatedAt('cand-relogin')).toBe(revokedAt);
     expect((await refresh(relogin.data!.tokenRefresh)).status).toBe(200);
   });
@@ -81,7 +82,7 @@ describe('refresh-token reuse after rotation (end-to-end, in-memory stores)', ()
     const firstTab = await refresh(original);
 
     advanceSeconds(5);
-    expect((await refresh(original)).status).toBe(403);
+    expect((await refresh(original)).status).toBe(401);
 
     expect(await getSessionsInvalidatedAt('cand-tabs')).toBeNull();
     expect((await refresh(firstTab.data!.tokenRefresh)).status).toBe(200);
@@ -92,7 +93,7 @@ describe('refresh-token reuse after rotation (end-to-end, in-memory stores)', ()
 
     const results = await Promise.all([refresh(original), refresh(original)]);
 
-    expect(results.map((r) => r.status).sort()).toEqual([200, 403]);
+    expect(results.map((r) => r.status).sort()).toEqual([200, 401]);
     const winner = results.find((r) => r.status === 200)!;
     expect(await getSessionsInvalidatedAt('cand-race')).toBeNull();
     expect((await refresh(winner.data!.tokenRefresh)).status).toBe(200);

@@ -91,11 +91,12 @@ export const handlerLogin = async (data: Auth, lang: string = DEFAULT_LANG) => {
   const { email, password } = data;
 
   const _user = await CandidateModel.findOne({ email });
-  if (!_user) return { success: false, message: t('auth.emailNotFound', lang) };
+  // Same answer for an unknown email and a wrong password, so login can't be used to probe which emails are registered.
+  if (!_user) return { success: false, message: t('auth.invalidCredentials', lang) };
 
   const { _id, password: pwdHash } = _user;
   const comparePwd = await bcryptCompareHash(password, pwdHash);
-  if (!comparePwd) return { success: false, message: t('auth.wrongPassword', lang) };
+  if (!comparePwd) return { success: false, message: t('auth.invalidCredentials', lang) };
 
   const token = jwtSign({ data: { _id }, secretKey: TOKEN_SECRET, props: { expiresIn: TOKEN_EXP_IN || '1h' } });
   // `jti` keeps refresh tokens unique: two signed in the same second would otherwise be byte-identical, and an identical copy of a rotated token reads as reuse.

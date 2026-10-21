@@ -7,7 +7,7 @@
  */
 
 import { StatusCodes } from 'http-status-codes';
-import { fnParseLinkedInExport, fnParseCvPdf } from '@/candidate/candidate.controller';
+import { fnParseLinkedInExport, fnParseCvPdf, fnUpdate, fnUpdateFields } from '@/candidate/candidate.controller';
 import * as parseService from '@/candidate/parseLinkedInExport.service';
 import * as parseCvPdfService from '@/candidate/parseCvPdf.service';
 
@@ -157,3 +157,19 @@ describe('fnParseCvPdf', () => {
     expect(next.mock.calls[0][0].statusCode).toBe(StatusCodes.INTERNAL_SERVER_ERROR);
   });
 });
+
+describe('candidate update validation failures', () => {
+  it.each([
+    ['PUT /update', fnUpdate, {}],
+    ['PATCH /update', fnUpdateFields, { socialMedia: 'x' }],
+  ])('%s answers 400, not 401', async (_label, handler, body) => {
+    const req: any = { body, user: { _id: 'user-1' }, lang: 'en' };
+    const res = mockRes();
+
+    await handler(req, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
+  });
+});
+

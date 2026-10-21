@@ -141,3 +141,50 @@ describe('createCrudController -> fnBulkCreate (issue #161)', () => {
     expect(payload.data.summary).toEqual({ total: 2, succeeded: 2, failed: 0 });
   });
 });
+
+describe('createCrudController status codes', () => {
+  const schema = Joi.object({ name: Joi.string().min(2).required(), candidateId: Joi.string().required() });
+
+  function createMocks(body: Record<string, any>) {
+    const req: any = { body, user: { _id: 'user-1' }, lang: 'en' };
+    const json = jest.fn();
+    const res: any = { status: jest.fn().mockReturnValue({ json }), json };
+    return { req, res, next: jest.fn(), json };
+  }
+
+  it('fnCreate answers a failed create with 400, never 201', async () => {
+    const handlerCreate = jest.fn().mockResolvedValue({ success: false, message: 'Create failed', errors: null });
+    const { fnCreate } = createCrudController({ schema, service: { handlerCreate, handlerUpdate: jest.fn() } });
+    const { req, res, next, json } = createMocks({ name: 'Valid Name', candidateId: 'user-1' });
+
+    await fnCreate(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(json.mock.calls[0][0]).toMatchObject({ success: false, message: 'Create failed' });
+  });
+
+  it('fnCreate still answers a successful create with 201', async () => {
+    const handlerCreate = jest.fn().mockResolvedValue({ success: true, message: 'ok', data: { _id: 'created' } });
+    const { fnCreate } = createCrudController({ schema, service: { handlerCreate, handlerUpdate: jest.fn() } });
+    const { req, res, next } = createMocks({ name: 'Valid Name', candidateId: 'user-1' });
+
+    await fnCreate(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
+
+  it('fnBulkCreate answers 400 with success:false when every item fails, keeping results/summary', async () => {
+    const handlerCreate = jest.fn().mockResolvedValue({ success: false, message: 'Create failed' });
+    const { fnBulkCreate } = createCrudController({ schema, service: { handlerCreate, handlerUpdate: jest.fn() } });
+    const { req, res, next, json } = createMocks({ items: [{ name: 'x' }, { name: 'Valid Name' }] }); // 'x' fails validation, the other fails in the service
+
+    await fnBulkCreate(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    const payload = json.mock.calls[0][0];
+    expect(Object.keys(payload).sort()).toEqual(['data', 'errors', 'message', 'success']);
+    expect(payload.success).toBe(false);
+    expect(payload.data.summary).toEqual({ total: 2, succeeded: 0, failed: 2 });
+    expect(payload.data.results.map((r: any) => r.success)).toEqual([false, false]);
+  });
+});

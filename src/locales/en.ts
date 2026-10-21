@@ -9,8 +9,7 @@ export default {
   auth: {
     registerSuccess: 'Registration successful',
     emailAlreadyExists: 'Email already exists',
-    emailNotFound: 'Email not found',
-    wrongPassword: 'Incorrect password',
+    invalidCredentials: 'Incorrect email or password',
     loginSuccess: 'Login successful',
     loginFailed: 'Login failed',
     noRefreshToken: 'No refresh token provided',

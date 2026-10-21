@@ -55,7 +55,7 @@ export const fnCreate = async (req: Request, res: Response, next: NextFunction) 
 
   try {
     const _result = await handlerCreate(value, req.lang);
-    return formatReturn(res, { statusCode: StatusCodes.CREATED, ..._result });
+    return formatReturn(res, { statusCode: _result.success ? StatusCodes.CREATED : StatusCodes.BAD_REQUEST, ..._result });
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }
@@ -67,7 +67,7 @@ export const fnUpdate = async (req: Request, res: Response, next: NextFunction) 
     item: { ...req.body },
     lang: req.lang,
   });
-  if (!isValidated) return formatReturn(res, { statusCode: StatusCodes.UNAUTHORIZED, success: false, message, errors });
+  if (!isValidated) return formatReturn(res, { statusCode: StatusCodes.BAD_REQUEST, success: false, message, errors });
 
   try {
     const _result = await handlerUpdate({ item: value, userID: req.user?._id, lang: req.lang });
@@ -83,7 +83,7 @@ export const fnUpdateFields = async (req: Request, res: Response, next: NextFunc
     item: { ...req.body },
     lang: req.lang,
   });
-  if (!isValidated) return formatReturn(res, { statusCode: StatusCodes.UNAUTHORIZED, success: false, message, errors });
+  if (!isValidated) return formatReturn(res, { statusCode: StatusCodes.BAD_REQUEST, success: false, message, errors });
 
   try {
     const _result = await handlerUpdate({ item: value, userID: req.user?._id, lang: req.lang });
