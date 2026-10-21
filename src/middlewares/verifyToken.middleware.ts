@@ -13,6 +13,7 @@ import { getSessionsInvalidatedAt, isSessionRevoked } from '@/utils/sessionRevoc
 import { ErrorCode, TokenExpiredError, TokenRevokedError, InvalidTokenError, AuthenticationError, AuthorizationError } from '@/errors';
 
 import { extractTokenWithSource } from '@/utils/helper-auth';
+import { t } from '@/utils/i18n';
 import { requiresCsrfCheck, isCsrfTokenValid } from '@/utils/csrf';
 
 export const verifyToken = async (req: Request, _res: Response, next: NextFunction) => {
@@ -73,8 +74,12 @@ export const verifyToken = async (req: Request, _res: Response, next: NextFuncti
   } catch (err) {
     // jsonwebtoken's own real exported error classes, replacing a
     // duck-typed `err?.name === 'X'` check.
-    if (err instanceof jwt.TokenExpiredError || err instanceof jwt.JsonWebTokenError) {
-      return next(new TokenExpiredError('Token expired.'));
+    // TokenExpiredError extends JsonWebTokenError, so it must be checked first.
+    if (err instanceof jwt.TokenExpiredError) {
+      return next(new TokenExpiredError(t('auth.tokenExpired', req.lang)));
+    }
+    if (err instanceof jwt.JsonWebTokenError) {
+      return next(new InvalidTokenError(t('auth.invalidToken', req.lang)));
     }
     return next(new InvalidTokenError(err instanceof Error ? err.message : 'Invalid token.'));
   }

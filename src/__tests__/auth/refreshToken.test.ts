@@ -1,3 +1,4 @@
+import jwt from 'jsonwebtoken';
 import { authRefreshToken } from '@/auth/auth.controller';
 import * as tokenBlacklist from '@/utils/tokenBlacklist';
 import * as jwtUtils from '@/utils/jwt';
@@ -47,6 +48,20 @@ describe('authRefreshToken controller', () => {
     const { req, res, next } = createMocks({}, { authorization: 'Bearer old' });
     await authRefreshToken(req, res, next);
     expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  it.each([
+    ['an expired', () => new jwt.TokenExpiredError('jwt expired', new Date()), 'TOKEN_EXPIRED'],
+    ['a malformed', () => new jwt.JsonWebTokenError('invalid token'), 'INVALID_TOKEN'],
+  ])('forwards a 401 %s refresh token error, not a 500', async (_label, makeError, errorCode) => {
+    mockedIsBlacklisted.mockResolvedValue(false);
+    mockedJwtVerify.mockImplementation(() => {
+      throw makeError();
+    });
+    const { req, res, next } = createMocks({}, { authorization: 'Bearer bad' });
+    await authRefreshToken(req, res, next);
+    expect(res.status).not.toHaveBeenCalled();
+    expect(next.mock.calls[0][0]).toMatchObject({ statusCode: 401, errorCode, isOperational: true });
   });
 
   it('returns 200 and rotates tokens on valid refresh', async () => {

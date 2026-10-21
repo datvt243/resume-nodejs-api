@@ -16,6 +16,7 @@
 import { Response } from 'express';
 import { Document, Packer, Paragraph, HeadingLevel, TextRun, BorderStyle } from 'docx';
 import { t } from '@/utils/i18n';
+import { logger } from '@/logger';
 import { AggregatedCandidateData, GeneralInformationData, Skill, EducationData, ExperienceData, ProjectData, Award, Certificate, Reference, Language } from '@/types/candidate.type';
 
 export interface DocxSection {
@@ -244,10 +245,10 @@ export const createCVDocx = async (data: AggregatedCandidateData, res: Response,
     res.contentType('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     res.send(buffer);
   } catch (error) {
+    logger.error('DOCX export failed', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).send({
       status: false,
       message: 'Xảy ra lỗi, không thể tạo file DOCX',
-      error,
     });
   }
 };

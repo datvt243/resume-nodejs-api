@@ -57,7 +57,7 @@ describe('async error safety', () => {
     expect(res.status).toBe(500);
     expect(await res.json()).toMatchObject({ success: false, errorCode: 'INTERNAL_SERVER_ERROR' });
     expect(unhandled).not.toHaveBeenCalled();
-    expect(logger.error).toHaveBeenCalledWith('ERROR: mongo timeout', expect.anything());
+    expect(logger.error).toHaveBeenCalledWith('ERROR [INTERNAL_SERVER_ERROR]: mongo timeout', expect.anything());
   });
 });
 

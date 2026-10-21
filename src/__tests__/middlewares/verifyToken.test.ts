@@ -1,3 +1,4 @@
+import jwt from 'jsonwebtoken';
 import { verifyToken } from '@/middlewares/verifyToken.middleware';
 import * as jwtUtils from '@/utils/jwt';
 import * as tokenBlacklist from '@/utils/tokenBlacklist';
@@ -68,6 +69,19 @@ describe('verifyToken middleware', () => {
     const { req, res, next } = createMocks({ Authorization: 'Bearer expired' });
     await verifyToken(req, res, next);
     expect(next).toHaveBeenCalledWith(expect.any(TokenExpiredError));
+  });
+
+  it('calls next with InvalidTokenError, not TokenExpiredError, on a malformed jwt', async () => {
+    mockedIsBlacklisted.mockResolvedValue(false);
+    const malformed = new jwt.JsonWebTokenError('jwt malformed');
+    mockedJwtVerify.mockImplementation(() => {
+      throw malformed;
+    });
+    const { req, res, next } = createMocks({ Authorization: 'Bearer garbage' });
+    await verifyToken(req, res, next);
+    const error = next.mock.calls[0][0];
+    expect(error).toBeInstanceOf(InvalidTokenError);
+    expect(error).toMatchObject({ statusCode: 401, errorCode: 'INVALID_TOKEN' });
   });
 
   it('calls next with TokenRevokedError when token is blacklisted', async () => {

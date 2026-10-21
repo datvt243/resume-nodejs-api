@@ -13,6 +13,8 @@ export enum ErrorCode {
   VALIDATION_ERROR = 'VALIDATION_ERROR',
   NOT_FOUND = 'NOT_FOUND',
   CONFLICT = 'CONFLICT',
+  MALFORMED_JSON = 'MALFORMED_JSON',
+  PAYLOAD_TOO_LARGE = 'PAYLOAD_TOO_LARGE',
 
   // Authentication errors
   UNAUTHORIZED = 'UNAUTHORIZED',
@@ -45,6 +47,8 @@ export interface IErrorOptions {
 
 export interface IErrorOptionsWithStatus extends IErrorOptions {
   statusCode?: number;
+  // false = an unexpected failure (a bug): its message is never shown to the client in production
+  isOperational?: boolean;
 }
 
 export class AppError extends Error {
@@ -61,6 +65,7 @@ export class AppError extends Error {
     let finalStatusCode: number;
     let finalErrorCode: ErrorCode;
     let finalErrors: AppErrorDetails;
+    let isOperational = true;
 
     if (typeof messageOrOptions === 'object') {
       // Called with options object: new AppError({ message, errorCode, errors })
@@ -68,6 +73,7 @@ export class AppError extends Error {
       finalStatusCode = messageOrOptions.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
       finalErrorCode = messageOrOptions.errorCode || ErrorCode.INTERNAL_SERVER_ERROR;
       finalErrors = messageOrOptions.errors;
+      isOperational = messageOrOptions.isOperational ?? true;
     } else {
       // Called with positional arguments: new AppError(message, statusCode, errorCode, errors)
       message = messageOrOptions || 'Internal Server Error';
@@ -80,7 +86,7 @@ export class AppError extends Error {
     this.statusCode = finalStatusCode;
     this.message = message;
     this.errorCode = finalErrorCode;
-    this.isOperational = true;
+    this.isOperational = isOperational;
     this.errors = finalErrors;
 
     // Maintains proper stack trace in V8 environments (Node.js)

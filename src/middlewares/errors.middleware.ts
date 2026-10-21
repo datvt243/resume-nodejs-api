@@ -9,43 +9,27 @@ import { StatusCodes } from 'http-status-codes';
 import { NODE_ENV } from '@/config/process.config';
 import { logger } from '@/logger';
 import { AppError, ErrorCode } from '@/errors/AppError';
+import { toAppError } from '@/utils/helper';
+import { t } from '@/utils/i18n';
 
-type ErrorMid = Error | ReferenceError | TypeError;
+export const errorsMiddleware = (err: unknown, req: Request, res: Response, _next: NextFunction) => {
+  const e = toAppError(err, req.lang);
+  const isDev = NODE_ENV === 'development';
 
-export const errorsMiddleware = (err: ErrorMid | AppError, req: Request, res: Response, _next: NextFunction) => {
-  if (err instanceof AppError) {
-    logger.error(`ERROR [${err.errorCode}]: ${err.message}`, {
-      errorCode: err.errorCode,
-      message: err.message,
-      errors: err.errors,
-      stack: err.stack,
-      ...(NODE_ENV === 'development' && { reqUrl: req.originalUrl }),
-    });
-
-    return res.status(err.statusCode).json({
-      success: false,
-      errorCode: err.errorCode,
-      message: err.message,
-      errors: err.errors,
-      ...(NODE_ENV === 'development' && { stack: err.stack }),
-    });
-  }
-
-  // Handle unknown errors (programming errors, external library errors)
-  const statusCode = StatusCodes.INTERNAL_SERVER_ERROR;
-  const message = NODE_ENV === 'development' ? err.message : 'Internal Server Error';
-
-  logger.error(`ERROR: ${err.message}`, {
-    message: err.message,
-    stack: err.stack,
-    ...(NODE_ENV === 'development' && { reqUrl: req.originalUrl }),
+  logger.error(`ERROR [${e.errorCode}]: ${e.message}`, {
+    errorCode: e.errorCode,
+    message: e.message,
+    errors: e.errors,
+    stack: e.stack,
+    ...(isDev && { reqUrl: req.originalUrl }),
   });
 
-  res.status(statusCode).json({
+  res.status(e.statusCode).json({
     success: false,
-    errorCode: ErrorCode.INTERNAL_SERVER_ERROR,
-    message: message,
-    ...(NODE_ENV === 'development' && { stack: err?.stack }),
+    errorCode: e.errorCode,
+    message: e.isOperational || isDev ? e.message : t('errors.internalServerError', req.lang),
+    errors: e.errors,
+    ...(isDev && { stack: e.stack }),
   });
 };
 
