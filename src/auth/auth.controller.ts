@@ -39,7 +39,7 @@ export const authRegister = async (req: Request, res: Response, next: NextFuncti
 
   try {
     const { success, message } = await handlerRegister({ _id: null, ...value }, req.lang);
-    if (!success) return next(new AppError({ message: message || t('auth.emailAlreadyExists', req.lang), statusCode: StatusCodes.CONFLICT, errorCode: ErrorCode.EMAIL_EXISTS }));
+    if (!success) return next(new AppError({ message: message || t('auth.emailAlreadyExists', req.lang), errorCode: ErrorCode.EMAIL_EXISTS }));
     return formatReturn(res, {
       statusCode: StatusCodes.CREATED,
       success: true,

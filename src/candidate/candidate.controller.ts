@@ -6,8 +6,8 @@
 import path from 'path';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { formatReturn, validateSchema, handleError } from '@/utils';
-import { AuthenticationError } from '@/errors';
+import { formatReturn, validateSchema, handleError, ok } from '@/utils';
+import { AuthenticationError, NotFoundError } from '@/errors';
 import { schemaCandidate, schemaCandidatePatch } from '@/candidate/candidate.validate';
 import {
   handlerUpdate,
@@ -24,19 +24,18 @@ import { parseCvPdf } from '@/candidate/parseCvPdf.service';
 import { handlerGetVisitStats, resolveVisitStatsQuery } from '@/candidate/visitStats.service';
 import { t } from '@/utils/i18n';
 
-export const fnGetInformationById = async (req: Request, res: Response) => {
+export const fnGetInformationById = async (req: Request, res: Response, next: NextFunction) => {
   const { id = '' } = req.params;
   const doc = await handlerGetInformationById(id);
-
-  const _flag = !!doc;
-  return formatReturn(res, { success: _flag, message: _flag ? '' : t('candidate.userNotFound', req.lang), data: doc });
+  if (!doc) return next(new NotFoundError(t('candidate.userNotFound', req.lang)));
+  return ok(res, doc);
 };
 
-export const fnGetInformationByEmail = async (req: Request, res: Response) => {
+export const fnGetInformationByEmail = async (req: Request, res: Response, next: NextFunction) => {
   const { email = '' } = req.params;
   const doc = await handlerGetInformationByEmail(email);
-  const _flag = !!doc;
-  return formatReturn(res, { success: _flag, message: _flag ? '' : t('candidate.userNotFound', req.lang), data: doc });
+  if (!doc) return next(new NotFoundError(t('candidate.userNotFound', req.lang)));
+  return ok(res, doc);
 };
 
 export const fnUpdate = async (req: Request, res: Response, next: NextFunction) => {

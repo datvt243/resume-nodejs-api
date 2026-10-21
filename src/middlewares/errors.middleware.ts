@@ -5,7 +5,6 @@
  * @see https://github.com/datvt243
  */
 import { Request, Response, NextFunction } from 'express';
-import { StatusCodes } from 'http-status-codes';
 import { NODE_ENV } from '@/config/process.config';
 import { logger } from '@/logger';
 import { AppError, ErrorCode } from '@/errors/AppError';
@@ -34,6 +33,6 @@ export const errorsMiddleware = (err: unknown, req: Request, res: Response, _nex
 };
 
 export const notFoundHandler = (req: Request, _res: Response, next: NextFunction) => {
-  const error = new AppError(`Route ${req.originalUrl} not found`, StatusCodes.NOT_FOUND, ErrorCode.NOT_FOUND);
+  const error = new AppError({ message: `Route ${req.originalUrl} not found`, errorCode: ErrorCode.NOT_FOUND });
   next(error);
 };

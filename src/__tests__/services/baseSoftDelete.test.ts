@@ -32,19 +32,17 @@ describe('baseDeleteDocument (soft-delete, issue #121)', () => {
   it('fails without touching the document when the caller is not the owner', async () => {
     const model = createFakeModel({ _id: '1', candidateId: 'c1' });
 
-    const result = await baseDeleteDocument({ model: asModel(model), _id: '1', name: '', userID: 'someone-else' });
+    await expect(baseDeleteDocument({ model: asModel(model), _id: '1', name: '', userID: 'someone-else' })).rejects.toMatchObject({ statusCode: 403, errorCode: 'FORBIDDEN' });
 
     expect(model.updateOne).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
   });
 
   it('fails when the document does not exist', async () => {
     const model = createFakeModel(null);
 
-    const result = await baseDeleteDocument({ model: asModel(model), _id: 'missing', name: '', userID: 'c1' });
+    await expect(baseDeleteDocument({ model: asModel(model), _id: 'missing', name: '', userID: 'c1' })).rejects.toMatchObject({ statusCode: 404, errorCode: 'NOT_FOUND' });
 
     expect(model.updateOne).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
   });
 });
 
@@ -61,18 +59,22 @@ describe('baseRestoreDocument (issue #121)', () => {
   it('fails without touching the document when the caller is not the owner', async () => {
     const model = createFakeModel({ _id: '1', candidateId: 'c1', deletedAt: Date.now() });
 
-    const result = await baseRestoreDocument({ model: asModel(model), _id: '1', name: '', userID: 'someone-else' });
+    await expect(baseRestoreDocument({ model: asModel(model), _id: '1', name: '', userID: 'someone-else' })).rejects.toMatchObject({ statusCode: 403, errorCode: 'FORBIDDEN' });
 
     expect(model.updateOne).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
   });
 
   it('fails when the document does not exist', async () => {
     const model = createFakeModel(null);
 
-    const result = await baseRestoreDocument({ model: asModel(model), _id: 'missing', name: '', userID: 'c1' });
+    await expect(baseRestoreDocument({ model: asModel(model), _id: 'missing', name: '', userID: 'c1' })).rejects.toMatchObject({ statusCode: 404, errorCode: 'NOT_FOUND' });
 
     expect(model.updateOne).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
+  });
+
+  it('answers 404, never a "restored successfully" message, when the document was not soft-deleted', async () => {
+    const model = createFakeModel({ _id: '1', candidateId: 'c1', deletedAt: null }, { modifiedCount: 0 });
+
+    await expect(baseRestoreDocument({ model: asModel(model), _id: '1', name: '', userID: 'c1' })).rejects.toMatchObject({ statusCode: 404 });
   });
 });

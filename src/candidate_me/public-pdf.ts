@@ -11,9 +11,10 @@ import { createHash } from 'crypto';
 import { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 
-import { formatReturn, handleError } from '@/utils';
+import { handleError } from '@/utils';
+import { NotFoundError } from '@/errors';
 import { formatReturnFailed } from '@/services';
-import { handlerGetAboutMe } from '@/candidate_me/index';
+import { handlerGetAboutMe, PROFILE_NOT_FOUND } from '@/candidate_me/index';
 import { atsPdfFilename, renderAtsPdfBuffer, type AtsContent } from '@/services/createPDF.ats';
 import type { AggregatedCandidateData } from '@/types/candidate.type';
 import type { SupportedLang } from '@/utils/i18n';
@@ -76,10 +77,7 @@ export const fnDownloadPublicPdf = async (req: Request, res: Response, next: Nex
     const _me = await handlerGetAboutMe({ identifier, lang, profileId });
     const data = _me.data as (AggregatedCandidateData & { isPublic?: boolean }) | null;
     // Private profile answers exactly like an unknown one, same as fnGetAboutMe.
-    if (!_me.success || !data || data.isPublic === false) {
-      formatReturn(res, formatReturnFailed('Email không tồn tại'));
-      return;
-    }
+    if (!data || data.isPublic === false) return next(new NotFoundError(PROFILE_NOT_FOUND));
 
     const { buffer, content } = await renderCached(data, lang);
     res.setHeader('Content-Disposition', `attachment; filename="${atsPdfFilename(content)}"`);

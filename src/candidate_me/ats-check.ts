@@ -12,6 +12,7 @@ import { StatusCodes } from 'http-status-codes';
 
 import { formatReturn, handleError } from '@/utils';
 import { formatReturnFailed } from '@/services';
+import { NotFoundError } from '@/errors';
 import { handlerGetAboutMe } from '@/candidate_me/index';
 import { renderAtsPdfBuffer, buildAtsContent } from '@/services/createPDF.ats';
 import { renderPdfBuffer } from '@/services/createPDF';
@@ -32,20 +33,13 @@ export const fnAtsCheck = async (req: Request, res: Response, next: NextFunction
   try {
     const { idQuerySafe } = await import('@/utils/querySafe');
     const find = await MODEL.Candidate.findOne(idQuerySafe.safeQuery({}, { _id })).exec();
-    if (!find?.email) {
-      res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('Candidate not found'));
-      return;
-    }
+    if (!find?.email) return next(new NotFoundError('Candidate not found'));
 
     const lang: SupportedLang = req.body?.['lang'] === 'en' ? 'en' : 'vi';
     const template: 'ats' | 'classic' = req.body?.['template'] === 'classic' ? 'classic' : 'ats';
     const jobDescription: string | undefined = typeof req.body?.['jobDescription'] === 'string' ? req.body['jobDescription'] : undefined;
 
-    const { success, data } = await handlerGetAboutMe({ identifier: find.email, lang });
-    if (!success) {
-      res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('Lấy thông tin ứng viên thất bại'));
-      return;
-    }
+    const { data } = await handlerGetAboutMe({ identifier: find.email, lang });
 
     const candidateData = data as AggregatedCandidateData;
 

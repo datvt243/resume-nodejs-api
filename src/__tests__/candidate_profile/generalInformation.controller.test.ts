@@ -6,6 +6,8 @@
 
 import { fnCreate, fnUpdate, fnUpdateFields } from '@/candidate_profile/general_information/generalInformation.controller';
 import { handlerCreate, handlerUpdate } from '@/candidate_profile/general_information/generalInformation.service';
+import { errorsMiddleware } from '@/middlewares/errors.middleware';
+import { ConflictError } from '@/errors';
 
 jest.mock('@/candidate_profile/general_information/generalInformation.service');
 
@@ -19,8 +21,8 @@ const createMocks = (body: Record<string, unknown>, method = 'PUT') => {
 describe('generalInformation controller status codes', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('a failed create answers 400, never 201', async () => {
-    jest.mocked(handlerCreate).mockResolvedValue({ success: false, message: 'Create failed', errors: null });
+  it('a create for a candidate that already has one answers 409, never 201', async () => {
+    jest.mocked(handlerCreate).mockRejectedValue(new ConflictError('Already exists'));
     const valid = {
       _id: '507f1f77bcf86cd799439012',
       positionDesired: 'Developer',
@@ -37,11 +39,14 @@ describe('generalInformation controller status codes', () => {
     };
     const { req, res, json } = createMocks(valid);
 
-    await fnCreate(req, res, jest.fn());
+    const next = jest.fn();
+    await fnCreate(req, res, next);
+    errorsMiddleware(next.mock.calls[0][0], req, res, jest.fn());
 
     expect(handlerCreate).toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(json.mock.calls[0][0]).toMatchObject({ success: false });
+    expect(res.status).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(json.mock.calls[0][0]).toMatchObject({ success: false, errorCode: 'CONFLICT', message: 'Already exists' });
   });
 
   it.each([

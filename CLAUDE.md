@@ -170,6 +170,7 @@ src/
 │   ├── emailVerification.ts   # Email-verification token issue/check (stub, logged not emailed)
 │   ├── passwordReset.ts       # Forgot/reset-password token issue/check (stub, logged not emailed)
 │   ├── helper.ts              # handleError, formatReturn, formatResponse, getSelectFields
+│   ├── response.ts            # ok()/created() — controllers write success only; errors are thrown as AppError
 │   ├── helper-auth.ts         # extractTokenFromRequest()/extractTokenWithSource() (header/body/query/cookie)
 │   ├── valid.ts               # validateSchema() (Joi), validateModel() (Mongoose)
 │   ├── querySafe.ts           # QuerySafe: blocks $ and javascript: to prevent NoSQL injection
@@ -349,6 +350,8 @@ AppError (base: statusCode, message, errorCode, isOperational)
 ├── NotFoundError         404  NOT_FOUND
 └── ConflictError         409  CONFLICT
 ```
+
+Every status comes from the single `ERROR_STATUS` code→status map in `errors/AppError.ts` (incl. `SERVICE_UNAVAILABLE` 503, thrown by `withTimeout` on a DB/Redis timeout). Services throw `AppError`; they don't return `{ success:false }`.
 
 Global error middleware catches all `AppError` instances, logs via Winston, and returns `{ errorCode, message, stack? }` (stack dev-only).
 

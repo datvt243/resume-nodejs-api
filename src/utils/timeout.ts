@@ -4,6 +4,8 @@
  * @author Đạt Võ <votan.it@gmail.com>
  * @see https://github.com/datvt243
  */
+import { AppError, ErrorCode } from '@/errors/AppError';
+import { t } from '@/utils/i18n';
 
 const DB_TIMEOUT = 5000; // 5s for DB ops
 const REDIS_TIMEOUT = 2000; // 2s for Redis
@@ -17,7 +19,8 @@ export const withTimeout = <T>({ promise, ms, signal }: { promise: Promise<T>; m
     promise,
     new Promise<never>((_, reject) => {
       const timeoutId = setTimeout(() => {
-        reject(new Error(`Operation timed out after ${ms}ms`));
+        // shortcut: message is in DEFAULT_LANG (no request here), until timeouts carry the request lang.
+        reject(new AppError({ message: t('errors.serviceUnavailable'), errorCode: ErrorCode.SERVICE_UNAVAILABLE }));
       }, ms);
       if (signal) {
         signal.addEventListener('abort', () => clearTimeout(timeoutId));

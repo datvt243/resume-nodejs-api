@@ -8,6 +8,7 @@ import { baseFindDocument, baseCreateDocument } from '@/services';
 import { withDBTimeout } from '@/utils/timeout';
 import { createCrudService } from '@/candidate_profile/BaseService';
 import { t, DEFAULT_LANG } from '@/utils/i18n';
+import { ConflictError } from '@/errors';
 
 const MODEL = generalInformationSchema;
 const NAME = 'Thông tin chung';
@@ -23,35 +24,26 @@ export const handlerCreate = async (document: Record<string, unknown>, lang: str
       fields: { candidateId },
     }),
   );
-  if (success && !!data) {
-    return {
-      success: false,
-      message: t('generalInformation.alreadyExists', lang),
-    };
-  }
+  if (success && !!data) throw new ConflictError(t('generalInformation.alreadyExists', lang));
 
-  try {
-    return await withDBTimeout(
-      baseCreateDocument({
-        document: { ...document },
-        model: MODEL,
-        name: NAME,
-        lang,
-        hookAfterSave: async (doc) => {
-          const savedCandidateId = typeof doc['candidateId'] === 'string' ? doc['candidateId'] : undefined;
-          const { success, data: find } = await withDBTimeout(
-            baseFindDocument({
-              model: MODEL,
-              fields: { candidateId: savedCandidateId },
-              findOne: false,
-            }),
-          );
-          return success ? find : undefined;
-        },
-        hookHasErrors: () => {},
-      }),
-    );
-  } catch (error: unknown) {
-    return { success: false, message: t('common.createFailed', lang), error: error instanceof Error ? error.message : String(error) };
-  }
+  return withDBTimeout(
+    baseCreateDocument({
+      document: { ...document },
+      model: MODEL,
+      name: NAME,
+      lang,
+      hookAfterSave: async (doc) => {
+        const savedCandidateId = typeof doc['candidateId'] === 'string' ? doc['candidateId'] : undefined;
+        const { success, data: find } = await withDBTimeout(
+          baseFindDocument({
+            model: MODEL,
+            fields: { candidateId: savedCandidateId },
+            findOne: false,
+          }),
+        );
+        return success ? find : undefined;
+      },
+      hookHasErrors: () => {},
+    }),
+  );
 };
