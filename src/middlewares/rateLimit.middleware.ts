@@ -14,6 +14,9 @@ type RateLimitOptions = {
 };
 
 import { logger } from '@/logger';
+import { AppError, ErrorCode } from '@/errors';
+import { sendError } from '@/utils/helper';
+import { t } from '@/utils/i18n';
 
 const DEFAULT_WINDOW = parseInt(process.env['RATE_LIMIT_WINDOW_MS'] || '900000', 10); // 15 minutes
 const DEFAULT_MAX = parseInt(process.env['RATE_LIMIT_MAX'] || '100', 10);
@@ -99,7 +102,7 @@ export const createRateLimiter = (opts: RateLimitOptions = {}): RequestHandler =
         if (current > max) {
           logger.warn(`[RateLimit] Blocked ${ip} (${userId}) on ${req.path} - quota exceeded`);
           res.setHeader('Retry-After', String(Math.ceil(windowMs / 1000)));
-          return res.status(429).json({ success: false, message: 'Too many requests', errors: null, data: null });
+          return sendError(res, new AppError({ message: t('errors.rateLimited', req.lang), errorCode: ErrorCode.RATE_LIMITED }), req.lang);
         }
 
         return next();
@@ -128,7 +131,7 @@ export const createRateLimiter = (opts: RateLimitOptions = {}): RequestHandler =
     if (entry.count > max) {
       logger.warn(`[RateLimit] Blocked ${ip} (${userId}) on ${req.path} - quota exceeded`);
       res.setHeader('Retry-After', String(Math.ceil((entry.reset - now) / 1000)));
-      return res.status(429).json({ success: false, message: 'Too many requests', errors: null, data: null });
+      return sendError(res, new AppError({ message: t('errors.rateLimited', req.lang), errorCode: ErrorCode.RATE_LIMITED }), req.lang);
     }
 
     return next();

@@ -132,14 +132,14 @@ describe('handlerSearchPublicProfiles', () => {
     expect(filter.$or[0].school).toEqual(/\{"\$gt": ""\}/i);
   });
 
-  it('paginates with the { items, pagination } shape', async () => {
+  it('paginates with the { items, meta } shape', async () => {
     const { candidateChain } = mockDb({ total: 45 });
 
     const result = await handlerSearchPublicProfiles({ query: 'node', page: 3, limit: 20 });
 
     expect(candidateChain.skip).toHaveBeenCalledWith(40);
     expect(candidateChain.limit).toHaveBeenCalledWith(20);
-    expect(result.pagination).toEqual({ page: 3, limit: 20, total: 45, totalPages: 3 });
+    expect(result.meta).toEqual({ page: 3, limit: 20, total: 45, totalPages: 3 });
   });
 });
 
@@ -168,7 +168,7 @@ describe('fnSearchPublicProfiles', () => {
     await fnSearchPublicProfiles(req, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, message: 'Search query must be between 2 and 100 characters' }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, error: expect.objectContaining({ message: 'Search query must be between 2 and 100 characters' }) }));
     expect(mockCandidateFind).not.toHaveBeenCalled();
   });
 
@@ -181,7 +181,7 @@ describe('fnSearchPublicProfiles', () => {
     expect(candidateChain.skip).toHaveBeenCalledWith(0);
     expect(candidateChain.limit).toHaveBeenCalledWith(100);
     expect(mockEducationDistinct.mock.calls[0][1].$or[0].school).toEqual(/node/i);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, data: { items: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 1 } } }));
+    expect(res.json).toHaveBeenCalledWith({ success: true, message: '', data: [], meta: { page: 1, limit: 100, total: 0, totalPages: 1 } });
   });
 
   it('forwards an unexpected DB error to the global error handler', async () => {

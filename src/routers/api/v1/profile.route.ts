@@ -4,6 +4,7 @@
  */
 
 import express, { Request, Response, NextFunction } from 'express';
+import { asyncHandler } from '@/utils/asyncHandler';
 import { Collections } from '@/types/base.type';
 import { baseDelete, baseGetAll, baseRestore } from '@/candidate_profile/BaseController';
 import { fnCreate, fnUpdate } from '@/candidate_profile/profile/profile.controller';
@@ -27,7 +28,7 @@ const router = express.Router();
  *       - $ref: '#/components/parameters/SortParam'
  *     responses:
  *       200:
- *         description: List of CV profiles. Passing `limit` switches `data` to `{ items, pagination }` instead of a bare array.
+ *         description: List of CV profiles. `data` is always an array; `meta` holds page/limit/total/totalPages (one page with everything when `limit` is omitted).
  *         content:
  *           application/json:
  *             schema:
@@ -51,7 +52,7 @@ router.get(
       handleError({ err, next, lang: req.lang });
     }
   },
-  baseGetAll,
+  asyncHandler(baseGetAll),
 );
 
 /**
@@ -77,8 +78,12 @@ router.get(
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/create', fnCreate);
+router.post('/create', asyncHandler(fnCreate));
 
 /**
  * @swagger
@@ -103,8 +108,12 @@ router.post('/create', fnCreate);
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.put('/update', fnUpdate);
+router.put('/update', asyncHandler(fnUpdate));
 
 /**
  * @swagger
@@ -134,7 +143,7 @@ router.delete(
     req.params['collection'] = Collections.PROFILE;
     next();
   },
-  baseDelete,
+  asyncHandler(baseDelete),
 );
 
 /**
@@ -165,7 +174,7 @@ router.post(
     req.params['collection'] = Collections.PROFILE;
     next();
   },
-  baseRestore,
+  asyncHandler(baseRestore),
 );
 
 export default router;

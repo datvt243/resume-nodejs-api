@@ -4,6 +4,7 @@
  */
 
 import express, { Request, Response, NextFunction } from 'express';
+import { asyncHandler } from '@/utils/asyncHandler';
 import { Collections } from '@/types/base.type';
 import { baseDelete, baseGetAll, baseUploadImages, baseRestore } from '@/candidate_profile/BaseController';
 import { fnCreate, fnUpdate } from '@/candidate_profile/certificates/certificate.controller';
@@ -24,7 +25,7 @@ const router = express.Router();
  *       - $ref: '#/components/parameters/SortParam'
  *     responses:
  *       200:
- *         description: List of certificates. Passing `limit` switches `data` to `{ items, pagination }` instead of a bare array.
+ *         description: List of certificates. `data` is always an array; `meta` holds page/limit/total/totalPages (one page with everything when `limit` is omitted).
  *         content:
  *           application/json:
  *             schema:
@@ -43,7 +44,7 @@ router.get(
     req.body.collection = Collections.CERTIFICATE;
     next();
   },
-  baseGetAll,
+  asyncHandler(baseGetAll),
 );
 
 /**
@@ -69,8 +70,12 @@ router.get(
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/create', fnCreate);
+router.post('/create', asyncHandler(fnCreate));
 
 /**
  * @swagger
@@ -95,8 +100,12 @@ router.post('/create', fnCreate);
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.put('/update', fnUpdate);
+router.put('/update', asyncHandler(fnUpdate));
 
 /**
  * @swagger
@@ -126,7 +135,7 @@ router.delete(
     req.params['collection'] = Collections.CERTIFICATE;
     next();
   },
-  baseDelete,
+  asyncHandler(baseDelete),
 );
 
 /**
@@ -157,7 +166,7 @@ router.post(
     req.params['collection'] = Collections.CERTIFICATE;
     next();
   },
-  baseRestore,
+  asyncHandler(baseRestore),
 );
 
 /**
@@ -195,10 +204,22 @@ router.post(
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: No file, wrong type (non-image), or too large (> 5MB)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       403:
  *         description: Certificate does not belong to the authenticated candidate
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
  *         description: Certificate not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post(
   '/:id/images',
@@ -206,7 +227,7 @@ router.post(
     req.params['collection'] = Collections.CERTIFICATE;
     next();
   },
-  baseUploadImages,
+  asyncHandler(baseUploadImages),
 );
 
 export default router;

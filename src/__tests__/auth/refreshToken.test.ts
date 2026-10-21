@@ -1,3 +1,4 @@
+import jwt from 'jsonwebtoken';
 import { authRefreshToken } from '@/auth/auth.controller';
 import * as tokenBlacklist from '@/utils/tokenBlacklist';
 import * as jwtUtils from '@/utils/jwt';
@@ -28,6 +29,13 @@ function createMocks(body?: any, headers?: Record<string, string>) {
   return { req, res, next, json };
 }
 
+// Every revoked/rotated/raced refresh token gets the same 401 TOKEN_REVOKED, written by errorsMiddleware.
+const expectRevoked = (res: any, next: jest.Mock) => {
+  expect(res.status).not.toHaveBeenCalled();
+  expect(next).toHaveBeenCalledTimes(1);
+  expect(next.mock.calls[0][0]).toMatchObject({ statusCode: 401, errorCode: 'TOKEN_REVOKED' });
+};
+
 describe('authRefreshToken controller', () => {
   beforeEach(() => {
     jest.resetAllMocks();
@@ -42,11 +50,25 @@ describe('authRefreshToken controller', () => {
     expect(res.status).toHaveBeenCalledWith(401);
   });
 
-  it('returns 403 when refresh token is blacklisted', async () => {
+  it('returns 401 TOKEN_REVOKED when refresh token is blacklisted', async () => {
     mockedIsBlacklisted.mockResolvedValue(true);
     const { req, res, next } = createMocks({}, { authorization: 'Bearer old' });
     await authRefreshToken(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(403);
+    expectRevoked(res, next);
+  });
+
+  it.each([
+    ['an expired', () => new jwt.TokenExpiredError('jwt expired', new Date()), 'TOKEN_EXPIRED'],
+    ['a malformed', () => new jwt.JsonWebTokenError('invalid token'), 'INVALID_TOKEN'],
+  ])('forwards a 401 %s refresh token error, not a 500', async (_label, makeError, errorCode) => {
+    mockedIsBlacklisted.mockResolvedValue(false);
+    mockedJwtVerify.mockImplementation(() => {
+      throw makeError();
+    });
+    const { req, res, next } = createMocks({}, { authorization: 'Bearer bad' });
+    await authRefreshToken(req, res, next);
+    expect(res.status).not.toHaveBeenCalled();
+    expect(next.mock.calls[0][0]).toMatchObject({ statusCode: 401, errorCode, isOperational: true });
   });
 
   it('returns 200 and rotates tokens on valid refresh', async () => {
@@ -65,7 +87,7 @@ describe('authRefreshToken controller', () => {
     expect(res.status().json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 
-  it('returns 403 without minting when a concurrent refresh already claimed the token', async () => {
+  it('returns 401 TOKEN_REVOKED without minting when a concurrent refresh already claimed the token', async () => {
     mockedIsBlacklisted.mockResolvedValue(false);
     mockedJwtVerify.mockReturnValue({ _id: 'user1' });
     mockedClaimRotation.mockResolvedValue(false);
@@ -77,10 +99,10 @@ describe('authRefreshToken controller', () => {
     expect(mockedJwtSign).not.toHaveBeenCalled();
     expect(res.cookie).not.toHaveBeenCalled();
     expect(mockedInvalidateAllSessions).not.toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(403);
+    expectRevoked(res, next);
   });
 
-  it('returns 403 when the refresh token predates the last logout-all (issue #74)', async () => {
+  it('returns 401 TOKEN_REVOKED when the refresh token predates the last logout-all (issue #74)', async () => {
     mockedIsBlacklisted.mockResolvedValue(false);
     mockedJwtVerify.mockReturnValue({ _id: 'user1', iat: 1000 } as any);
     mockedGetSessionsInvalidatedAt.mockResolvedValue(2000);
@@ -89,14 +111,14 @@ describe('authRefreshToken controller', () => {
     await authRefreshToken(req, res, next);
 
     expect(mockedClaimRotation).not.toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(403);
+    expectRevoked(res, next);
   });
 
   describe('reuse of a rotated-away refresh token', () => {
     const nowSeconds = () => Math.floor(Date.now() / 1000);
 
-    const expectRejectedWithoutMinting = (res: any) => {
-      expect(res.status).toHaveBeenCalledWith(403);
+    const expectRejectedWithoutMinting = (res: any, next: jest.Mock) => {
+      expectRevoked(res, next);
       expect(mockedJwtSign).not.toHaveBeenCalled();
       expect(mockedClaimRotation).not.toHaveBeenCalled();
     };
@@ -109,7 +131,7 @@ describe('authRefreshToken controller', () => {
       await authRefreshToken(req, res, next);
 
       expect(mockedInvalidateAllSessions).toHaveBeenCalledWith('user1');
-      expectRejectedWithoutMinting(res);
+      expectRejectedWithoutMinting(res, next);
     });
 
     it('only rejects inside the grace window (concurrent refresh), without verifying or revoking', async () => {
@@ -120,7 +142,7 @@ describe('authRefreshToken controller', () => {
 
       expect(mockedJwtVerify).not.toHaveBeenCalled();
       expect(mockedInvalidateAllSessions).not.toHaveBeenCalled();
-      expectRejectedWithoutMinting(res);
+      expectRejectedWithoutMinting(res, next);
     });
 
     it('does not revoke when the reused token fails verification', async () => {
@@ -133,8 +155,7 @@ describe('authRefreshToken controller', () => {
       await authRefreshToken(req, res, next);
 
       expect(mockedInvalidateAllSessions).not.toHaveBeenCalled();
-      expect(next).not.toHaveBeenCalled();
-      expectRejectedWithoutMinting(res);
+      expectRejectedWithoutMinting(res, next);
     });
 
     it('does not revoke again for a token that already predates the last revocation', async () => {
@@ -146,7 +167,7 @@ describe('authRefreshToken controller', () => {
       await authRefreshToken(req, res, next);
 
       expect(mockedInvalidateAllSessions).not.toHaveBeenCalled();
-      expectRejectedWithoutMinting(res);
+      expectRejectedWithoutMinting(res, next);
     });
 
     it('answers a reused token exactly like a logged-out one', async () => {
@@ -160,8 +181,9 @@ describe('authRefreshToken controller', () => {
       const loggedOut = createMocks({}, { authorization: 'Bearer loggedOut' });
       await authRefreshToken(loggedOut.req, loggedOut.res, loggedOut.next);
 
-      expect(reused.res.status.mock.calls).toEqual(loggedOut.res.status.mock.calls);
-      expect(reused.json.mock.calls).toEqual(loggedOut.json.mock.calls);
+      const answer = (next: jest.Mock) => next.mock.calls.map(([e]) => ({ statusCode: e.statusCode, errorCode: e.errorCode, message: e.message }));
+      expect(reused.res.status).not.toHaveBeenCalled();
+      expect(answer(reused.next)).toEqual(answer(loggedOut.next));
     });
   });
 });

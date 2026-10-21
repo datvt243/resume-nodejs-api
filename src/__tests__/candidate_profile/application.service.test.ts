@@ -9,6 +9,7 @@ import ProfileModel from '@/models/profile.model';
 import { schemaApplication } from '@/candidate_profile/application/application.validate';
 import { handlerCreate, handlerUpdate } from '@/candidate_profile/application/application.service';
 import { fnCreate } from '@/candidate_profile/application/application.controller';
+import { errorsMiddleware } from '@/middlewares/errors.middleware';
 
 const mockCrudCreate = jest.fn();
 const mockCrudUpdate = jest.fn();
@@ -65,18 +66,15 @@ describe('application.service profile link', () => {
   ])('rejects a foreign, deleted or missing profile with 400 on %s, writing nothing', async (_label, run) => {
     profileExists.mockResolvedValue(null);
 
-    const result = await run();
-
-    expect(result).toEqual({ success: false, statusCode: 400, message: 'The selected CV profile does not exist or has been deleted' });
+    await expect(run()).rejects.toMatchObject({ statusCode: 400, errorCode: 'BAD_REQUEST', message: 'The selected CV profile does not exist or has been deleted' });
     expect(mockCrudCreate).not.toHaveBeenCalled();
     expect(mockCrudUpdate).not.toHaveBeenCalled();
   });
 
   it('never queries Profile when the candidate id is rejected by QuerySafe', async () => {
-    const result = await handlerCreate({ ...application, candidateId: '$where', profileId: ownProfileId }, 'en');
+    await expect(handlerCreate({ ...application, candidateId: '$where', profileId: ownProfileId }, 'en')).rejects.toMatchObject({ statusCode: 400 });
 
     expect(profileExists).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
   });
 
   it("unlinks on null or '' without a Profile lookup", async () => {
@@ -102,9 +100,12 @@ describe('POST /application/create with an unowned profile', () => {
     const res = { status: jest.fn().mockReturnValue({ json }) };
     const req = { body: { ...application, profileId: ownProfileId }, lang: 'en' };
 
-    await fnCreate(req as never, res as never, jest.fn());
+    const next = jest.fn();
+    await fnCreate(req as never, res as never, next);
+    errorsMiddleware(next.mock.calls[0][0], req as never, res as never, jest.fn());
 
+    expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(json).toHaveBeenCalledWith(expect.objectContaining({ success: false, message: 'The selected CV profile does not exist or has been deleted' }));
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({ success: false, error: expect.objectContaining({ message: 'The selected CV profile does not exist or has been deleted' }) }));
   });
 });

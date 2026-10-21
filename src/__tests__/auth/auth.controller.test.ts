@@ -67,7 +67,7 @@ describe('auth.controller', () => {
       expect(validateSchema.validateSchema).toHaveBeenCalled();
       expect(handlerRegister).toHaveBeenCalledWith({ _id: null, email: 'test@example.com', password: 'pass123' }, undefined);
       expect(formatReturn.formatReturn).toHaveBeenCalledWith(res, {
-        statusCode: StatusCodes.OK,
+        statusCode: StatusCodes.CREATED,
         success: true,
         message: 'Đăng ký thành công',
         errors: null,
@@ -88,11 +88,25 @@ describe('auth.controller', () => {
       await authRegister(req, res, mockNext);
 
       expect(formatReturn.formatReturn).toHaveBeenCalledWith(res, {
-        statusCode: StatusCodes.UNAUTHORIZED,
+        statusCode: StatusCodes.BAD_REQUEST,
         success: false,
         message: 'Validation failed',
         errors: ['Invalid email'],
       });
+    });
+
+    it('answers a duplicate email with 409 EMAIL_EXISTS via errorsMiddleware', async () => {
+      const req = mockRequest({ email: 'taken@example.com', password: 'pass123', repassword: 'pass123' });
+      const res = mockResponse();
+      const next = jest.fn();
+
+      (validateSchema.validateSchema as jest.Mock).mockReturnValue({ isValidated: true, value: { email: 'taken@example.com', password: 'pass123' } });
+      (handlerRegister as jest.Mock).mockResolvedValue({ success: false, message: 'Email đã tồn tại' });
+
+      await authRegister(req, res, next);
+
+      expect(formatReturn.formatReturn).not.toHaveBeenCalled();
+      expect(next.mock.calls[0][0]).toMatchObject({ statusCode: 409, errorCode: 'EMAIL_EXISTS', message: 'Email đã tồn tại' });
     });
 
     // issue #159 — the fallback message (`message || t('auth.registerSuccess', lang)`)
@@ -156,14 +170,29 @@ describe('auth.controller', () => {
       expect(formatReturn.formatReturn).toHaveBeenCalledWith(
         res,
         expect.objectContaining({
-          statusCode: StatusCodes.UNAUTHORIZED,
+          statusCode: StatusCodes.BAD_REQUEST,
           success: false,
         }),
       );
     });
 
+    it('answers a failed login with 401 INVALID_CREDENTIALS via errorsMiddleware', async () => {
+      const req = mockRequest({ email: 'test@example.com', password: 'wrong' });
+      const res = mockResponse();
+      const next = jest.fn();
+
+      (validateSchema.validateSchema as jest.Mock).mockReturnValue({ isValidated: true, value: { email: 'test@example.com', password: 'wrong' } });
+      (handlerLogin as jest.Mock).mockResolvedValue({ success: false, message: 'Email hoặc mật khẩu không chính xác' });
+
+      await authLogin(req, res, next);
+
+      expect(formatReturn.formatReturn).not.toHaveBeenCalled();
+      expect((jwt as any).setAuthCookies).not.toHaveBeenCalled();
+      expect(next.mock.calls[0][0]).toMatchObject({ statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email hoặc mật khẩu không chính xác' });
+    });
+
     // issue #159 — same fallback-through-t() proof as authRegister, for the
-    // `_result?.message || t('auth.loginFailed', lang)` branch.
+    // `_result.message || t('auth.invalidCredentials', lang)` branch.
     it('localizes the fallback failure message to English when req.lang is en', async () => {
       const req: any = mockRequest({ email: 'test@example.com', password: 'wrong' });
       req.lang = 'en';
@@ -174,13 +203,11 @@ describe('auth.controller', () => {
         value: { email: 'test@example.com', password: 'wrong' },
       });
       (handlerLogin as jest.Mock).mockResolvedValue({ success: false, message: undefined });
+      const next = jest.fn();
 
-      await authLogin(req, res, mockNext);
+      await authLogin(req, res, next);
 
-      expect(formatReturn.formatReturn).toHaveBeenCalledWith(
-        res,
-        expect.objectContaining({ success: false, message: 'Login failed' }),
-      );
+      expect(next.mock.calls[0][0]).toMatchObject({ errorCode: 'INVALID_CREDENTIALS', message: 'Incorrect email or password' });
     });
   });
 
@@ -237,15 +264,10 @@ describe('auth.controller', () => {
       (helperAuth.extractTokenFromRequest as jest.Mock).mockReturnValue('blacklisted_token');
       (tokenBlacklist.isBlacklisted as jest.Mock).mockResolvedValue(true);
 
-      await authRefreshToken(req, res, mockNext);
+      const next = jest.fn();
+      await authRefreshToken(req, res, next);
 
-      expect(formatReturn.formatReturn).toHaveBeenCalledWith(
-        res,
-        expect.objectContaining({
-          statusCode: StatusCodes.FORBIDDEN,
-          message: 'Refresh token đã bị thu hồi',
-        }),
-      );
+      expect(next.mock.calls[0][0]).toMatchObject({ statusCode: 401, errorCode: 'TOKEN_REVOKED', message: 'Refresh token đã bị thu hồi' });
     });
 
     // issue #159 — both error branches call t() directly (not via a
@@ -269,12 +291,10 @@ describe('auth.controller', () => {
       (helperAuth.extractTokenFromRequest as jest.Mock).mockReturnValue('blacklisted_token');
       (tokenBlacklist.isBlacklisted as jest.Mock).mockResolvedValue(true);
 
-      await authRefreshToken(req, res, mockNext);
+      const next = jest.fn();
+      await authRefreshToken(req, res, next);
 
-      expect(formatReturn.formatReturn).toHaveBeenCalledWith(
-        res,
-        expect.objectContaining({ message: 'Refresh token revoked' }),
-      );
+      expect(next.mock.calls[0][0]).toMatchObject({ errorCode: 'TOKEN_REVOKED', message: 'Refresh token revoked' });
     });
   });
 

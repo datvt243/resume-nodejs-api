@@ -11,12 +11,13 @@ import { Request, Response, NextFunction } from 'express';
 import { extractTokenWithSource } from '@/utils/helper-auth';
 import { requiresCsrfCheck, isCsrfTokenValid } from '@/utils/csrf';
 import { ErrorCode, AuthorizationError } from '@/errors';
+import { t } from '@/utils/i18n';
 
 export const verifyCsrf = (fieldName = 'token') => (req: Request, _res: Response, next: NextFunction) => {
   const { source } = extractTokenWithSource(req, fieldName);
 
   if (requiresCsrfCheck(req, source) && !isCsrfTokenValid(req)) {
-    return next(new AuthorizationError('Invalid or missing CSRF token.', ErrorCode.CSRF_TOKEN_INVALID));
+    return next(new AuthorizationError(t('auth.csrfInvalid', req.lang), ErrorCode.CSRF_TOKEN_INVALID));
   }
 
   return next();

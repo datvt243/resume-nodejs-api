@@ -4,6 +4,7 @@
  */
 
 import express, { Request, Response, NextFunction } from 'express';
+import { asyncHandler } from '@/utils/asyncHandler';
 import { Collections } from '@/types/base.type';
 import { baseDelete, baseGetAll, baseRestore } from '@/candidate_profile/BaseController';
 import { fnCreate, fnUpdate, fnBulkCreate } from '@/candidate_profile/experience/experience.controller';
@@ -24,7 +25,7 @@ const router = express.Router();
  *       - $ref: '#/components/parameters/SortParam'
  *     responses:
  *       200:
- *         description: List of experience entries. Passing `limit` switches `data` to `{ items, pagination }` instead of a bare array.
+ *         description: List of experience entries. `data` is always an array; `meta` holds page/limit/total/totalPages (one page with everything when `limit` is omitted).
  *         content:
  *           application/json:
  *             schema:
@@ -43,7 +44,7 @@ router.get(
     req.body.collection = Collections.EXPERIENCE;
     next();
   },
-  baseGetAll,
+  asyncHandler(baseGetAll),
 );
 
 /**
@@ -69,8 +70,12 @@ router.get(
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/create', fnCreate);
+router.post('/create', asyncHandler(fnCreate));
 
 /**
  * @swagger
@@ -117,8 +122,12 @@ router.post('/create', fnCreate);
  *                             failed: { type: integer }
  *       400:
  *         description: No items provided, or more than 100 items in one request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/bulk', fnBulkCreate);
+router.post('/bulk', asyncHandler(fnBulkCreate));
 
 /**
  * @swagger
@@ -143,8 +152,12 @@ router.post('/bulk', fnBulkCreate);
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.put('/update', fnUpdate);
+router.put('/update', asyncHandler(fnUpdate));
 
 /**
  * @swagger
@@ -174,7 +187,7 @@ router.delete(
     req.params['collection'] = Collections.EXPERIENCE;
     next();
   },
-  baseDelete,
+  asyncHandler(baseDelete),
 );
 
 /**
@@ -205,7 +218,7 @@ router.post(
     req.params['collection'] = Collections.EXPERIENCE;
     next();
   },
-  baseRestore,
+  asyncHandler(baseRestore),
 );
 
 export default router;

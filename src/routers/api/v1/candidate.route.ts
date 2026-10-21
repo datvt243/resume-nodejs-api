@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import { asyncHandler } from '@/utils/asyncHandler';
 const router = express.Router();
 
 import {
@@ -49,8 +50,12 @@ import { uploadCvPdfParseMiddleware } from '@/middlewares/uploadCvPdfParse.middl
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Missing file, wrong type (non-PDF), or too large (> 5MB)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/upload-cv', uploadCVMiddleware, fnUploadCV);
+router.post('/upload-cv', uploadCVMiddleware, asyncHandler(fnUploadCV));
 
 /**
  * @swagger
@@ -109,8 +114,12 @@ router.post('/upload-cv', uploadCVMiddleware, fnUploadCV);
  *                               description: { type: string }
  *       400:
  *         description: Missing file, wrong type (non-ZIP), too large (> 20MB), or the ZIP itself is corrupt/unreadable
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/parse-linkedin-export', uploadLinkedInExportMiddleware, fnParseLinkedInExport);
+router.post('/parse-linkedin-export', uploadLinkedInExportMiddleware, asyncHandler(fnParseLinkedInExport));
 
 /**
  * @swagger
@@ -172,8 +181,12 @@ router.post('/parse-linkedin-export', uploadLinkedInExportMiddleware, fnParseLin
  *                           description: The raw text extracted from the PDF
  *       400:
  *         description: Missing file, wrong type (non-PDF), too large (> 5MB), or the PDF itself is corrupt/unreadable
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/parse-cv-pdf', uploadCvPdfParseMiddleware, fnParseCvPdf);
+router.post('/parse-cv-pdf', uploadCvPdfParseMiddleware, asyncHandler(fnParseCvPdf));
 
 /**
  * @swagger
@@ -193,8 +206,12 @@ router.post('/parse-cv-pdf', uploadCvPdfParseMiddleware, fnParseCvPdf);
  *               format: binary
  *       404:
  *         description: No CV has been uploaded yet
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/cv-file', fnDownloadCV);
+router.get('/cv-file', asyncHandler(fnDownloadCV));
 
 /**
  * @swagger
@@ -206,7 +223,7 @@ router.get('/cv-file', fnDownloadCV);
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Visit count + list
+ *         description: Visit list, newest first; `meta.total` is the visit count
  *         content:
  *           application/json:
  *             schema:
@@ -215,15 +232,13 @@ router.get('/cv-file', fnDownloadCV);
  *                 - type: object
  *                   properties:
  *                     data:
- *                       type: object
- *                       properties:
- *                         count: { type: number }
- *                         visits:
- *                           type: array
- *                           items:
- *                             $ref: '#/components/schemas/Visit'
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Visit'
+ *                     meta:
+ *                       $ref: '#/components/schemas/Pagination'
  */
-router.get('/visits', fnGetVisits);
+router.get('/visits', asyncHandler(fnGetVisits));
 
 /**
  * @swagger
@@ -300,8 +315,12 @@ router.get('/visits', fnGetVisits);
  *                               count: { type: number }
  *       400:
  *         description: Invalid interval, date, time zone, from after to, or more than 400 buckets
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/visits/stats', fnGetVisitStats);
+router.get('/visits/stats', asyncHandler(fnGetVisitStats));
 
 /**
  * @swagger
@@ -331,7 +350,7 @@ router.get('/visits/stats', fnGetVisitStats);
  *                     data:
  *                       $ref: '#/components/schemas/Candidate'
  */
-router.get('/:email', fnGetInformationByEmail);
+router.get('/:email', asyncHandler(fnGetInformationByEmail));
 
 /**
  * @swagger
@@ -356,8 +375,12 @@ router.get('/:email', fnGetInformationByEmail);
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.put('/update', fnUpdate);
+router.put('/update', asyncHandler(fnUpdate));
 
 /**
  * @swagger
@@ -382,8 +405,12 @@ router.put('/update', fnUpdate);
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.patch('/update', fnUpdateFields);
+router.patch('/update', asyncHandler(fnUpdateFields));
 
 /**
  * @swagger
@@ -401,6 +428,6 @@ router.patch('/update', fnUpdateFields);
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
  */
-router.delete('/', fnDelete);
+router.delete('/', asyncHandler(fnDelete));
 
 export default router;

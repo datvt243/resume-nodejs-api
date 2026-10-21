@@ -1,3 +1,4 @@
+import jwt from 'jsonwebtoken';
 import { verifyToken } from '@/middlewares/verifyToken.middleware';
 import * as jwtUtils from '@/utils/jwt';
 import * as tokenBlacklist from '@/utils/tokenBlacklist';
@@ -26,6 +27,7 @@ function createMocks(
     method: extra?.method,
     cookies: extra?.cookies,
     body: extra?.body,
+    lang: 'en',
   };
   const json = jest.fn();
   const res: any = { status: jest.fn().mockReturnValue({ json }), json };
@@ -52,11 +54,20 @@ describe('verifyToken middleware', () => {
   it('calls next with InvalidTokenError on invalid token', async () => {
     mockedIsBlacklisted.mockResolvedValue(false);
     mockedJwtVerify.mockImplementation(() => {
-      throw new Error('invalid');
+      throw new jwt.JsonWebTokenError('invalid signature');
     });
     const { req, res, next } = createMocks({ Authorization: 'Bearer invalid' });
     await verifyToken(req, res, next);
     expect(next).toHaveBeenCalledWith(expect.any(InvalidTokenError));
+    expect(next.mock.calls[0][0].message).toBe('Invalid token');
+  });
+
+  it('answers any other failure with a 401 INVALID_TOKEN that does not echo its text', async () => {
+    mockedIsBlacklisted.mockRejectedValue(new Error('redis connection reset'));
+    const { req, res, next } = createMocks({ Authorization: 'Bearer tok' });
+    await verifyToken(req, res, next);
+    expect(next).toHaveBeenCalledWith(expect.any(InvalidTokenError));
+    expect(next.mock.calls[0][0].message).toBe('Invalid token');
   });
 
   it('calls next with TokenExpiredError when jwtVerify throws TokenExpiredError', async () => {
@@ -68,6 +79,19 @@ describe('verifyToken middleware', () => {
     const { req, res, next } = createMocks({ Authorization: 'Bearer expired' });
     await verifyToken(req, res, next);
     expect(next).toHaveBeenCalledWith(expect.any(TokenExpiredError));
+  });
+
+  it('calls next with InvalidTokenError, not TokenExpiredError, on a malformed jwt', async () => {
+    mockedIsBlacklisted.mockResolvedValue(false);
+    const malformed = new jwt.JsonWebTokenError('jwt malformed');
+    mockedJwtVerify.mockImplementation(() => {
+      throw malformed;
+    });
+    const { req, res, next } = createMocks({ Authorization: 'Bearer garbage' });
+    await verifyToken(req, res, next);
+    const error = next.mock.calls[0][0];
+    expect(error).toBeInstanceOf(InvalidTokenError);
+    expect(error).toMatchObject({ statusCode: 401, errorCode: 'INVALID_TOKEN' });
   });
 
   it('calls next with TokenRevokedError when token is blacklisted', async () => {

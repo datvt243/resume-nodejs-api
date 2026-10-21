@@ -16,7 +16,9 @@
 import { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 
-import { formatReturn, handleError } from '@/utils';
+import { formatReturn, handleError, ok } from '@/utils';
+import { listMeta } from '@/services';
+import type { ListMeta } from '@/utils/response';
 import { t } from '@/utils/i18n';
 import * as MODEL from '@/models';
 
@@ -35,7 +37,7 @@ export interface PublicSearchItem {
 
 export interface PublicSearchResult {
   items: PublicSearchItem[];
-  pagination: { page: number; limit: number; total: number; totalPages: number };
+  meta: ListMeta;
 }
 
 /**
@@ -94,7 +96,7 @@ export const handlerSearchPublicProfiles = async ({ query, page, limit }: { quer
       lastName: candidate.lastName ?? '',
       positionDesired: positionByCandidate.get(String(candidate._id)) ?? '',
     })),
-    pagination: { page, limit, total, totalPages: Math.max(Math.ceil(total / limit), 1) },
+    meta: listMeta(total, page, limit),
   };
 };
 
@@ -112,8 +114,8 @@ export const fnSearchPublicProfiles = async (req: Request, res: Response, next: 
   const limit = Math.min(parsePositiveInt(req.query['limit']) ?? DEFAULT_LIMIT, MAX_LIMIT);
 
   try {
-    const data = await handlerSearchPublicProfiles({ query, page, limit });
-    return formatReturn(res, { success: true, message: '', data });
+    const { items, meta } = await handlerSearchPublicProfiles({ query, page, limit });
+    return ok(res, items, '', meta);
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }

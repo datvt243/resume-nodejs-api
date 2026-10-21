@@ -3,10 +3,10 @@
  * @see https://github.com/datvt243
  */
 
-import mongoose from 'mongoose';
 import { Schema, ValidationError, ValidationErrorItem } from 'joi';
 import { _log } from '@/utils';
 import { t, tErrorType, DEFAULT_LANG } from '@/utils/i18n';
+import type { ErrorDetail } from '@/errors/AppError';
 
 export const validateSchema = ({
   schema,
@@ -52,37 +52,6 @@ const translateJoiDetail = (detail: ValidationErrorItem, lang: string): string =
   return template.replace('{{label}}', String(label)).replace('{{limit}}', String(detail?.context?.['limit'] ?? ''));
 };
 
-export const formatValidateError = (error: ValidationError, lang: string = DEFAULT_LANG) => {
-  const { details = [] } = error;
-
-  const messages: Record<string, string> = {};
-
-  for (const detail of details) {
-    const _field = detail?.path[0];
-    if (!_field) continue;
-    messages[String(_field)] = translateJoiDetail(detail, lang);
-  }
-  return messages;
-};
-
-export const validateModel = async (model: { validate: (doc: unknown) => Promise<void> }, value: Record<string, unknown>) => {
-  let valid = true,
-    message = '',
-    errors: string[] = [];
-
-  try {
-    await model.validate(value);
-  } catch (err) {
-    valid = false;
-    if (err instanceof mongoose.Error.ValidationError) {
-      const { message: _mes, errors: _errs } = err;
-      message = _mes;
-      for (const k of Object.keys(_errs)) {
-        errors.push(k);
-      }
-    } else {
-      message = 'An error occurred';
-    }
-  }
-  return { valid, message, errors };
-};
+// One entry per failing field, keyed by its full dotted path so nested errors (`items.3.company`) don't collide.
+export const formatValidateError = (error: ValidationError, lang: string = DEFAULT_LANG): ErrorDetail[] =>
+  error.details.map((detail) => ({ field: detail.path.join('.'), message: translateJoiDetail(detail, lang) }));

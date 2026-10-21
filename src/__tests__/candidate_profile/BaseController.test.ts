@@ -6,6 +6,8 @@
 import Joi from 'joi';
 import { baseGetAll, createCrudController } from '@/candidate_profile/BaseController';
 import * as services from '@/services';
+import { BadRequestError } from '@/errors';
+import { errorsMiddleware } from '@/middlewares/errors.middleware';
 
 jest.mock('@/services');
 
@@ -41,6 +43,20 @@ describe('baseGetAll', () => {
     expect(mockedBaseFindDocument).toHaveBeenCalledWith(
       expect.objectContaining({ page: undefined, limit: undefined, sort: undefined }),
     );
+  });
+
+  it.each([
+    ['without limit', {}, { page: 1, limit: 2, total: 2, totalPages: 1 }],
+    ['with limit', { limit: '1', page: '2' }, { page: 2, limit: 1, total: 2, totalPages: 2 }],
+  ])('%s, answers data as an array plus meta', async (_label, query, meta) => {
+    const docs = [{ _id: 'a' }, { _id: 'b' }];
+    mockedBaseFindDocument.mockResolvedValue({ success: true, message: '', errors: null, data: _label === 'with limit' ? docs.slice(1) : docs, meta });
+    const { req, res, next } = createMocks(query);
+    await baseGetAll(req, res, next);
+
+    const body = res.status.mock.results[0].value.json.mock.calls[0][0];
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body).toEqual({ success: true, message: '', data: expect.any(Array), meta });
   });
 
   it('silently drops a sort value that could smuggle a Mongo operator', async () => {
@@ -139,5 +155,80 @@ describe('createCrudController -> fnBulkCreate (issue #161)', () => {
     const payload = json.mock.calls[0][0];
     expect(payload.success).toBe(true);
     expect(payload.data.summary).toEqual({ total: 2, succeeded: 2, failed: 0 });
+  });
+});
+
+describe('createCrudController status codes', () => {
+  const schema = Joi.object({ name: Joi.string().min(2).required(), candidateId: Joi.string().required() });
+
+  function createMocks(body: Record<string, any>) {
+    const req: any = { body, user: { _id: 'user-1' }, lang: 'en' };
+    const json = jest.fn();
+    const res: any = { status: jest.fn().mockReturnValue({ json }), json };
+    return { req, res, next: jest.fn(), json };
+  }
+
+  it('fnCreate never answers 2xx for a failed create: the thrown AppError goes to errorsMiddleware', async () => {
+    const failure = new BadRequestError('Create failed');
+    const handlerCreate = jest.fn().mockRejectedValue(failure);
+    const { fnCreate } = createCrudController({ schema, service: { handlerCreate, handlerUpdate: jest.fn() } });
+    const { req, res, next } = createMocks({ name: 'Valid Name', candidateId: 'user-1' });
+
+    await fnCreate(req, res, next);
+
+    expect(res.status).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(failure);
+    expect(failure.statusCode).toBe(400);
+  });
+
+  it('fnCreate still answers a successful create with 201', async () => {
+    const handlerCreate = jest.fn().mockResolvedValue({ success: true, message: 'ok', data: { _id: 'created' } });
+    const { fnCreate } = createCrudController({ schema, service: { handlerCreate, handlerUpdate: jest.fn() } });
+    const { req, res, next } = createMocks({ name: 'Valid Name', candidateId: 'user-1' });
+
+    await fnCreate(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
+
+  it('fnBulkCreate answers every-item-failed with one 400 envelope whose details point at each item', async () => {
+    const handlerCreate = jest.fn().mockRejectedValue(new BadRequestError('Create failed'));
+    const { fnBulkCreate } = createCrudController({ schema, service: { handlerCreate, handlerUpdate: jest.fn() } });
+    const { req, res, next, json } = createMocks({ items: [{ name: 'x' }, { name: 'Valid Name' }] }); // 'x' fails validation, the other fails in the service
+
+    await fnBulkCreate(req, res, next);
+    errorsMiddleware(next.mock.calls[0][0], req, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(json.mock.calls[0][0]).toEqual({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: expect.any(String),
+        details: [
+          { field: 'items.0.name', message: expect.any(String) },
+          { field: 'items.1', message: 'Create failed' },
+        ],
+      },
+    });
+  });
+
+  it("fnBulkCreate keeps going after an item throws, and hides an unexpected error's text", async () => {
+    const handlerCreate = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('connection reset by peer'))
+      .mockResolvedValueOnce({ success: true, message: 'ok', data: { _id: 'created' } });
+    const { fnBulkCreate } = createCrudController({ schema, service: { handlerCreate, handlerUpdate: jest.fn() } });
+    const { req, res, next, json } = createMocks({ items: [{ name: 'Valid Name' }, { name: 'Valid Name' }] });
+
+    await fnBulkCreate(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    const { results, summary } = json.mock.calls[0][0].data;
+    expect(summary).toEqual({ total: 2, succeeded: 1, failed: 1 });
+    expect(results[0]).toMatchObject({ index: 0, success: false });
+    expect(results[0].message).not.toContain('connection reset');
+    expect(next).not.toHaveBeenCalled();
   });
 });

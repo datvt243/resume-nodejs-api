@@ -9,7 +9,10 @@ import { Schema } from 'joi';
 import multer from 'multer';
 
 import type { Model } from 'mongoose';
-import { formatReturn, handleError, validateSchema } from '@/utils/index';
+import { created, formatReturn, handleError, ok, toAppError, validateSchema } from '@/utils/index';
+import type { BaseReturn } from '@/types/base.type';
+import { logger } from '@/logger';
+import { ErrorCode, ValidationError, type ErrorDetail } from '@/errors';
 import { baseDeleteDocument, baseFindDocument, baseRestoreDocument, CrudDocument } from '@/services';
 import * as MODELS from '@/models';
 import { t } from '@/utils/i18n';
@@ -81,7 +84,7 @@ export const baseGetAll = async (req: Request, res: Response, next: NextFunction
       limit: limit !== undefined ? parseInt(limit, 10) : undefined,
       sort: sort && SORT_FIELD_REGEX.test(sort) ? sort : undefined,
     });
-    return formatReturn(res, { ..._result });
+    return ok(res, _result.data, _result.message, 'meta' in _result ? _result.meta : undefined);
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }
@@ -102,7 +105,7 @@ export const baseDelete = async (req: Request, res: Response, next: NextFunction
       name: '',
       lang: req.lang,
     });
-    return formatReturn(res, { ..._result });
+    return ok(res, null, _result.message);
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }
@@ -128,7 +131,7 @@ export const baseRestore = async (req: Request, res: Response, next: NextFunctio
       name: '',
       lang: req.lang,
     });
-    return formatReturn(res, { ..._result });
+    return ok(res, null, _result.message);
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }
@@ -187,7 +190,7 @@ export const baseUploadImages = async (req: Request, res: Response, next: NextFu
       return formatReturn(res, { statusCode: StatusCodes.BAD_REQUEST, success: false, message: t('images.tooManyFiles', req.lang) });
     }
     if (err instanceof Error && err.message === 'INVALID_FILE_TYPE') {
-      return formatReturn(res, { statusCode: StatusCodes.BAD_REQUEST, success: false, message: t('images.invalidFileType', req.lang) });
+      return formatReturn(res, { statusCode: StatusCodes.BAD_REQUEST, errorCode: ErrorCode.FILE_INVALID_TYPE, success: false, message: t('images.invalidFileType', req.lang) });
     }
     handleError({ err, next, lang: req.lang });
   }
@@ -196,12 +199,12 @@ export const baseUploadImages = async (req: Request, res: Response, next: NextFu
 export const createCrudController = (props: {
   schema: Schema;
   service: {
-    handlerCreate: (item: Record<string, unknown>, lang?: string) => Promise<{ success: boolean; [key: string]: unknown }>;
+    handlerCreate: (item: Record<string, unknown>, lang?: string) => Promise<BaseReturn>;
     handlerUpdate: (args: {
       item: Record<string, unknown>;
       userID?: string | undefined;
       lang?: string | undefined;
-    }) => Promise<{ success: boolean; [key: string]: unknown }>;
+    }) => Promise<BaseReturn>;
   };
   booleanDefaultField?: string;
 }) => {
@@ -214,7 +217,7 @@ export const createCrudController = (props: {
     try {
       if (booleanDefaultField && !value[booleanDefaultField]) value[booleanDefaultField] = false;
       const _result = await service.handlerCreate(value, req.lang);
-      return formatReturn(res, { statusCode: StatusCodes.CREATED, ..._result });
+      return created(res, _result.data, _result.message);
     } catch (err) {
       handleError({ err, next, lang: req.lang });
     }
@@ -227,7 +230,7 @@ export const createCrudController = (props: {
     try {
       if (booleanDefaultField && !value[booleanDefaultField]) value[booleanDefaultField] = false;
       const _result = await service.handlerUpdate({ item: value, userID: req.user?._id, lang: req.lang });
-      return formatReturn(res, { ..._result });
+      return ok(res, _result.data, _result.message);
     } catch (err) {
       handleError({ err, next, lang: req.lang });
     }
@@ -271,21 +274,31 @@ export const createCrudController = (props: {
         }
 
         if (booleanDefaultField && !value[booleanDefaultField]) value[booleanDefaultField] = false;
-        const result = await service.handlerCreate(value, lang);
-        results.push({ index, ...result });
+        try {
+          const result = await service.handlerCreate(value, lang);
+          results.push({ index, ...result, success: true });
+        } catch (err) {
+          // One item failing must not abort the rest; an unexpected error's text stays out of the response.
+          const e = toAppError(err, lang);
+          if (!e.isOperational) logger.error('Bulk create item failed', { index, error: e.message, stack: e.stack });
+          results.push({ index, success: false, message: e.isOperational ? e.message : t('common.createFailed', lang), errors: e.errors });
+        }
       }
 
       const succeeded = results.filter((r) => r.success).length;
       const summary = { total: results.length, succeeded, failed: results.length - succeeded };
 
-      /**
-       * Envelope `success` is always true here (the bulk request itself was
-       * processed) — never tie it to summary.failed. utils/helper.ts's
-       * formatResponse() nulls out `data` whenever `success` is false, which
-       * would silently drop `results`/`summary` on a partial failure, the
-       * one time the caller most needs to see them. Per-item outcome lives
-       * in `results[].success`/`summary`, not the envelope.
-       */
+      // Every item failed: one 400 whose details point at each item (`items.3.company`, or `items.3` for a non-field failure).
+      if (succeeded === 0) {
+        const details = results.flatMap((r) => {
+          const errs = Array.isArray(r['errors']) ? (r['errors'] as ErrorDetail[]) : [];
+          const message = typeof r['message'] === 'string' ? r['message'] : '';
+          return errs.length ? errs.map((d) => ({ field: `items.${r.index}.${d.field}`, message: d.message })) : [{ field: `items.${r.index}`, message }];
+        });
+        throw new ValidationError(t('common.createFailed', lang), details);
+      }
+
+      // At least one item was created: per-item outcome lives in `results[].success`/`summary`.
       return formatReturn(res, {
         statusCode: StatusCodes.CREATED,
         success: true,

@@ -7,10 +7,13 @@
  */
 export default {
   auth: {
+    noToken: 'Access denied. No token provided.',
+    tokenRevoked: 'Token has been revoked.',
+    invalidTokenPayload: 'Invalid token payload.',
+    csrfInvalid: 'Invalid or missing CSRF token.',
     registerSuccess: 'Registration successful',
     emailAlreadyExists: 'Email already exists',
-    emailNotFound: 'Email not found',
-    wrongPassword: 'Incorrect password',
+    invalidCredentials: 'Incorrect email or password',
     loginSuccess: 'Login successful',
     loginFailed: 'Login failed',
     noRefreshToken: 'No refresh token provided',
@@ -25,6 +28,8 @@ export default {
     resetPasswordSuccess: 'Password reset successful',
     verificationTokenInvalid: 'Email verification token is invalid or has expired',
     emailVerifiedSuccess: 'Email verified successfully',
+    tokenExpired: 'Token has expired',
+    invalidToken: 'Invalid token',
   },
   validation: {
     hasErrors: 'Validation has errors',
@@ -78,6 +83,13 @@ export default {
     parseSuccess: 'CV PDF parsed successfully',
     parseFailed: 'Failed to parse the CV PDF',
   },
+  publicProfile: {
+    identifierRequired: 'An email or profile slug is required',
+    notFound: 'Profile not found',
+    getSuccess: 'Profile loaded',
+    visitRecorded: 'Visit recorded',
+    atsTemplateOnly: 'Only template=ats is supported',
+  },
   publicSearch: {
     invalidQuery: 'Search query must be between 2 and 100 characters',
   },
@@ -124,9 +136,14 @@ export default {
     },
   },
   errors: {
+    routeNotFound: 'Route {{route}} not found',
+    rateLimited: 'Too many requests, please try again later',
     invalidIdFormat: 'Invalid ID format',
     duplicateKey: '{{field}} already exists',
     internalServerError: 'Internal Server Error',
+    malformedJson: 'Malformed JSON request body',
+    payloadTooLarge: 'Request body is too large',
+    serviceUnavailable: 'Service temporarily unavailable, please try again',
   },
   joiErrors: {
     'any.required': '{{label}} is required',

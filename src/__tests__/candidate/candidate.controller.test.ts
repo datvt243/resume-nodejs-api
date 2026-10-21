@@ -7,7 +7,8 @@
  */
 
 import { StatusCodes } from 'http-status-codes';
-import { fnParseLinkedInExport, fnParseCvPdf } from '@/candidate/candidate.controller';
+import { fnGetInformationByEmail, fnGetInformationById, fnParseLinkedInExport, fnParseCvPdf, fnUpdate, fnUpdateFields } from '@/candidate/candidate.controller';
+import * as candidateService from '@/candidate/candidate.service';
 import * as parseService from '@/candidate/parseLinkedInExport.service';
 import * as parseCvPdfService from '@/candidate/parseCvPdf.service';
 
@@ -40,7 +41,7 @@ describe('fnParseLinkedInExport (issue #141)', () => {
 
     expect(parseService.parseLinkedInExportZip).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, message: 'No file was uploaded' }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, error: expect.objectContaining({ message: 'No file was uploaded' }) }));
   });
 
   it('returns the parsed educations/experiences on success, never persisting anything', async () => {
@@ -69,7 +70,7 @@ describe('fnParseLinkedInExport (issue #141)', () => {
     await fnParseLinkedInExport(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, message: 'The ZIP file is invalid or corrupted' }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, error: expect.objectContaining({ message: 'The ZIP file is invalid or corrupted' }) }));
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -112,7 +113,7 @@ describe('fnParseCvPdf', () => {
 
     expect(parseCvPdfService.parseCvPdf).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, message: 'No file was uploaded' }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, error: expect.objectContaining({ message: 'No file was uploaded' }) }));
   });
 
   it('returns the parsed educations/experiences plus extractedText on success', async () => {
@@ -139,7 +140,7 @@ describe('fnParseCvPdf', () => {
     await fnParseCvPdf(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, message: 'File PDF không hợp lệ hoặc không đọc được' }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, error: expect.objectContaining({ message: 'File PDF không hợp lệ hoặc không đọc được' }) }));
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -155,5 +156,38 @@ describe('fnParseCvPdf', () => {
     expect(res.status).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledTimes(1);
     expect(next.mock.calls[0][0].statusCode).toBe(StatusCodes.INTERNAL_SERVER_ERROR);
+  });
+});
+
+describe('candidate update validation failures', () => {
+  it.each([
+    ['PUT /update', fnUpdate, {}],
+    ['PATCH /update', fnUpdateFields, { socialMedia: 'x' }],
+  ])('%s answers 400, not 401', async (_label, handler, body) => {
+    const req: any = { body, user: { _id: 'user-1' }, lang: 'en' };
+    const res = mockRes();
+
+    await handler(req, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
+  });
+});
+
+describe('candidate lookup not found', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it.each([
+    ['GET /:id', fnGetInformationById, 'handlerGetInformationById' as const, { id: '507f1f77bcf86cd799439011' }],
+    ['GET /:email', fnGetInformationByEmail, 'handlerGetInformationByEmail' as const, { email: 'nobody@example.com' }],
+  ])('%s answers 404, not 400', async (_label, handler, serviceFn, params) => {
+    jest.spyOn(candidateService, serviceFn).mockResolvedValue(null);
+    const res = mockRes();
+    const next = jest.fn();
+
+    await handler({ params, lang: 'en' } as any, res, next);
+
+    expect(res.status).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: StatusCodes.NOT_FOUND, errorCode: 'NOT_FOUND' }));
   });
 });

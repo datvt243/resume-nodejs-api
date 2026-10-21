@@ -49,13 +49,13 @@ describe('uploadCvPdfParseMiddleware', () => {
     const res = await post('hello', 'cv.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
 
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual(expect.objectContaining({ success: false, message: 'Only PDF files are accepted' }));
+    expect(await res.json()).toEqual(expect.objectContaining({ success: false, error: expect.objectContaining({ message: 'Only PDF files are accepted' }) }));
   });
 
   it('rejects a PDF over 5 MB with 400', async () => {
     const res = await post(Buffer.alloc(CV_MAX_FILE_SIZE + 1), 'cv.pdf', 'application/pdf');
 
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual(expect.objectContaining({ success: false, message: 'File exceeds the allowed size (5 MB)' }));
+    expect(await res.json()).toEqual(expect.objectContaining({ success: false, error: expect.objectContaining({ message: 'File exceeds the allowed size (5 MB)' }) }));
   });
 });

@@ -5,7 +5,7 @@
 import { NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { handleError } from '@/utils/helper';
-import { ConflictError, ValidationError } from '@/errors';
+import { BadRequestError, ConflictError, ValidationError } from '@/errors';
 
 describe('handleError', () => {
   it('converts a Mongo duplicate-key error on `slug` into a ConflictError (issue #120)', () => {
@@ -22,6 +22,16 @@ describe('handleError', () => {
     expect(passedError).toBeInstanceOf(ConflictError);
     expect(passedError.statusCode).toBe(409);
     expect(passedError.message).toContain('slug');
+  });
+
+  it('converts a Mongoose CastError into a 400 BadRequestError', () => {
+    const next = jest.fn() as NextFunction;
+
+    handleError({ err: new mongoose.Error.CastError('ObjectId', 'nope', '_id'), next, lang: 'en' });
+
+    const passedError = (next as jest.Mock).mock.calls[0][0];
+    expect(passedError).toBeInstanceOf(BadRequestError);
+    expect(passedError).toMatchObject({ statusCode: 400, errorCode: 'BAD_REQUEST', message: 'Invalid ID format' });
   });
 
   it('still converts a duplicate-key error on `email` the same way (regression check)', () => {
@@ -52,11 +62,11 @@ describe('handleError', () => {
     handleError({ err: buildRequiredError(), next: nextVi, lang: 'vi' });
     const viError = (nextVi as jest.Mock).mock.calls[0][0];
     expect(viError).toBeInstanceOf(ValidationError);
-    expect(viError.errors).toEqual(['Ngày sinh là bắt buộc']);
+    expect(viError.errors).toEqual([{ field: 'birthday', message: 'Ngày sinh là bắt buộc' }]);
 
     const nextEn = jest.fn() as NextFunction;
     handleError({ err: buildRequiredError(), next: nextEn, lang: 'en' });
     const enError = (nextEn as jest.Mock).mock.calls[0][0];
-    expect(enError.errors).toEqual(['Date of birth is required']);
+    expect(enError.errors).toEqual([{ field: 'birthday', message: 'Date of birth is required' }]);
   });
 });

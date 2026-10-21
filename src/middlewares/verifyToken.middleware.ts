@@ -13,32 +13,33 @@ import { getSessionsInvalidatedAt, isSessionRevoked } from '@/utils/sessionRevoc
 import { ErrorCode, TokenExpiredError, TokenRevokedError, InvalidTokenError, AuthenticationError, AuthorizationError } from '@/errors';
 
 import { extractTokenWithSource } from '@/utils/helper-auth';
+import { t } from '@/utils/i18n';
 import { requiresCsrfCheck, isCsrfTokenValid } from '@/utils/csrf';
 
 export const verifyToken = async (req: Request, _res: Response, next: NextFunction) => {
   const { token, source } = extractTokenWithSource(req);
 
   if (!token) {
-    return next(new AuthenticationError('Access denied. No token provided.', ErrorCode.NO_TOKEN));
+    return next(new AuthenticationError(t('auth.noToken', req.lang), ErrorCode.NO_TOKEN));
   }
 
   try {
     if (await isBlacklisted(token)) {
-      return next(new TokenRevokedError('Token has been revoked.'));
+      return next(new TokenRevokedError(t('auth.tokenRevoked', req.lang)));
     }
 
     const decoded = jwtVerify(token, TOKEN_SECRET);
     const { _id, iat } = (decoded as { _id?: string; iat?: number }) || {};
 
     if (!_id) {
-      return next(new InvalidTokenError('Invalid token payload.'));
+      return next(new InvalidTokenError(t('auth.invalidTokenPayload', req.lang)));
     }
 
     // "Log out of all devices": reject any token issued before the
     // candidate's last logout-all, even if not yet blacklisted or expired.
     const invalidatedAt = await getSessionsInvalidatedAt(_id);
     if (isSessionRevoked(iat, invalidatedAt)) {
-      return next(new TokenRevokedError('Token has been revoked.'));
+      return next(new TokenRevokedError(t('auth.tokenRevoked', req.lang)));
     }
 
     /**
@@ -49,7 +50,7 @@ export const verifyToken = async (req: Request, _res: Response, next: NextFuncti
      * (a third-party page can't set that header on the victim's behalf).
      */
     if (requiresCsrfCheck(req, source) && !isCsrfTokenValid(req)) {
-      return next(new AuthorizationError('Invalid or missing CSRF token.', ErrorCode.CSRF_TOKEN_INVALID));
+      return next(new AuthorizationError(t('auth.csrfInvalid', req.lang), ErrorCode.CSRF_TOKEN_INVALID));
     }
 
     /**
@@ -73,10 +74,15 @@ export const verifyToken = async (req: Request, _res: Response, next: NextFuncti
   } catch (err) {
     // jsonwebtoken's own real exported error classes, replacing a
     // duck-typed `err?.name === 'X'` check.
-    if (err instanceof jwt.TokenExpiredError || err instanceof jwt.JsonWebTokenError) {
-      return next(new TokenExpiredError('Token expired.'));
+    // TokenExpiredError extends JsonWebTokenError, so it must be checked first.
+    if (err instanceof jwt.TokenExpiredError) {
+      return next(new TokenExpiredError(t('auth.tokenExpired', req.lang)));
     }
-    return next(new InvalidTokenError(err instanceof Error ? err.message : 'Invalid token.'));
+    if (err instanceof jwt.JsonWebTokenError) {
+      return next(new InvalidTokenError(t('auth.invalidToken', req.lang)));
+    }
+    // Same 401 as before, but the underlying error's own text is never sent to the client.
+    return next(new InvalidTokenError(t('auth.invalidToken', req.lang)));
   }
 };
 

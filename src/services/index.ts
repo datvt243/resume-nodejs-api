@@ -3,10 +3,12 @@
  * @see https://github.com/datvt243
  */
 
-import mongoose, { Model, Types } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import type { BaseReturn } from '@/types/base.type';
+import type { ListMeta } from '@/utils/response';
 import { getSelectFields } from '@/utils/helper';
 import { t, DEFAULT_LANG } from '@/utils/i18n';
+import { AuthorizationError, BadRequestError, NotFoundError } from '@/errors';
 
 /**
  * The minimal raw-document shape every CV-section model shares, at the
@@ -64,6 +66,14 @@ interface baseProp<T extends CrudDocument> {
 // Pagination hard cap — a caller cannot request more than this many documents per page regardless of what `limit` it passes.
 const MAX_PAGE_LIMIT = 100;
 
+/** List `meta`; an unpaginated list is one page whose `limit` is its own size. */
+export const listMeta = (total: number, page = 1, limit = total): ListMeta => ({
+  page,
+  limit,
+  total,
+  totalPages: limit > 0 ? Math.max(Math.ceil(total / limit), 1) : 1,
+});
+
 const formatReturn = (props: BaseReturn) => {
   const { success = false, message = '', errors = null, data = null } = props;
   return {
@@ -110,15 +120,14 @@ export const baseFindDocument = async <T extends CrudDocument>(props: baseProp<T
   if (sort) query = query.sort(sort);
 
   /**
-   * Pagination is opt-in: it only kicks in when the caller
-   * passes a valid positive `limit`. No `limit` -> exactly the old
-   * behavior (`data` is the full, unpaginated array), so every existing
-   * caller of baseGetAll keeps working unchanged.
+   * Pagination is opt-in: it only kicks in when the caller passes a valid
+   * positive `limit`. Either way `data` is an array and `meta` describes it;
+   * without `limit` it is one page holding everything.
    */
   const hasPagination = Number.isInteger(limit) && (limit as number) > 0;
   if (!hasPagination) {
     const find = await query.exec();
-    return formatReturn({ success: true, data: find, message: '', errors: null });
+    return { ...formatReturn({ success: true, data: find, message: '', errors: null }), meta: listMeta(find.length) };
   }
 
   const safeLimit = Math.min(limit as number, MAX_PAGE_LIMIT);
@@ -127,20 +136,7 @@ export const baseFindDocument = async <T extends CrudDocument>(props: baseProp<T
 
   const [items, total] = await Promise.all([query.skip(skip).limit(safeLimit).exec(), MODEL.countDocuments(safeFields)]);
 
-  return formatReturn({
-    success: true,
-    data: {
-      items,
-      pagination: {
-        page: safePage,
-        limit: safeLimit,
-        total,
-        totalPages: Math.max(Math.ceil(total / safeLimit), 1),
-      },
-    },
-    message: '',
-    errors: null,
-  });
+  return { ...formatReturn({ success: true, data: items, message: '', errors: null }), meta: listMeta(total, safePage, safeLimit) };
 };
 
 // `lang?: string | undefined` (`exactOptionalPropertyTypes`): BaseController.ts passes `req.lang`, itself `string | undefined`.
@@ -148,33 +144,21 @@ export const baseDeleteDocument = async <T extends CrudDocument>(props: { model:
   const { model: MODEL, _id: __id, userID, lang = DEFAULT_LANG } = props;
 
   const { isExist, message: _mess, document } = await _baseHelper().baseCheckDocumentById({ MODEL, _id: __id, lang });
-  if (!isExist) return formatReturnFailed(_mess);
+  if (!isExist) throw new NotFoundError(_mess);
 
   const { _id, candidateId = '' } = document;
 
-  if (candidateId.toString() !== userID) return formatReturnFailed(t('common.deleteNotYours', lang));
+  if (candidateId.toString() !== userID) throw new AuthorizationError(t('common.deleteNotYours', lang));
 
   /**
-   * Soft-delete: mark deletedAt instead of removing the
-   * document, so it can be recovered via baseRestoreDocument. Same
-   * ownership check and same return shape as the old hard delete.
+   * Soft-delete: mark deletedAt instead of removing the document, so it
+   * can be recovered via baseRestoreDocument. A driver error propagates to
+   * errorsMiddleware, which logs it and hides its text in production.
    */
-  let success = false,
-    message = t('common.deleteFailed', lang),
-    error: string | null = null;
-  try {
-    const { modifiedCount = 0 } = await MODEL.updateOne({ _id }, { deletedAt: Date.now() }).exec();
-    success = !!modifiedCount;
-    message = t('common.deleteSuccess', lang);
-  } catch (err) {
-    error = err instanceof Error ? err.message : String(err);
-  }
+  const { modifiedCount = 0 } = await MODEL.updateOne({ _id }, { deletedAt: Date.now() }).exec();
+  if (!modifiedCount) throw new NotFoundError(t('common.deleteFailed', lang));
 
-  return formatReturn({
-    success,
-    message,
-    errors: error,
-  });
+  return formatReturn({ success: true, message: t('common.deleteSuccess', lang) });
 };
 
 // `lang?: string | undefined` (`exactOptionalPropertyTypes`): BaseController.ts passes `req.lang`, itself `string | undefined`.
@@ -183,28 +167,17 @@ export const baseRestoreDocument = async <T extends CrudDocument>(props: { model
 
   // `baseCheckDocumentById` doesn't filter on `deletedAt`, so it finds the document whether it's currently soft-deleted or not.
   const { isExist, message: _mess, document } = await _baseHelper().baseCheckDocumentById({ MODEL, _id: __id, lang });
-  if (!isExist) return formatReturnFailed(_mess);
+  if (!isExist) throw new NotFoundError(_mess);
 
   const { _id, candidateId = '' } = document;
 
-  if (candidateId.toString() !== userID) return formatReturnFailed(t('common.restoreNotYours', lang));
+  if (candidateId.toString() !== userID) throw new AuthorizationError(t('common.restoreNotYours', lang));
 
-  let success = false,
-    message = t('common.restoreFailed', lang),
-    error: string | null = null;
-  try {
-    const { modifiedCount = 0 } = await MODEL.updateOne({ _id }, { deletedAt: null }).exec();
-    success = !!modifiedCount;
-    message = t('common.restoreSuccess', lang);
-  } catch (err) {
-    error = err instanceof Error ? err.message : String(err);
-  }
+  // Nothing modified = the document wasn't soft-deleted, so there is nothing to restore.
+  const { modifiedCount = 0 } = await MODEL.updateOne({ _id }, { deletedAt: null }).exec();
+  if (!modifiedCount) throw new NotFoundError(t('common.restoreFailed', lang));
 
-  return formatReturn({
-    success,
-    message,
-    errors: error,
-  });
+  return formatReturn({ success: true, message: t('common.restoreSuccess', lang) });
 };
 
 export const baseUpdateDocument = async <T extends CrudDocument>(props: {
@@ -232,7 +205,7 @@ export const baseUpdateDocument = async <T extends CrudDocument>(props: {
     lang,
     opts: { excludeDeleted: true },
   });
-  if (!isExist) return formatReturnFailed(_mess);
+  if (!isExist) throw new NotFoundError(_mess);
 
   /**
    * Checked against the owner of the EXISTING document, not the
@@ -240,33 +213,19 @@ export const baseUpdateDocument = async <T extends CrudDocument>(props: {
    * someone else's document by including their own `candidateId`.
    */
   if (userID !== undefined && _existing?.candidateId !== undefined && _existing.candidateId.toString() !== userID) {
-    return formatReturnFailed(t('common.updateNotYours', lang));
+    throw new AuthorizationError(t('common.updateNotYours', lang));
   }
 
-  const modelValid = await _baseHelper().modelValidate(MODEL, { ..._valueUpdate });
-  if (!modelValid.success) return formatReturnFailed({ message: modelValid.message, errors: modelValid.errors });
-
-  let _success = true,
-    _message = t('common.updateSuccess', lang),
-    _data = null,
-    _errors = {};
+  // A Mongoose ValidationError propagates; errorsMiddleware turns it into VALIDATION_ERROR with per-field details.
+  await MODEL.validate({ ..._valueUpdate });
 
   try {
     await MODEL.updateOne({ _id }, _valueUpdate).exec();
-    _data = await _baseHelper().getDocumentUpdated(_id, { model: MODEL, select: getSelectFields(_valueUpdate) });
+    const data = await _baseHelper().getDocumentUpdated(_id, { model: MODEL, select: getSelectFields(_valueUpdate) });
+    return formatReturn({ success: true, message: t('common.updateSuccess', lang), data });
   } catch (err) {
-    const { message = '', errors = [] } = _baseHelper().handlerCatchError(err);
-    _success = false;
-    _message = message || t('common.updateFailed', lang);
-    _errors = errors;
     props?.hookHasErrors?.({ err });
-  } finally {
-    return formatReturn({
-      success: _success,
-      message: _message,
-      errors: _errors,
-      data: _data,
-    });
+    throw err;
   }
 };
 
@@ -282,18 +241,15 @@ export const baseCreateDocument = async <T extends CrudDocument>(props: {
 
   delete document['_id'];
 
-  if (!document['candidateId']) return formatReturnFailed(t('common.createFailed', lang));
+  if (!document['candidateId']) throw new BadRequestError(t('common.createFailed', lang));
 
-  const modelValid = await _baseHelper().modelValidate(MODEL, { ...document });
-  if (!modelValid.success) return formatReturnFailed({ message: modelValid.message, errors: modelValid.errors });
+  // A Mongoose ValidationError propagates; errorsMiddleware turns it into VALIDATION_ERROR with per-field details.
+  await MODEL.validate({ ...document });
 
-  let _success = true,
-    _data = null,
-    _message = t('common.createSuccess', lang),
-    _errors = {};
+  const _message = t('common.createSuccess', lang);
 
   try {
-    _data = await MODEL.create({ _id: null, ...document });
+    let _data: unknown = await MODEL.create({ _id: null, ...document });
     /**
      * If the hook returns something (not `undefined`), use that instead of
      * `_data` — the hook used to receive `data` by-value destructuring, so
@@ -303,17 +259,13 @@ export const baseCreateDocument = async <T extends CrudDocument>(props: {
      * MongoDB assigns on save) instead of the freshly-refetched list.
      */
     if (props?.hookAfterSave) {
-      const replacement = await props.hookAfterSave(document, { success: _success, message: _message, data: _data });
+      const replacement = await props.hookAfterSave(document, { success: true, message: _message, data: _data });
       if (replacement !== undefined) _data = replacement;
     }
+    return formatReturn({ success: true, message: _message, data: _data });
   } catch (err) {
-    const { message = '', errors = [] } = _baseHelper().handlerCatchError(err);
-    _success = false;
-    _message = message || t('common.createFailed', lang);
-    _errors = errors;
     props?.hookHasErrors?.({ err });
-  } finally {
-    return formatReturn({ success: _success, message: _message, errors: _errors, data: _data });
+    throw err;
   }
 };
 
@@ -333,18 +285,14 @@ export const basePatchDocument = async <T extends CrudDocument>(props: {
     lang,
     opts: { excludeDeleted: true },
   });
-  if (!isExist) return formatReturnFailed(_mess);
+  if (!isExist) throw new NotFoundError(_mess);
 
-  const modelValid = await _baseHelper().modelValidate(MODEL, { ...document });
-  if (!modelValid.success) return formatReturnFailed({ message: modelValid.message, errors: modelValid.errors });
+  // A Mongoose ValidationError propagates; errorsMiddleware turns it into VALIDATION_ERROR with per-field details.
+  await MODEL.validate({ ...document });
 
-  try {
-    await MODEL.updateOne({ _id }, document).exec();
-    const data = await _baseHelper().getDocumentUpdated(_id, { model: MODEL, select: getSelectFields(document) });
-    return { success: true, message: t('common.updateSuccess', lang), errors: {}, data: data ? data : null };
-  } catch (err) {
-    return { success: false, message: t('common.updateFailed', lang), error: err, data: null };
-  }
+  await MODEL.updateOne({ _id }, document).exec();
+  const data = await _baseHelper().getDocumentUpdated(_id, { model: MODEL, select: getSelectFields(document) });
+  return { success: true, message: t('common.updateSuccess', lang), data: data ? data : null };
 };
 
 const _baseHelper = () => {
@@ -354,41 +302,6 @@ const _baseHelper = () => {
       const find = MODEL.findById(_id);
       const record = await find.exec();
       return record;
-    },
-    modelValidate: async <T extends CrudDocument>(model: Model<T>, value: Record<string, unknown>) => {
-      let message = '',
-        success = true;
-      let errors: null | string[] = null;
-
-      try {
-        await model.validate(value);
-      } catch (err) {
-        const errs = [];
-        if (err instanceof mongoose.Error.ValidationError) {
-          const { errors: _errs } = err;
-          for (const k of Object.keys(_errs)) {
-            errs.push(k);
-          }
-        }
-
-        success = false;
-        message = '';
-        errors = errs;
-      }
-      return { success, message, errors };
-    },
-    handlerCatchError: (error: unknown) => {
-      if (error instanceof ReferenceError) {
-        return {
-          message: 'ReferenceError',
-          errors: [error.message],
-        };
-      }
-
-      return {
-        message: 'An unknown error',
-        errors: {},
-      };
     },
     baseCheckDocumentById: async <T extends CrudDocument>({
       MODEL,

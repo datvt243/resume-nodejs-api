@@ -7,10 +7,13 @@
  */
 export default {
   auth: {
+    noToken: 'Truy cập bị từ chối. Không có token.',
+    tokenRevoked: 'Token đã bị thu hồi.',
+    invalidTokenPayload: 'Nội dung token không hợp lệ.',
+    csrfInvalid: 'CSRF token không hợp lệ hoặc bị thiếu.',
     registerSuccess: 'Đăng ký thành công',
     emailAlreadyExists: 'Email đã tồn tại',
-    emailNotFound: 'Email không tồn tại',
-    wrongPassword: 'Mật khẩu không chính xác',
+    invalidCredentials: 'Email hoặc mật khẩu không chính xác',
     loginSuccess: 'Đăng nhập thành công',
     loginFailed: 'Đăng nhập thất bại',
     noRefreshToken: 'Không có refresh token',
@@ -25,6 +28,8 @@ export default {
     resetPasswordSuccess: 'Đặt lại mật khẩu thành công',
     verificationTokenInvalid: 'Token xác thực email không hợp lệ hoặc đã hết hạn',
     emailVerifiedSuccess: 'Xác thực email thành công',
+    tokenExpired: 'Token đã hết hạn',
+    invalidToken: 'Token không hợp lệ',
   },
   validation: {
     hasErrors: 'Dữ liệu không hợp lệ',
@@ -78,6 +83,13 @@ export default {
     parseSuccess: 'Đọc CV PDF thành công',
     parseFailed: 'Đọc CV PDF thất bại',
   },
+  publicProfile: {
+    identifierRequired: 'Thiếu email hoặc slug của hồ sơ',
+    notFound: 'Email không tồn tại',
+    getSuccess: 'Lấy thông tin ứng viên thành công',
+    visitRecorded: 'Ghi nhận lượt ghé thăm thành công',
+    atsTemplateOnly: 'Chỉ hỗ trợ template=ats',
+  },
   publicSearch: {
     invalidQuery: 'Từ khoá tìm kiếm phải dài từ 2 đến 100 ký tự',
   },
@@ -124,9 +136,14 @@ export default {
     },
   },
   errors: {
+    routeNotFound: 'Không tìm thấy đường dẫn {{route}}',
+    rateLimited: 'Quá nhiều yêu cầu, vui lòng thử lại sau',
     invalidIdFormat: 'ID không đúng định dạng',
     duplicateKey: '{{field}} đã tồn tại',
     internalServerError: 'Lỗi hệ thống',
+    malformedJson: 'Nội dung JSON không hợp lệ',
+    payloadTooLarge: 'Nội dung yêu cầu quá lớn',
+    serviceUnavailable: 'Dịch vụ tạm thời không khả dụng, vui lòng thử lại',
   },
   joiErrors: {
     'any.required': '{{label}} là bắt buộc',

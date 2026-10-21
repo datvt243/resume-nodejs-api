@@ -19,7 +19,6 @@
  * @see https://github.com/datvt243
  */
 import puppeteer from 'puppeteer';
-import { logger } from '@/logger';
 import { filterXSS, type IFilterXSSOptions } from 'xss';
 import { Response } from 'express';
 import { t, type SupportedLang } from '@/utils/i18n';
@@ -461,27 +460,17 @@ export const createCVAts = async ({
   res: Response;
   options?: CreateCVAtsOptions;
 }): Promise<void> => {
-  try {
-    const { buffer, content } = await renderAtsPdfBuffer(data, options);
+  const { buffer, content } = await renderAtsPdfBuffer(data, options);
 
-    if (process.env['PERSIST_EXPORTED_PDF']) {
-      const fs = await import('fs');
-      const path = await import('path');
-      const dir = path.join(__dirname, '..', 'public', 'pdf');
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(path.join(dir, `${slugifyFilename(content.email)}-ats.pdf`), buffer);
-    }
-
-    res.setHeader('Content-Disposition', `attachment; filename="${atsPdfFilename(content)}"`);
-    res.contentType('application/pdf');
-    res.send(buffer);
-  } catch (error) {
-    // An Error serializes to `{}` — log the real cause
-    // server-side instead of echoing an empty object to the client
-    logger.error('[createCVAts] PDF generation failed', { error: (error as Error).message, stack: (error as Error).stack });
-    res.status(500).send({
-      status: false,
-      message: 'Xảy ra lỗi, không thể tạo file PDF (ATS)',
-    });
+  if (process.env['PERSIST_EXPORTED_PDF']) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const dir = path.join(__dirname, '..', 'public', 'pdf');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, `${slugifyFilename(content.email)}-ats.pdf`), buffer);
   }
+
+  res.setHeader('Content-Disposition', `attachment; filename="${atsPdfFilename(content)}"`);
+  res.contentType('application/pdf');
+  res.send(buffer);
 };

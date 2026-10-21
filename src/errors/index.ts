@@ -6,6 +6,8 @@
  */
 export {
   AppError,
+  ErrorDetail,
+  ERROR_STATUS,
   ErrorCode,
   ValidationError,
   AuthenticationError,
@@ -20,5 +22,5 @@ export {
   throwError,
   isOperationalError,
   IErrorOptions,
-  IErrorOptionsWithStatus,
+  IAppErrorOptions,
 } from './AppError';

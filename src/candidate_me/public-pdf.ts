@@ -9,11 +9,11 @@
  */
 import { createHash } from 'crypto';
 import { NextFunction, Request, Response } from 'express';
-import { StatusCodes } from 'http-status-codes';
 
-import { formatReturn, handleError } from '@/utils';
-import { formatReturnFailed } from '@/services';
-import { handlerGetAboutMe } from '@/candidate_me/index';
+import { handleError } from '@/utils';
+import { BadRequestError } from '@/errors';
+import { t } from '@/utils/i18n';
+import { handlerGetAboutMe, profileNotFound } from '@/candidate_me/index';
 import { atsPdfFilename, renderAtsPdfBuffer, type AtsContent } from '@/services/createPDF.ats';
 import type { AggregatedCandidateData } from '@/types/candidate.type';
 import type { SupportedLang } from '@/utils/i18n';
@@ -62,12 +62,10 @@ export const fnDownloadPublicPdf = async (req: Request, res: Response, next: Nex
   const { identifier } = req.params;
   // Only the ATS template is public: the classic renderer also writes the file under public/.
   if (req.query['template'] !== undefined && req.query['template'] !== 'ats') {
-    res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('Chỉ hỗ trợ template=ats'));
-    return;
+    return next(new BadRequestError(t('publicProfile.atsTemplateOnly', req.lang)));
   }
   if (!identifier) {
-    res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('Không tìm thấy Email'));
-    return;
+    return next(new BadRequestError(t('publicProfile.identifierRequired', req.lang)));
   }
   const lang: SupportedLang = req.query['lang'] === 'en' ? 'en' : 'vi';
   const profileId = typeof req.query['profile'] === 'string' ? req.query['profile'] : undefined;
@@ -76,10 +74,7 @@ export const fnDownloadPublicPdf = async (req: Request, res: Response, next: Nex
     const _me = await handlerGetAboutMe({ identifier, lang, profileId });
     const data = _me.data as (AggregatedCandidateData & { isPublic?: boolean }) | null;
     // Private profile answers exactly like an unknown one, same as fnGetAboutMe.
-    if (!_me.success || !data || data.isPublic === false) {
-      formatReturn(res, formatReturnFailed('Email không tồn tại'));
-      return;
-    }
+    if (!data || data.isPublic === false) return next(profileNotFound(lang));
 
     const { buffer, content } = await renderCached(data, lang);
     res.setHeader('Content-Disposition', `attachment; filename="${atsPdfFilename(content)}"`);

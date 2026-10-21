@@ -4,6 +4,7 @@
  */
 
 import express, { Request, Response } from 'express';
+import { asyncHandler } from '@/utils/asyncHandler';
 
 const router = express.Router();
 
@@ -57,28 +58,24 @@ router.use('/api/v2', routerAPIV2);
  *                 - type: object
  *                   properties:
  *                     data:
- *                       type: object
- *                       properties:
- *                         items:
- *                           type: array
- *                           items:
- *                             type: object
- *                             properties:
- *                               slug: { type: string }
- *                               firstName: { type: string }
- *                               lastName: { type: string }
- *                               positionDesired: { type: string }
- *                         pagination:
- *                           type: object
- *                           properties:
- *                             page: { type: integer }
- *                             limit: { type: integer }
- *                             total: { type: integer }
- *                             totalPages: { type: integer }
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           slug: { type: string }
+ *                           firstName: { type: string }
+ *                           lastName: { type: string }
+ *                           positionDesired: { type: string }
+ *                     meta:
+ *                       $ref: '#/components/schemas/Pagination'
  *       400:
  *         description: Missing, too short (< 2) or too long (> 100) query
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/api/me/search', fnSearchPublicProfiles);
+router.get('/api/me/search', asyncHandler(fnSearchPublicProfiles));
 
 /**
  * @swagger
@@ -114,10 +111,14 @@ router.get('/api/me/search', fnSearchPublicProfiles);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
- *       400:
- *         description: Email not found
+ *       404:
+ *         description: Unknown or private profile (same response)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/api/me/:email', fnGetAboutMe);
+router.get('/api/me/:email', asyncHandler(fnGetAboutMe));
 
 /**
  * @swagger
@@ -154,10 +155,14 @@ router.get('/api/me/:email', fnGetAboutMe);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
- *       400:
- *         description: Email not found
+ *       404:
+ *         description: Unknown email
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/api/me/:email/visit', fnRecordVisit);
+router.post('/api/me/:email/visit', asyncHandler(fnRecordVisit));
 
 /**
  * @swagger
@@ -209,22 +214,28 @@ router.post('/api/me/:email/visit', fnRecordVisit);
  *               type: string
  *               format: binary
  *       400:
- *         description: Unknown identifier or private profile (same response), or a template other than ats
+ *         description: A template other than ats
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Unknown identifier or private profile (same response)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       429:
  *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/api/me/:identifier/download-pdf', fnDownloadPublicPdf);
+router.get('/api/me/:identifier/download-pdf', asyncHandler(fnDownloadPublicPdf));
 
-router.get('/api/*', (_req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    message: 'Page not found',
-    errors: null,
-    data: null,
-  });
-});
-
-router.get('/*', (_req: Request, res: Response) => {
+// Intentional landing page on the exact root only; every other unknown path falls through to notFoundHandler.
+router.get('/', (_req: Request, res: Response) => {
   res.send(
     `<div style="text-align: center; padding: 50px">
             <h1 style="font-size: 8vw; text-transform: uppercase; letter-spacing: .1em;">Hello World!</h1> 

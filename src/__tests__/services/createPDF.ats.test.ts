@@ -7,7 +7,6 @@
  */
 import { buildAtsContent, renderAtsHtml, pageRenderAts, renderAtsPdfBuffer, createCVAts } from '@/services/createPDF.ats';
 import puppeteer from 'puppeteer';
-import { logger } from '@/logger';
 import type { AggregatedCandidateData } from '@/types/candidate.type';
 
 const fixture: AggregatedCandidateData = {
@@ -211,17 +210,14 @@ describe('ATS PDF failure handling (issue #225)', () => {
     expect(browser.close).toHaveBeenCalledTimes(1);
   });
 
-  it('createCVAts logs the real error and answers 500 without echoing it', async () => {
+  it('createCVAts rethrows a render failure to the caller instead of writing its own 500', async () => {
     (puppeteer.launch as jest.Mock).mockRejectedValue(new Error('Failed to launch the browser process'));
-    const errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => logger);
     const res = { status: jest.fn(), send: jest.fn(), setHeader: jest.fn(), contentType: jest.fn() };
     res.status.mockReturnValue(res);
 
-    await createCVAts({ data: fixture, res: res as any });
-
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('createCVAts'), expect.objectContaining({ error: 'Failed to launch the browser process' }));
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.send).toHaveBeenCalledWith(expect.not.objectContaining({ error: expect.anything() }));
+    await expect(createCVAts({ data: fixture, res: res as any })).rejects.toThrow('Failed to launch the browser process');
+    expect(res.status).not.toHaveBeenCalled();
+    expect(res.send).not.toHaveBeenCalled();
   });
 
   it('renderAtsPdfBuffer passes --disable-dev-shm-usage alongside the existing sandbox flags (Render free-tier /dev/shm crash)', async () => {

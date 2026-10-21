@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import { asyncHandler } from '@/utils/asyncHandler';
 import { fnGet, fnCreate, fnUpdate, fnUpdateFields } from '@/candidate_profile/general_information/generalInformation.controller';
 
 const router = express.Router();
@@ -29,7 +30,7 @@ const router = express.Router();
  *                     data:
  *                       $ref: '#/components/schemas/GeneralInformation'
  */
-router.get('/', fnGet);
+router.get('/', asyncHandler(fnGet));
 
 /**
  * @swagger
@@ -54,8 +55,12 @@ router.get('/', fnGet);
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error, or candidate already has general information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/create', fnCreate);
+router.post('/create', asyncHandler(fnCreate));
 
 /**
  * @swagger
@@ -80,8 +85,12 @@ router.post('/create', fnCreate);
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.put('/update', fnUpdate);
+router.put('/update', asyncHandler(fnUpdate));
 
 /**
  * @swagger
@@ -106,7 +115,11 @@ router.put('/update', fnUpdate);
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.patch('/update', fnUpdateFields);
+router.patch('/update', asyncHandler(fnUpdateFields));
 
 export default router;

@@ -17,6 +17,7 @@ import { extractTokenFromRequest } from '@/utils/helper-auth';
 import { TOKEN_SECRET, TOKEN_REFRESH, TOKEN_EXP_IN, TOKEN_REFRESH_EXP_IN } from '@/config/process.config';
 import { t } from '@/utils/i18n';
 import { logger } from '@/logger';
+import { AppError, ErrorCode, InvalidCredentialsError, TokenRevokedError } from '@/errors';
 
 /**
  * Chức năng Đăng ký mới
@@ -29,7 +30,7 @@ export const authRegister = async (req: Request, res: Response, next: NextFuncti
   });
   if (!isValidated) {
     return formatReturn(res, {
-      statusCode: StatusCodes.UNAUTHORIZED,
+      statusCode: StatusCodes.BAD_REQUEST,
       success: false,
       message,
       errors,
@@ -38,9 +39,10 @@ export const authRegister = async (req: Request, res: Response, next: NextFuncti
 
   try {
     const { success, message } = await handlerRegister({ _id: null, ...value }, req.lang);
+    if (!success) return next(new AppError({ message: message || t('auth.emailAlreadyExists', req.lang), errorCode: ErrorCode.EMAIL_EXISTS }));
     return formatReturn(res, {
-      statusCode: StatusCodes[success ? 'OK' : 'UNAUTHORIZED'],
-      success: success,
+      statusCode: StatusCodes.CREATED,
+      success: true,
       message: message || t('auth.registerSuccess', req.lang),
       errors: null,
       data: null,
@@ -61,7 +63,7 @@ export const authLogin = async (req: Request, res: Response, next: NextFunction)
   });
   if (!isValidated) {
     return formatReturn(res, {
-      statusCode: StatusCodes.UNAUTHORIZED,
+      statusCode: StatusCodes.BAD_REQUEST,
       success: false,
       message,
       errors,
@@ -70,6 +72,7 @@ export const authLogin = async (req: Request, res: Response, next: NextFunction)
 
   try {
     const _result = await handlerLogin({ email: value.email, password: value.password }, req.lang);
+    if (!_result.success) return next(new InvalidCredentialsError(_result.message || t('auth.invalidCredentials', req.lang)));
 
     // Also set httpOnly cookies so the frontend can migrate off
     // localStorage — kept alongside the existing response-body tokens
@@ -128,6 +131,7 @@ export const authRefreshToken = async (req: Request, res: Response, next: NextFu
       return formatReturn(res, {
         statusCode: StatusCodes.UNAUTHORIZED,
         success: false,
+        errorCode: ErrorCode.NO_TOKEN,
         message: t('auth.noRefreshToken', req.lang),
       });
     }
@@ -136,19 +140,11 @@ export const authRefreshToken = async (req: Request, res: Response, next: NextFu
     const rotatedAt = await getRotatedAt(refreshToken);
     if (rotatedAt !== null) {
       await revokeOnRefreshTokenReuse(refreshToken, rotatedAt);
-      return formatReturn(res, {
-        statusCode: StatusCodes.FORBIDDEN,
-        success: false,
-        message: t('auth.refreshTokenRevoked', req.lang),
-      });
+      return next(new TokenRevokedError(t('auth.refreshTokenRevoked', req.lang)));
     }
 
     if (await isBlacklisted(refreshToken)) {
-      return formatReturn(res, {
-        statusCode: StatusCodes.FORBIDDEN,
-        success: false,
-        message: t('auth.refreshTokenRevoked', req.lang),
-      });
+      return next(new TokenRevokedError(t('auth.refreshTokenRevoked', req.lang)));
     }
 
     const decoded = jwtVerify(refreshToken, TOKEN_REFRESH);
@@ -157,6 +153,7 @@ export const authRefreshToken = async (req: Request, res: Response, next: NextFu
       return formatReturn(res, {
         statusCode: StatusCodes.UNAUTHORIZED,
         success: false,
+        errorCode: ErrorCode.INVALID_TOKEN,
         message: t('auth.invalidRefreshPayload', req.lang),
       });
 
@@ -164,20 +161,12 @@ export const authRefreshToken = async (req: Request, res: Response, next: NextFu
     // candidate's last logout-all must not be usable to mint new pairs.
     const invalidatedAt = await getSessionsInvalidatedAt(_id);
     if (isSessionRevoked(iat, invalidatedAt)) {
-      return formatReturn(res, {
-        statusCode: StatusCodes.FORBIDDEN,
-        success: false,
-        message: t('auth.refreshTokenRevoked', req.lang),
-      });
+      return next(new TokenRevokedError(t('auth.refreshTokenRevoked', req.lang)));
     }
 
     // Claimed atomically before signing: a concurrent refresh that already passed the checks above loses here.
     if (!(await claimRotation(refreshToken, Math.floor(Date.now() / 1000)))) {
-      return formatReturn(res, {
-        statusCode: StatusCodes.FORBIDDEN,
-        success: false,
-        message: t('auth.refreshTokenRevoked', req.lang),
-      });
+      return next(new TokenRevokedError(t('auth.refreshTokenRevoked', req.lang)));
     }
 
     const newAccess = jwtSign({ data: { _id }, secretKey: TOKEN_SECRET, props: { expiresIn: TOKEN_EXP_IN || '1h' } });
@@ -331,6 +320,7 @@ export const authLogoutAll = async (req: Request, res: Response, next: NextFunct
       return formatReturn(res, {
         statusCode: StatusCodes.UNAUTHORIZED,
         success: false,
+        errorCode: ErrorCode.NO_TOKEN,
         message: t('auth.noTokenToLogout', req.lang),
       });
     }
