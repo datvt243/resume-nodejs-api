@@ -7,6 +7,10 @@
  */
 export default {
   auth: {
+    noToken: 'Access denied. No token provided.',
+    tokenRevoked: 'Token has been revoked.',
+    invalidTokenPayload: 'Invalid token payload.',
+    csrfInvalid: 'Invalid or missing CSRF token.',
     registerSuccess: 'Registration successful',
     emailAlreadyExists: 'Email already exists',
     invalidCredentials: 'Incorrect email or password',
@@ -79,6 +83,13 @@ export default {
     parseSuccess: 'CV PDF parsed successfully',
     parseFailed: 'Failed to parse the CV PDF',
   },
+  publicProfile: {
+    identifierRequired: 'An email or profile slug is required',
+    notFound: 'Profile not found',
+    getSuccess: 'Profile loaded',
+    visitRecorded: 'Visit recorded',
+    atsTemplateOnly: 'Only template=ats is supported',
+  },
   publicSearch: {
     invalidQuery: 'Search query must be between 2 and 100 characters',
   },
@@ -125,6 +136,8 @@ export default {
     },
   },
   errors: {
+    routeNotFound: 'Route {{route}} not found',
+    rateLimited: 'Too many requests, please try again later',
     invalidIdFormat: 'Invalid ID format',
     duplicateKey: '{{field}} already exists',
     internalServerError: 'Internal Server Error',

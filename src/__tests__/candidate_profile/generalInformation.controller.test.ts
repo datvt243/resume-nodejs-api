@@ -46,7 +46,7 @@ describe('generalInformation controller status codes', () => {
     expect(handlerCreate).toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(409);
-    expect(json.mock.calls[0][0]).toMatchObject({ success: false, errorCode: 'CONFLICT', message: 'Already exists' });
+    expect(json.mock.calls[0][0]).toMatchObject({ success: false, error: { code: 'CONFLICT', message: 'Already exists' } });
   });
 
   it.each([

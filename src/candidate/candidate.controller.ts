@@ -7,6 +7,7 @@ import path from 'path';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { formatReturn, validateSchema, handleError, ok } from '@/utils';
+import { listMeta } from '@/services';
 import { AuthenticationError, NotFoundError } from '@/errors';
 import { schemaCandidate, schemaCandidatePatch } from '@/candidate/candidate.validate';
 import {
@@ -179,8 +180,8 @@ export const fnGetVisits = async (req: Request, res: Response, next: NextFunctio
    */
   try {
     if (!req.user?._id) throw new AuthenticationError();
-    const _result = await handlerGetVisits(req.user._id, req.lang);
-    return formatReturn(res, { ..._result });
+    const { data: visits, message } = await handlerGetVisits(req.user._id, req.lang);
+    return ok(res, visits, message, listMeta(visits.length));
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }

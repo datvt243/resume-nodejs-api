@@ -270,7 +270,7 @@ best-effort — each item validated/created independently via the same
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/health` | None | Health check |
-| GET | `/api/me/search` | None | Keyword search (`?q=` 2–100 chars, `page`/`limit` ≤ 100) over public profiles that have a slug — escaped case-insensitive substring on GeneralInformation `positionDesired`/`professionalSkills.name`, Experience `company`/`position`/`skills`, Education `school`/`major`; returns `{ items: [{ slug, firstName, lastName, positionDesired }], pagination }`, never email. Registered before `/api/me/:email` (a slug literally `search` is shadowed) |
+| GET | `/api/me/search` | None | Keyword search (`?q=` 2–100 chars, `page`/`limit` ≤ 100) over public profiles that have a slug — escaped case-insensitive substring on GeneralInformation `positionDesired`/`professionalSkills.name`, Experience `company`/`position`/`skills`, Education `school`/`major`; returns `data: [{ slug, firstName, lastName, positionDesired }]` + `meta`, never email. Registered before `/api/me/:email` (a slug literally `search` is shadowed) |
 | GET | `/api/me/:email` | None | Public profile by vanity slug (checked first) or email; `?lang=vi\|en` and `?profile=<id>` (filters sections to that CV profile) |
 | GET | `/api/me/:identifier/download-pdf` | None | Public profile's ATS PDF (attachment, same renderer + metadata as the owner's `download-pdf?template=ats`); `?template=ats` only (anything else → 400), `?lang=`, `?profile=`. Private profile answers exactly like an unknown identifier. Rendered buffer cached in memory per sha256(resolved data) + lang (1h TTL, 50 entries, concurrent requests share one render), so a CV edit re-renders on the next request. Nothing written to disk |
 | POST | `/api/me/:email/visit` | None | Record a visit (count, timestamp, IP, geo via `geoip-lite`); optional body `referrer` (the SPA's `document.referrer` — the request's own `Referer` header is ignored) stored as hostname only, `www.`/`m.` stripped, invalid → null; optional body `profile` (the `?profile=` id the visitor was shown) stored only if it is a non-deleted profile of that candidate, else null |
@@ -353,7 +353,7 @@ AppError (base: statusCode, message, errorCode, isOperational)
 
 Every status comes from the single `ERROR_STATUS` code→status map in `errors/AppError.ts` (incl. `SERVICE_UNAVAILABLE` 503, thrown by `withTimeout` on a DB/Redis timeout). Services throw `AppError`; they don't return `{ success:false }`.
 
-Global error middleware catches all `AppError` instances, logs via Winston, and returns `{ errorCode, message, stack? }` (stack dev-only).
+Every error response — from `errorsMiddleware`, a `formatReturn` failure, the rate limiter or a failed PDF/DOCX export — is written by `sendError` (`utils/helper.ts`): `{ success:false, error:{ code, message, details?, stack? } }` (stack dev-only), `details` = `{ field: fullDottedPath, message }[]`. Success bodies are `{ success:true, message, data, meta? }`; every list returns `data: []` + `meta` (`{ page, limit, total, totalPages }`). Contract in `API-STANDARD.md`.
 
 ---
 
@@ -419,6 +419,7 @@ npm test                         # run all tests
 | services/atsChecks.test.ts | Each of the 10 ATS check functions, passing + failing fixtures |
 | services/keywordMatcher.test.ts | JD keyword matcher — alias handling, case-insensitivity, Vietnamese diacritics |
 | services/atsPdfIntegration.test.ts | Real Puppeteer + `pdf-parse` end-to-end: renders a fixture CV, extracts text, asserts the full ATS check suite passes, and round-trips it (vi + en) through the PDF CV import parser (skipped via `CI_NO_CHROME`) |
+| contract/errorEnvelope.test.ts | every error writer (formatReturn failure, thrown AppError, unexpected Error, 429, nested Joi) → `{ success:false, error:{ code, message, details? } }`; success bodies `{ success, message, data, meta? }` |
 | utils/authCookies.test.ts | httpOnly cookie set/clear |
 | utils/tokenBlacklist.test.ts | rotated-at marker vs logout entry, Redis + in-memory |
 | utils/csrf.test.ts | double-submit CSRF token validation |

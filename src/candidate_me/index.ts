@@ -4,20 +4,19 @@
  */
 
 import { NextFunction, Request, Response } from 'express';
-import { StatusCodes } from 'http-status-codes';
 import type { Model, Types } from 'mongoose';
 import geoip from 'geoip-lite';
 
 import { formatReturn, handleError } from '@/utils';
-import { formatReturnFailed } from '@/services';
-import { NotFoundError } from '@/errors';
+import { BadRequestError, NotFoundError } from '@/errors';
+import { t } from '@/utils/i18n';
 import { createCV } from '@/services/createPDF';
 import { createCVAts } from '@/services/createPDF.ats';
 import { createCVDocx } from '@/services/createDocx';
 import * as MODEL from '@/models';
 
-// One message for unknown and private profiles, so a private profile can't be told apart from a missing one.
-export const PROFILE_NOT_FOUND = 'Email không tồn tại';
+// One error for unknown and private profiles, so a private profile can't be told apart from a missing one.
+export const profileNotFound = (lang: string | undefined) => new NotFoundError(t('publicProfile.notFound', lang));
 
 /**
  * Localized ({vi, en}) fields get resolved down to a single string for
@@ -43,10 +42,7 @@ export const fnGetAboutMe = async (req: Request, res: Response, next: NextFuncti
    * keep working.
    */
   const profileId = typeof req.query['profile'] === 'string' ? req.query['profile'] : undefined;
-  if (!email) {
-    res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('Không tìm thấy Email'));
-    return;
-  }
+  if (!email) return next(new BadRequestError(t('publicProfile.identifierRequired', req.lang)));
 
   try {
     const _me = await handlerGetAboutMe({ identifier: email, lang, profileId });
@@ -58,7 +54,7 @@ export const fnGetAboutMe = async (req: Request, res: Response, next: NextFuncti
      * and is unaffected — a candidate can always see/export their own
      * data regardless of this flag.
      */
-    if (_me.data?.isPublic === false) return next(new NotFoundError(PROFILE_NOT_FOUND));
+    if (_me.data?.isPublic === false) return next(profileNotFound(lang));
     return formatReturn(res, _me);
   } catch (err) {
     handleError({ err, next, lang: req.lang });
@@ -106,7 +102,7 @@ export const handlerGetAboutMe = async ({
     const safeEmailQuery = candidateQuerySafe.safeQuery({}, { email: identifier });
     document = 'email' in safeEmailQuery ? await MODEL.Candidate.findOne(safeEmailQuery, { ...removeFields }).exec() : null;
   }
-  if (!document) throw new NotFoundError(PROFILE_NOT_FOUND);
+  if (!document) throw profileNotFound(lang);
 
   const { _id } = document;
 
@@ -225,16 +221,13 @@ export const handlerGetAboutMe = async ({
   return {
     success: true,
     data: dataResult,
-    message: 'Lấy thông tin ứng viên thành công',
+    message: t('publicProfile.getSuccess', lang),
   };
 };
 
 export const fnRecordVisit = async (req: Request, res: Response, next: NextFunction) => {
   const { email } = req.params;
-  if (!email) {
-    res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('Không tìm thấy Email'));
-    return;
-  }
+  if (!email) return next(new BadRequestError(t('publicProfile.identifierRequired', req.lang)));
 
   try {
     const _result = await handlerRecordVisit(email, req);
@@ -251,7 +244,7 @@ export const handlerRecordVisit = async (email: string, req: Request) => {
   const safeEmailQuery = candidateQuerySafe.safeQuery({}, { email });
   const candidate = 'email' in safeEmailQuery ? await MODEL.Candidate.findOne(safeEmailQuery).select('_id').exec() : null;
   // Same 404 as handlerGetAboutMe above for an unknown email.
-  if (!candidate) throw new NotFoundError(PROFILE_NOT_FOUND);
+  if (!candidate) throw profileNotFound(req.lang);
 
   /**
    * Same IP-extraction pattern already used by rateLimit.middleware.ts —
@@ -269,7 +262,7 @@ export const handlerRecordVisit = async (email: string, req: Request) => {
 
   await MODEL.Visit.create({ candidateId: candidate._id, ip, location, referrer, profileId });
 
-  return { success: true, message: 'Ghi nhận lượt ghé thăm thành công', data: null };
+  return { success: true, message: t('publicProfile.visitRecorded', req.lang), data: null };
 };
 
 /**
@@ -314,20 +307,14 @@ export const normalizeReferrer = (raw: unknown): string | null => {
 export const fnExportPDF = async (req: Request, res: Response, next: NextFunction) => {
   // Use the authenticated user's own id — never a client-supplied one, or any authenticated user could export another candidate's PDF.
   const _id = req.user?._id;
-  if (!_id) {
-    res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('CandidateId not found'));
-    return;
-  }
+  if (!_id) return next(new BadRequestError(t('candidate.userNotFound', req.lang)));
 
   const { idQuerySafe } = await import('@/utils/querySafe');
   const find = await MODEL.Candidate.findOne(idQuerySafe.safeQuery({}, { _id })).exec();
-  if (!find) return next(new NotFoundError('Candidate not found'));
+  if (!find) return next(new NotFoundError(t('candidate.userNotFound', req.lang)));
 
   const { email } = find;
-  if (!email) {
-    res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('Email not found'));
-    return;
-  }
+  if (!email) return next(new BadRequestError(t('candidate.userNotFound', req.lang)));
 
   try {
     const lang = req.query['lang'] === 'en' ? 'en' : 'vi';

@@ -13,6 +13,7 @@ import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { formatReturn } from '@/utils';
 import { t } from '@/utils/i18n';
+import { ErrorCode } from '@/errors';
 
 export const LINKEDIN_EXPORT_MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
@@ -47,6 +48,7 @@ export const uploadLinkedInExportMiddleware = (req: Request, res: Response, next
     if (err instanceof Error && err.message === 'INVALID_FILE_TYPE') {
       return formatReturn(res, {
         statusCode: StatusCodes.BAD_REQUEST,
+        errorCode: ErrorCode.FILE_INVALID_TYPE,
         success: false,
         message: t('linkedinImport.invalidFileType', req.lang),
       });

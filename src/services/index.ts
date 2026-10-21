@@ -3,11 +3,12 @@
  * @see https://github.com/datvt243
  */
 
-import mongoose, { Model, Types } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import type { BaseReturn } from '@/types/base.type';
+import type { ListMeta } from '@/utils/response';
 import { getSelectFields } from '@/utils/helper';
 import { t, DEFAULT_LANG } from '@/utils/i18n';
-import { AuthorizationError, BadRequestError, NotFoundError, ValidationError } from '@/errors';
+import { AuthorizationError, BadRequestError, NotFoundError } from '@/errors';
 
 /**
  * The minimal raw-document shape every CV-section model shares, at the
@@ -65,6 +66,14 @@ interface baseProp<T extends CrudDocument> {
 // Pagination hard cap — a caller cannot request more than this many documents per page regardless of what `limit` it passes.
 const MAX_PAGE_LIMIT = 100;
 
+/** List `meta`; an unpaginated list is one page whose `limit` is its own size. */
+export const listMeta = (total: number, page = 1, limit = total): ListMeta => ({
+  page,
+  limit,
+  total,
+  totalPages: limit > 0 ? Math.max(Math.ceil(total / limit), 1) : 1,
+});
+
 const formatReturn = (props: BaseReturn) => {
   const { success = false, message = '', errors = null, data = null } = props;
   return {
@@ -111,15 +120,14 @@ export const baseFindDocument = async <T extends CrudDocument>(props: baseProp<T
   if (sort) query = query.sort(sort);
 
   /**
-   * Pagination is opt-in: it only kicks in when the caller
-   * passes a valid positive `limit`. No `limit` -> exactly the old
-   * behavior (`data` is the full, unpaginated array), so every existing
-   * caller of baseGetAll keeps working unchanged.
+   * Pagination is opt-in: it only kicks in when the caller passes a valid
+   * positive `limit`. Either way `data` is an array and `meta` describes it;
+   * without `limit` it is one page holding everything.
    */
   const hasPagination = Number.isInteger(limit) && (limit as number) > 0;
   if (!hasPagination) {
     const find = await query.exec();
-    return formatReturn({ success: true, data: find, message: '', errors: null });
+    return { ...formatReturn({ success: true, data: find, message: '', errors: null }), meta: listMeta(find.length) };
   }
 
   const safeLimit = Math.min(limit as number, MAX_PAGE_LIMIT);
@@ -128,20 +136,7 @@ export const baseFindDocument = async <T extends CrudDocument>(props: baseProp<T
 
   const [items, total] = await Promise.all([query.skip(skip).limit(safeLimit).exec(), MODEL.countDocuments(safeFields)]);
 
-  return formatReturn({
-    success: true,
-    data: {
-      items,
-      pagination: {
-        page: safePage,
-        limit: safeLimit,
-        total,
-        totalPages: Math.max(Math.ceil(total / safeLimit), 1),
-      },
-    },
-    message: '',
-    errors: null,
-  });
+  return { ...formatReturn({ success: true, data: items, message: '', errors: null }), meta: listMeta(total, safePage, safeLimit) };
 };
 
 // `lang?: string | undefined` (`exactOptionalPropertyTypes`): BaseController.ts passes `req.lang`, itself `string | undefined`.
@@ -221,13 +216,13 @@ export const baseUpdateDocument = async <T extends CrudDocument>(props: {
     throw new AuthorizationError(t('common.updateNotYours', lang));
   }
 
-  const modelValid = await _baseHelper().modelValidate(MODEL, { ..._valueUpdate });
-  if (!modelValid.success) throw new ValidationError(t('validation.hasErrors', lang), modelValid.errors);
+  // A Mongoose ValidationError propagates; errorsMiddleware turns it into VALIDATION_ERROR with per-field details.
+  await MODEL.validate({ ..._valueUpdate });
 
   try {
     await MODEL.updateOne({ _id }, _valueUpdate).exec();
     const data = await _baseHelper().getDocumentUpdated(_id, { model: MODEL, select: getSelectFields(_valueUpdate) });
-    return formatReturn({ success: true, message: t('common.updateSuccess', lang), errors: {}, data });
+    return formatReturn({ success: true, message: t('common.updateSuccess', lang), data });
   } catch (err) {
     props?.hookHasErrors?.({ err });
     throw err;
@@ -248,8 +243,8 @@ export const baseCreateDocument = async <T extends CrudDocument>(props: {
 
   if (!document['candidateId']) throw new BadRequestError(t('common.createFailed', lang));
 
-  const modelValid = await _baseHelper().modelValidate(MODEL, { ...document });
-  if (!modelValid.success) throw new ValidationError(t('validation.hasErrors', lang), modelValid.errors);
+  // A Mongoose ValidationError propagates; errorsMiddleware turns it into VALIDATION_ERROR with per-field details.
+  await MODEL.validate({ ...document });
 
   const _message = t('common.createSuccess', lang);
 
@@ -267,7 +262,7 @@ export const baseCreateDocument = async <T extends CrudDocument>(props: {
       const replacement = await props.hookAfterSave(document, { success: true, message: _message, data: _data });
       if (replacement !== undefined) _data = replacement;
     }
-    return formatReturn({ success: true, message: _message, errors: {}, data: _data });
+    return formatReturn({ success: true, message: _message, data: _data });
   } catch (err) {
     props?.hookHasErrors?.({ err });
     throw err;
@@ -292,12 +287,12 @@ export const basePatchDocument = async <T extends CrudDocument>(props: {
   });
   if (!isExist) throw new NotFoundError(_mess);
 
-  const modelValid = await _baseHelper().modelValidate(MODEL, { ...document });
-  if (!modelValid.success) throw new ValidationError(t('validation.hasErrors', lang), modelValid.errors);
+  // A Mongoose ValidationError propagates; errorsMiddleware turns it into VALIDATION_ERROR with per-field details.
+  await MODEL.validate({ ...document });
 
   await MODEL.updateOne({ _id }, document).exec();
   const data = await _baseHelper().getDocumentUpdated(_id, { model: MODEL, select: getSelectFields(document) });
-  return { success: true, message: t('common.updateSuccess', lang), errors: {}, data: data ? data : null };
+  return { success: true, message: t('common.updateSuccess', lang), data: data ? data : null };
 };
 
 const _baseHelper = () => {
@@ -307,28 +302,6 @@ const _baseHelper = () => {
       const find = MODEL.findById(_id);
       const record = await find.exec();
       return record;
-    },
-    modelValidate: async <T extends CrudDocument>(model: Model<T>, value: Record<string, unknown>) => {
-      let message = '',
-        success = true;
-      let errors: null | string[] = null;
-
-      try {
-        await model.validate(value);
-      } catch (err) {
-        const errs = [];
-        if (err instanceof mongoose.Error.ValidationError) {
-          const { errors: _errs } = err;
-          for (const k of Object.keys(_errs)) {
-            errs.push(k);
-          }
-        }
-
-        success = false;
-        message = '';
-        errors = errs;
-      }
-      return { success, message, errors };
     },
     baseCheckDocumentById: async <T extends CrudDocument>({
       MODEL,

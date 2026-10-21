@@ -8,7 +8,6 @@ import puppeteer, { Browser } from 'puppeteer';
 import path from 'path';
 import fs from 'fs';
 import { Response } from 'express';
-import { logger } from '@/logger';
 import { t } from '@/utils/i18n';
 import {
   informationPersonal,
@@ -84,14 +83,6 @@ export const createCV = async (data: AggregatedCandidateData, res: Response, opt
 
     res.contentType('application/pdf');
     res.send(pdfBuffer);
-  } catch (error) {
-    // An Error serializes to `{}` — log the real cause
-    // server-side instead of echoing an empty object to the client
-    logger.error('[createCV] PDF generation failed', { error: (error as Error).message, stack: (error as Error).stack });
-    res.status(500).send({
-      status: false,
-      message: 'Xảy ra lỗi, không thể đọc browser',
-    });
   } finally {
     // Also close on failure, or each failed export leaks a Chromium process
     await browser?.close().catch(() => undefined);

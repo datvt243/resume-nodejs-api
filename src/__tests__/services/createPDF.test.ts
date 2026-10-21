@@ -7,7 +7,6 @@
  */
 
 import { pageRender, createCV, renderPdfBuffer } from '@/services/createPDF';
-import { logger } from '@/logger';
 import puppeteer from 'puppeteer';
 
 describe('pageRender', () => {
@@ -230,30 +229,26 @@ describe('Puppeteer launch args (issue #225 — Render free-tier /dev/shm crash)
 describe('createCV failure handling (issue #225)', () => {
   afterEach(() => jest.clearAllMocks());
 
-  it('closes the browser and logs the real error when rendering fails after launch', async () => {
+  // The failure propagates to errorsMiddleware, which logs it and answers with the error envelope.
+  it('closes the browser and rethrows when rendering fails after launch, writing no response', async () => {
     const browser = createFakeBrowser();
     browser.newPage.mockRejectedValue(new Error('Target closed'));
     (puppeteer.launch as jest.Mock).mockResolvedValue(browser);
-    const errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => logger);
     const res = createFakeRes();
 
-    await createCV({ email: 'a@b.com' }, res as any);
+    await expect(createCV({ email: 'a@b.com' }, res as any)).rejects.toThrow('Target closed');
 
     expect(browser.close).toHaveBeenCalledTimes(1);
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('createCV'), expect.objectContaining({ error: 'Target closed' }));
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.send).toHaveBeenCalledWith(expect.not.objectContaining({ error: expect.anything() }));
+    expect(res.status).not.toHaveBeenCalled();
+    expect(res.send).not.toHaveBeenCalled();
   });
 
-  it('logs the launch error and still answers 500 when Chromium fails to start', async () => {
+  it('rethrows the launch error when Chromium fails to start', async () => {
     (puppeteer.launch as jest.Mock).mockRejectedValue(new Error('Failed to launch the browser process'));
-    const errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => logger);
     const res = createFakeRes();
 
-    await createCV({ email: 'a@b.com' }, res as any);
-
-    expect(errorSpy).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ error: 'Failed to launch the browser process' }));
-    expect(res.status).toHaveBeenCalledWith(500);
+    await expect(createCV({ email: 'a@b.com' }, res as any)).rejects.toThrow('Failed to launch the browser process');
+    expect(res.status).not.toHaveBeenCalled();
   });
 });
 

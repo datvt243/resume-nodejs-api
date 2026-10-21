@@ -64,32 +64,32 @@ describe('errorsMiddleware', () => {
   it('malformed JSON body → 400 MALFORMED_JSON', async () => {
     const res = await postJson('{"a":');
     expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({ success: false, errorCode: 'MALFORMED_JSON' });
+    expect(await res.json()).toMatchObject({ success: false, error: { code: 'MALFORMED_JSON' } });
   });
 
   it('body over the 100kb default limit → 413 PAYLOAD_TOO_LARGE', async () => {
     const res = await postJson(JSON.stringify({ a: 'x'.repeat(200 * 1024) }));
     expect(res.status).toBe(413);
-    expect(await res.json()).toMatchObject({ success: false, errorCode: 'PAYLOAD_TOO_LARGE' });
+    expect(await res.json()).toMatchObject({ success: false, error: { code: 'PAYLOAD_TOO_LARGE' } });
   });
 
   it('Mongoose CastError reaching the middleware directly → 400 BAD_REQUEST', async () => {
     const res = await fetch(`${base}/cast`);
     expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({ success: false, errorCode: 'BAD_REQUEST', message: 'ID không đúng định dạng' });
+    expect(await res.json()).toMatchObject({ success: false, error: { code: 'BAD_REQUEST', message: 'ID không đúng định dạng' } });
   });
 
   it('Mongoose ValidationError reaching the middleware directly → 400 VALIDATION_ERROR with translated details', async () => {
     const res = await fetch(`${base}/invalid`);
     expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({ success: false, errorCode: 'VALIDATION_ERROR', errors: ['Ngày sinh là bắt buộc'] });
+    expect(await res.json()).toEqual({ success: false, error: { code: 'VALIDATION_ERROR', message: expect.any(String), details: [{ field: 'birthday', message: 'Ngày sinh là bắt buộc' }] } });
   });
 
   it('duplicate key reaching the middleware directly → 409 CONFLICT, driver text not sent', async () => {
     const res = await fetch(`${base}/duplicate`);
     const text = await res.text();
     expect(res.status).toBe(409);
-    expect(JSON.parse(text)).toMatchObject({ success: false, errorCode: 'CONFLICT', message: 'email đã tồn tại' });
+    expect(JSON.parse(text)).toMatchObject({ success: false, error: { code: 'CONFLICT', message: 'email đã tồn tại' } });
     expect(text).not.toContain('E11000');
   });
 
@@ -98,13 +98,13 @@ describe('errorsMiddleware', () => {
     const text = await res.text();
     expect(res.status).toBe(500);
     expect(text).not.toContain('secret db text');
-    expect(JSON.parse(text)).toEqual({ success: false, errorCode: 'INTERNAL_SERVER_ERROR', message: 'Lỗi hệ thống' });
+    expect(JSON.parse(text)).toEqual({ success: false, error: { code: 'INTERNAL_SERVER_ERROR', message: 'Lỗi hệ thống' } });
     expect(logger.error).toHaveBeenCalledWith('ERROR [INTERNAL_SERVER_ERROR]: secret db text', expect.objectContaining({ stack: expect.stringContaining('secret db text') }));
   });
 
   it('development: an unexpected error still shows its message', async () => {
     mockNodeEnv = 'development';
     const res = await fetch(`${base}/boom`);
-    expect(await res.json()).toMatchObject({ errorCode: 'INTERNAL_SERVER_ERROR', message: 'secret db text' });
+    expect(await res.json()).toMatchObject({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'secret db text', stack: expect.any(String) } });
   });
 });
