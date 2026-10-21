@@ -8,7 +8,7 @@ import { Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import mongoose from 'mongoose';
 import type { BaseReturn } from '@/types/base.type.ts';
-import { AppError, ValidationError, BadRequestError, ConflictError } from '@/errors';
+import { AppError, ErrorCode, ValidationError, BadRequestError, ConflictError, TokenExpiredError, InvalidTokenError } from '@/errors';
 import { t, tErrorType, DEFAULT_LANG } from '@/utils/i18n';
 
 /**
@@ -31,34 +31,24 @@ interface formatReturn extends BaseReturn {
 export const getSelectFields = (fields: Record<string, unknown>): string => Object.keys(fields).join(', ');
 
 /**
- * Pass error to global error handler via next()
- * Use this in catch blocks to forward errors to middleware
+ * Map any thrown value to an `AppError`: known third-party errors (body-parser,
+ * jsonwebtoken, Mongoose, Mongo duplicate key) get their real status/code;
+ * anything else becomes a non-operational 500 whose message
+ * `errorsMiddleware` hides in production.
  */
-export const handleError = ({
-  err,
-  next,
-  lang = DEFAULT_LANG,
-}: {
-  err: unknown;
-  next: NextFunction;
-  lang?: string | undefined;
-}): void => {
-  if (err instanceof AppError) {
-    return next(err);
-  }
+export const toAppError = (err: unknown, lang: string | undefined = DEFAULT_LANG): AppError => {
+  if (err instanceof AppError) return err;
 
   if (err instanceof mongoose.Error.CastError) {
-    return next(
-      new BadRequestError({
-        message: t('errors.invalidIdFormat', lang),
-        errors: err.message,
-      }),
-    );
+    return new BadRequestError({
+      message: t('errors.invalidIdFormat', lang),
+      errors: err.message,
+    });
   }
 
   if (isDuplicateKeyError(err)) {
     const field = Object.keys(err.keyValue || {})[0] || 'field';
-    return next(new ConflictError({ message: t('errors.duplicateKey', lang).replace('{{field}}', field) }));
+    return new ConflictError({ message: t('errors.duplicateKey', lang).replace('{{field}}', field) });
   }
 
   /**
@@ -77,12 +67,41 @@ export const handleError = ({
       }
       return e.message;
     });
-    return next(new ValidationError({ message: t('validation.hasErrors', lang), errors: details }));
+    return new ValidationError({ message: t('validation.hasErrors', lang), errors: details });
   }
 
-  const message = err instanceof Error ? err.message : undefined;
-  return next(new AppError({ message: message || t('errors.internalServerError', lang), statusCode: StatusCodes.INTERNAL_SERVER_ERROR }));
+  // body-parser and jsonwebtoken errors are recognized by their documented `type`/`name`.
+  const { type, name } = (typeof err === 'object' && err !== null ? err : {}) as { type?: unknown; name?: unknown };
+  if (type === 'entity.parse.failed')
+    return new AppError({ message: t('errors.malformedJson', lang), statusCode: StatusCodes.BAD_REQUEST, errorCode: ErrorCode.MALFORMED_JSON });
+  if (type === 'entity.too.large')
+    return new AppError({ message: t('errors.payloadTooLarge', lang), statusCode: StatusCodes.REQUEST_TOO_LONG, errorCode: ErrorCode.PAYLOAD_TOO_LARGE });
+  if (name === 'TokenExpiredError') return new TokenExpiredError(t('auth.tokenExpired', lang));
+  if (name === 'JsonWebTokenError') return new InvalidTokenError(t('auth.invalidToken', lang));
+
+  const unexpected = new AppError({
+    message: (err instanceof Error && err.message) || t('errors.internalServerError', lang),
+    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+    isOperational: false,
+  });
+  // Keep the original stack so the log points at the real failure, not here.
+  if (err instanceof Error && err.stack) unexpected.stack = err.stack;
+  return unexpected;
 };
+
+/**
+ * Pass error to global error handler via next()
+ * Use this in catch blocks to forward errors to middleware
+ */
+export const handleError = ({
+  err,
+  next,
+  lang = DEFAULT_LANG,
+}: {
+  err: unknown;
+  next: NextFunction;
+  lang?: string | undefined;
+}): void => next(toAppError(err, lang));
 
 export const formatResponse = (props: BaseReturn) => {
   const { type = '', success, message, errors = {}, data } = props;

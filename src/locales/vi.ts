@@ -25,6 +25,8 @@ export default {
     resetPasswordSuccess: 'Đặt lại mật khẩu thành công',
     verificationTokenInvalid: 'Token xác thực email không hợp lệ hoặc đã hết hạn',
     emailVerifiedSuccess: 'Xác thực email thành công',
+    tokenExpired: 'Token đã hết hạn',
+    invalidToken: 'Token không hợp lệ',
   },
   validation: {
     hasErrors: 'Dữ liệu không hợp lệ',
@@ -127,6 +129,8 @@ export default {
     invalidIdFormat: 'ID không đúng định dạng',
     duplicateKey: '{{field}} đã tồn tại',
     internalServerError: 'Lỗi hệ thống',
+    malformedJson: 'Nội dung JSON không hợp lệ',
+    payloadTooLarge: 'Nội dung yêu cầu quá lớn',
   },
   joiErrors: {
     'any.required': '{{label}} là bắt buộc',

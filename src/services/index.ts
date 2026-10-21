@@ -7,6 +7,7 @@ import mongoose, { Model, Types } from 'mongoose';
 import type { BaseReturn } from '@/types/base.type';
 import { getSelectFields } from '@/utils/helper';
 import { t, DEFAULT_LANG } from '@/utils/i18n';
+import { logger } from '@/logger';
 
 /**
  * The minimal raw-document shape every CV-section model shares, at the
@@ -167,7 +168,9 @@ export const baseDeleteDocument = async <T extends CrudDocument>(props: { model:
     success = !!modifiedCount;
     message = t('common.deleteSuccess', lang);
   } catch (err) {
-    error = err instanceof Error ? err.message : String(err);
+    // Driver text stays in the log; the client only gets the translated failure message.
+    logger.error('Soft-delete/restore update failed', { error: err instanceof Error ? err.message : String(err) });
+    error = message;
   }
 
   return formatReturn({
@@ -197,7 +200,9 @@ export const baseRestoreDocument = async <T extends CrudDocument>(props: { model
     success = !!modifiedCount;
     message = t('common.restoreSuccess', lang);
   } catch (err) {
-    error = err instanceof Error ? err.message : String(err);
+    // Driver text stays in the log; the client only gets the translated failure message.
+    logger.error('Soft-delete/restore update failed', { error: err instanceof Error ? err.message : String(err) });
+    error = message;
   }
 
   return formatReturn({
@@ -379,9 +384,10 @@ const _baseHelper = () => {
     },
     handlerCatchError: (error: unknown) => {
       if (error instanceof ReferenceError) {
+        logger.error('ReferenceError in base service', { error: error.message, stack: error.stack });
         return {
           message: 'ReferenceError',
-          errors: [error.message],
+          errors: [],
         };
       }
 

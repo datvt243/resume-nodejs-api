@@ -25,6 +25,8 @@ export default {
     resetPasswordSuccess: 'Password reset successful',
     verificationTokenInvalid: 'Email verification token is invalid or has expired',
     emailVerifiedSuccess: 'Email verified successfully',
+    tokenExpired: 'Token has expired',
+    invalidToken: 'Invalid token',
   },
   validation: {
     hasErrors: 'Validation has errors',
@@ -127,6 +129,8 @@ export default {
     invalidIdFormat: 'Invalid ID format',
     duplicateKey: '{{field}} already exists',
     internalServerError: 'Internal Server Error',
+    malformedJson: 'Malformed JSON request body',
+    payloadTooLarge: 'Request body is too large',
   },
   joiErrors: {
     'any.required': '{{label}} is required',
