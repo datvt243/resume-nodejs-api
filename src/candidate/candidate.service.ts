@@ -7,7 +7,6 @@ import fs from 'fs';
 import path from 'path';
 import { Model } from 'mongoose';
 import * as MODELS from '@/models';
-import { validateModel } from '@/utils';
 import { candidateQuerySafe } from '@/utils/querySafe';
 import { t, DEFAULT_LANG } from '@/utils/i18n';
 import { CV_UPLOAD_DIR } from '@/middlewares/uploadCV.middleware';
@@ -76,14 +75,14 @@ export const handlerUpdate = async (item: Record<string, unknown>, lang: string 
 
   const value = { ...item };
 
-  const { valid, message, errors } = await validateModel(MODEL, value);
-  if (!valid) return { success: false, message, errors };
+  // A Mongoose ValidationError propagates; errorsMiddleware turns it into VALIDATION_ERROR with per-field details.
+  await MODEL.validate(value);
 
   await MODEL.updateOne({ _id: id }, value).exec();
 
   const safeSelect = candidateQuerySafe.whitelistSelect(Object.keys(value));
   const _find = await handlerGetInformationById(id, { select: safeSelect });
-  return { success: true, message: t('common.updateSuccess', lang), errors: {}, data: _find ? _find : {} };
+  return { success: true, message: t('common.updateSuccess', lang), data: _find ? _find : {} };
 };
 
 export const handlerUploadCV = async ({
@@ -102,7 +101,7 @@ export const handlerUploadCV = async ({
   const uploadedAt = Date.now();
   await MODEL.updateOne({ _id: candidateId }, { cvFile: { originalName, uploadedAt } }).exec();
 
-  return { success: true, message: t('candidate.cvUploadSuccess', lang), errors: {}, data: { originalName, uploadedAt } };
+  return { success: true, message: t('candidate.cvUploadSuccess', lang), data: { originalName, uploadedAt } };
 };
 
 export const handlerGetCVFile = async (candidateId: string) => {
@@ -118,7 +117,7 @@ export const handlerGetCVFile = async (candidateId: string) => {
  */
 export const handlerGetVisits = async (candidateId: string, lang: string = DEFAULT_LANG) => {
   const visits = await MODELS.Visit.find({ candidateId }).sort({ createdAt: -1 }).exec();
-  return { success: true, message: t('candidate.getVisitsSuccess', lang), errors: {}, data: { count: visits.length, visits } };
+  return { success: true, message: t('candidate.getVisitsSuccess', lang), data: visits };
 };
 
 export const handlerDelete = async (_id: string, lang: string = DEFAULT_LANG) => {
@@ -152,5 +151,5 @@ export const handlerDelete = async (_id: string, lang: string = DEFAULT_LANG) =>
     if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
   }
 
-  return { success: true, message: t('candidate.deleteAccountSuccess', lang), errors: {}, data: null };
+  return { success: true, message: t('candidate.deleteAccountSuccess', lang), data: null };
 };

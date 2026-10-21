@@ -41,7 +41,7 @@ describe('fnParseLinkedInExport (issue #141)', () => {
 
     expect(parseService.parseLinkedInExportZip).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, message: 'No file was uploaded' }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, error: expect.objectContaining({ message: 'No file was uploaded' }) }));
   });
 
   it('returns the parsed educations/experiences on success, never persisting anything', async () => {
@@ -70,7 +70,7 @@ describe('fnParseLinkedInExport (issue #141)', () => {
     await fnParseLinkedInExport(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, message: 'The ZIP file is invalid or corrupted' }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, error: expect.objectContaining({ message: 'The ZIP file is invalid or corrupted' }) }));
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -113,7 +113,7 @@ describe('fnParseCvPdf', () => {
 
     expect(parseCvPdfService.parseCvPdf).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, message: 'No file was uploaded' }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, error: expect.objectContaining({ message: 'No file was uploaded' }) }));
   });
 
   it('returns the parsed educations/experiences plus extractedText on success', async () => {
@@ -140,7 +140,7 @@ describe('fnParseCvPdf', () => {
     await fnParseCvPdf(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, message: 'File PDF không hợp lệ hoặc không đọc được' }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, error: expect.objectContaining({ message: 'File PDF không hợp lệ hoặc không đọc được' }) }));
     expect(next).not.toHaveBeenCalled();
   });
 

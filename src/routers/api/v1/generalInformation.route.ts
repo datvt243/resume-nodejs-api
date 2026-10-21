@@ -55,6 +55,10 @@ router.get('/', asyncHandler(fnGet));
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error, or candidate already has general information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post('/create', asyncHandler(fnCreate));
 
@@ -81,6 +85,10 @@ router.post('/create', asyncHandler(fnCreate));
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.put('/update', asyncHandler(fnUpdate));
 
@@ -107,6 +115,10 @@ router.put('/update', asyncHandler(fnUpdate));
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.patch('/update', asyncHandler(fnUpdateFields));
 

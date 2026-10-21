@@ -7,6 +7,10 @@
  */
 export default {
   auth: {
+    noToken: 'Truy cập bị từ chối. Không có token.',
+    tokenRevoked: 'Token đã bị thu hồi.',
+    invalidTokenPayload: 'Nội dung token không hợp lệ.',
+    csrfInvalid: 'CSRF token không hợp lệ hoặc bị thiếu.',
     registerSuccess: 'Đăng ký thành công',
     emailAlreadyExists: 'Email đã tồn tại',
     invalidCredentials: 'Email hoặc mật khẩu không chính xác',
@@ -79,6 +83,13 @@ export default {
     parseSuccess: 'Đọc CV PDF thành công',
     parseFailed: 'Đọc CV PDF thất bại',
   },
+  publicProfile: {
+    identifierRequired: 'Thiếu email hoặc slug của hồ sơ',
+    notFound: 'Email không tồn tại',
+    getSuccess: 'Lấy thông tin ứng viên thành công',
+    visitRecorded: 'Ghi nhận lượt ghé thăm thành công',
+    atsTemplateOnly: 'Chỉ hỗ trợ template=ats',
+  },
   publicSearch: {
     invalidQuery: 'Từ khoá tìm kiếm phải dài từ 2 đến 100 ký tự',
   },
@@ -125,6 +136,8 @@ export default {
     },
   },
   errors: {
+    routeNotFound: 'Không tìm thấy đường dẫn {{route}}',
+    rateLimited: 'Quá nhiều yêu cầu, vui lòng thử lại sau',
     invalidIdFormat: 'ID không đúng định dạng',
     duplicateKey: '{{field}} đã tồn tại',
     internalServerError: 'Lỗi hệ thống',

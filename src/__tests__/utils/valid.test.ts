@@ -63,25 +63,32 @@ describe('formatValidateError — generic i18n templates (issue #160)', () => {
   test('a missing required field resolves via tErrorType (not a dot-path walk) in vi', () => {
     const { error } = educationSchema.validate({}, { abortEarly: false });
     const messages = formatValidateError(error as Joi.ValidationError, 'vi');
-    expect(messages['school']).toBe('Tên trường là bắt buộc');
+    expect(messages).toEqual([{ field: 'school', message: 'Tên trường là bắt buộc' }]);
   });
 
   test('the same case in en uses the English field label + template', () => {
     const { error } = educationSchema.validate({}, { abortEarly: false });
     const messages = formatValidateError(error as Joi.ValidationError, 'en');
-    expect(messages['school']).toBe('School name is required');
+    expect(messages).toEqual([{ field: 'school', message: 'School name is required' }]);
   });
 
   test('a string.min violation interpolates both the field label and the limit', () => {
     const { error } = educationSchema.validate({ school: 'short' }, { abortEarly: false });
     const messages = formatValidateError(error as Joi.ValidationError, 'en');
-    expect(messages['school']).toBe('School name must be at least 10 characters');
+    expect(messages).toEqual([{ field: 'school', message: 'School name must be at least 10 characters' }]);
+  });
+
+  test('a nested error carries its full dotted path, so sibling items never collide', () => {
+    const schema = Joi.object({ items: Joi.array().items(Joi.object({ company: Joi.string().required() })) });
+    const { error } = schema.validate({ items: [{ company: 'A' }, {}, {}] }, { abortEarly: false });
+    const messages = formatValidateError(error as Joi.ValidationError, 'en');
+    expect(messages.map((d) => d.field)).toEqual(['items.1.company', 'items.2.company']);
   });
 
   test('a field with no fieldLabels entry falls back to the raw field name', () => {
     const schema = Joi.object({ unmappedField: Joi.string().required() });
     const { error } = schema.validate({}, { abortEarly: false });
     const messages = formatValidateError(error as Joi.ValidationError, 'en');
-    expect(messages['unmappedField']).toBe('unmappedField is required');
+    expect(messages).toEqual([{ field: 'unmappedField', message: 'unmappedField is required' }]);
   });
 });

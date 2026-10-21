@@ -27,6 +27,7 @@ function createMocks(
     method: extra?.method,
     cookies: extra?.cookies,
     body: extra?.body,
+    lang: 'en',
   };
   const json = jest.fn();
   const res: any = { status: jest.fn().mockReturnValue({ json }), json };
@@ -53,11 +54,20 @@ describe('verifyToken middleware', () => {
   it('calls next with InvalidTokenError on invalid token', async () => {
     mockedIsBlacklisted.mockResolvedValue(false);
     mockedJwtVerify.mockImplementation(() => {
-      throw new Error('invalid');
+      throw new jwt.JsonWebTokenError('invalid signature');
     });
     const { req, res, next } = createMocks({ Authorization: 'Bearer invalid' });
     await verifyToken(req, res, next);
     expect(next).toHaveBeenCalledWith(expect.any(InvalidTokenError));
+    expect(next.mock.calls[0][0].message).toBe('Invalid token');
+  });
+
+  it('answers any other failure with a 401 INVALID_TOKEN that does not echo its text', async () => {
+    mockedIsBlacklisted.mockRejectedValue(new Error('redis connection reset'));
+    const { req, res, next } = createMocks({ Authorization: 'Bearer tok' });
+    await verifyToken(req, res, next);
+    expect(next).toHaveBeenCalledWith(expect.any(InvalidTokenError));
+    expect(next.mock.calls[0][0].message).toBe('Invalid token');
   });
 
   it('calls next with TokenExpiredError when jwtVerify throws TokenExpiredError', async () => {

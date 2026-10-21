@@ -25,7 +25,7 @@ const router = express.Router();
  *       - $ref: '#/components/parameters/SortParam'
  *     responses:
  *       200:
- *         description: List of references. Passing `limit` switches `data` to `{ items, pagination }` instead of a bare array.
+ *         description: List of references. `data` is always an array; `meta` holds page/limit/total/totalPages (one page with everything when `limit` is omitted).
  *         content:
  *           application/json:
  *             schema:
@@ -70,6 +70,10 @@ router.get(
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post('/create', asyncHandler(fnCreate));
 
@@ -96,6 +100,10 @@ router.post('/create', asyncHandler(fnCreate));
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.put('/update', asyncHandler(fnUpdate));
 

@@ -8,11 +8,10 @@
  * @see https://github.com/datvt243
  */
 import { NextFunction, Request, Response } from 'express';
-import { StatusCodes } from 'http-status-codes';
 
 import { formatReturn, handleError } from '@/utils';
-import { formatReturnFailed } from '@/services';
-import { NotFoundError } from '@/errors';
+import { BadRequestError, NotFoundError } from '@/errors';
+import { t } from '@/utils/i18n';
 import { handlerGetAboutMe } from '@/candidate_me/index';
 import { renderAtsPdfBuffer, buildAtsContent } from '@/services/createPDF.ats';
 import { renderPdfBuffer } from '@/services/createPDF';
@@ -26,14 +25,13 @@ import * as MODEL from '@/models';
 export const fnAtsCheck = async (req: Request, res: Response, next: NextFunction) => {
   const _id = req.user?._id;
   if (!_id) {
-    res.status(StatusCodes.BAD_REQUEST).json(formatReturnFailed('CandidateId not found'));
-    return;
+    return next(new BadRequestError(t('candidate.userNotFound', req.lang)));
   }
 
   try {
     const { idQuerySafe } = await import('@/utils/querySafe');
     const find = await MODEL.Candidate.findOne(idQuerySafe.safeQuery({}, { _id })).exec();
-    if (!find?.email) return next(new NotFoundError('Candidate not found'));
+    if (!find?.email) return next(new NotFoundError(t('candidate.userNotFound', req.lang)));
 
     const lang: SupportedLang = req.body?.['lang'] === 'en' ? 'en' : 'vi';
     const template: 'ats' | 'classic' = req.body?.['template'] === 'classic' ? 'classic' : 'ats';

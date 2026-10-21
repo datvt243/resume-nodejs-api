@@ -12,6 +12,7 @@ import type { Model } from 'mongoose';
 import { created, formatReturn, handleError, ok, toAppError, validateSchema } from '@/utils/index';
 import type { BaseReturn } from '@/types/base.type';
 import { logger } from '@/logger';
+import { ErrorCode, ValidationError, type ErrorDetail } from '@/errors';
 import { baseDeleteDocument, baseFindDocument, baseRestoreDocument, CrudDocument } from '@/services';
 import * as MODELS from '@/models';
 import { t } from '@/utils/i18n';
@@ -83,7 +84,7 @@ export const baseGetAll = async (req: Request, res: Response, next: NextFunction
       limit: limit !== undefined ? parseInt(limit, 10) : undefined,
       sort: sort && SORT_FIELD_REGEX.test(sort) ? sort : undefined,
     });
-    return ok(res, _result.data, _result.message);
+    return ok(res, _result.data, _result.message, 'meta' in _result ? _result.meta : undefined);
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }
@@ -189,7 +190,7 @@ export const baseUploadImages = async (req: Request, res: Response, next: NextFu
       return formatReturn(res, { statusCode: StatusCodes.BAD_REQUEST, success: false, message: t('images.tooManyFiles', req.lang) });
     }
     if (err instanceof Error && err.message === 'INVALID_FILE_TYPE') {
-      return formatReturn(res, { statusCode: StatusCodes.BAD_REQUEST, success: false, message: t('images.invalidFileType', req.lang) });
+      return formatReturn(res, { statusCode: StatusCodes.BAD_REQUEST, errorCode: ErrorCode.FILE_INVALID_TYPE, success: false, message: t('images.invalidFileType', req.lang) });
     }
     handleError({ err, next, lang: req.lang });
   }
@@ -287,21 +288,17 @@ export const createCrudController = (props: {
       const succeeded = results.filter((r) => r.success).length;
       const summary = { total: results.length, succeeded, failed: results.length - succeeded };
 
-      /**
-       * Every item failed: a 400 with `success: false`. Written directly with
-       * the same body keys because utils/helper.ts's formatResponse() nulls
-       * out `data` whenever `success` is false, which would drop
-       * `results`/`summary`, the one thing the caller needs here.
-       */
+      // Every item failed: one 400 whose details point at each item (`items.3.company`, or `items.3` for a non-field failure).
       if (succeeded === 0) {
-        return res.status(StatusCodes.BAD_REQUEST).json({ success: false, message: t('common.createFailed', lang), errors: null, data: { results, summary } });
+        const details = results.flatMap((r) => {
+          const errs = Array.isArray(r['errors']) ? (r['errors'] as ErrorDetail[]) : [];
+          const message = typeof r['message'] === 'string' ? r['message'] : '';
+          return errs.length ? errs.map((d) => ({ field: `items.${r.index}.${d.field}`, message: d.message })) : [{ field: `items.${r.index}`, message }];
+        });
+        throw new ValidationError(t('common.createFailed', lang), details);
       }
 
-      /**
-       * At least one item was created: envelope `success` stays true and
-       * per-item outcome lives in `results[].success`/`summary`, for the same
-       * formatResponse() reason as above.
-       */
+      // At least one item was created: per-item outcome lives in `results[].success`/`summary`.
       return formatReturn(res, {
         statusCode: StatusCodes.CREATED,
         success: true,

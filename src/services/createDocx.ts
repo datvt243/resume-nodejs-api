@@ -16,7 +16,6 @@
 import { Response } from 'express';
 import { Document, Packer, Paragraph, HeadingLevel, TextRun, BorderStyle } from 'docx';
 import { t } from '@/utils/i18n';
-import { logger } from '@/logger';
 import { AggregatedCandidateData, GeneralInformationData, Skill, EducationData, ExperienceData, ProjectData, Award, Certificate, Reference, Language } from '@/types/candidate.type';
 
 export interface DocxSection {
@@ -236,19 +235,11 @@ export const renderDocxDocument = (content: DocxContent, theme: DocxTheme = 'cla
 
 /** I/O wrapper: builds the content model, renders it, packs to a buffer, sends it. */
 export const createCVDocx = async (data: AggregatedCandidateData, res: Response, theme: DocxTheme = 'classic') => {
-  try {
-    const content = buildDocxContent(data);
-    const doc = renderDocxDocument(content, theme);
-    const buffer = await Packer.toBuffer(doc);
+  const content = buildDocxContent(data);
+  const doc = renderDocxDocument(content, theme);
+  const buffer = await Packer.toBuffer(doc);
 
-    res.setHeader('Content-Disposition', `attachment; filename="${content.email}.docx"`);
-    res.contentType('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    res.send(buffer);
-  } catch (error) {
-    logger.error('DOCX export failed', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).send({
-      status: false,
-      message: 'Xảy ra lỗi, không thể tạo file DOCX',
-    });
-  }
+  res.setHeader('Content-Disposition', `attachment; filename="${content.email}.docx"`);
+  res.contentType('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  res.send(buffer);
 };

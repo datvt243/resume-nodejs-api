@@ -287,15 +287,4 @@ Each phase is its own issue and PR on `resume-nodejs-api`. Phases 1–4 keep the
 
 ## Current deviations
 
-What the live API still does (as of the #271 audit, v1.14.0), until the phase above ships:
-
-| Area | Today | Fixed in phase |
-|---|---|---|
-| Error body | `{ success:false, errorCode, message, errors }` from the middleware, `{ success:false, message, errors, data:null }` from handlers (no `errorCode`), `{ status:false, message }` from PDF/DOCX failures | 5 |
-| `errors` shape | Joi: `{ field: message }` (top-level field only). Mongoose: array of names or of messages. CastError: string | 5 |
-| Lists | `data` is a bare array, or `{ items, pagination }` when `limit` is passed | 5 |
-| Validation | 401 on `/auth/*`, `/candidate/update`, `/generalInformation/update`. 400 elsewhere | 3 |
-| `/create` failure | **201** with `success:false` | 3 |
-| Not found / not yours / DB failure | 400 | 4 |
-| Malformed JSON, broken refresh token | 500 (refresh also leaks `"invalid token"`) | 2 |
-| Unknown route | GET `/api/*` → 404 JSON. Other methods → Express HTML 404. Other GET → 200 HTML | 1 |
+None. All five phases are implemented on `resume-nodejs-api` `staging`; the live API matches this standard once the phase 5 release ships (after both clients ship their dual-shape readers, §5 C6).

@@ -13,6 +13,7 @@ import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { formatReturn } from '@/utils';
 import { t } from '@/utils/i18n';
+import { ErrorCode } from '@/errors';
 import { CV_MAX_FILE_SIZE } from '@/middlewares/uploadCV.middleware';
 
 const fileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
@@ -46,6 +47,7 @@ export const uploadCvPdfParseMiddleware = (req: Request, res: Response, next: Ne
     if (err instanceof Error && err.message === 'INVALID_FILE_TYPE') {
       return formatReturn(res, {
         statusCode: StatusCodes.BAD_REQUEST,
+        errorCode: ErrorCode.FILE_INVALID_TYPE,
         success: false,
         message: t('cvPdfImport.invalidFileType', req.lang),
       });

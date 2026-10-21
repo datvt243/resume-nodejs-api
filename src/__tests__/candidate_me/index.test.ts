@@ -174,7 +174,7 @@ describe('candidate_me/index.ts (issue #135)', () => {
       const privateProfile = await respond();
 
       expect(unknown.status).toEqual([[404]]);
-      expect(unknown.body[0][0]).toMatchObject({ success: false, errorCode: 'NOT_FOUND' });
+      expect(unknown.body[0][0]).toMatchObject({ success: false, error: { code: 'NOT_FOUND' } });
       expect(privateProfile).toEqual(unknown);
     });
 
@@ -305,6 +305,6 @@ describe('own-CV endpoints when the candidate no longer exists', () => {
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
-    expect(json.mock.calls[0][0]).toMatchObject({ success: false, errorCode: 'NOT_FOUND' });
+    expect(json.mock.calls[0][0]).toMatchObject({ success: false, error: { code: 'NOT_FOUND' } });
   });
 });

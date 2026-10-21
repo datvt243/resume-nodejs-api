@@ -14,6 +14,7 @@ import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { formatReturn } from '@/utils';
 import { t } from '@/utils/i18n';
+import { ErrorCode } from '@/errors';
 
 /**
  * Anchored to __dirname, not a bare relative literal — resolves to
@@ -85,6 +86,7 @@ export const uploadCVMiddleware = (req: Request, res: Response, next: NextFuncti
     if (err instanceof Error && err.message === 'INVALID_FILE_TYPE') {
       return formatReturn(res, {
         statusCode: StatusCodes.BAD_REQUEST,
+        errorCode: ErrorCode.FILE_INVALID_TYPE,
         success: false,
         message: t('candidate.cvInvalidFileType', req.lang),
       });

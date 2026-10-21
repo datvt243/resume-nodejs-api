@@ -55,21 +55,21 @@ describe('async error safety', () => {
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(res.status).toBe(500);
-    expect(await res.json()).toMatchObject({ success: false, errorCode: 'INTERNAL_SERVER_ERROR' });
+    expect(await res.json()).toMatchObject({ success: false, error: { code: 'INTERNAL_SERVER_ERROR' } });
     expect(unhandled).not.toHaveBeenCalled();
     expect(logger.error).toHaveBeenCalledWith('ERROR [INTERNAL_SERVER_ERROR]: mongo timeout', expect.anything());
   });
 });
 
 describe('notFoundHandler', () => {
-  it.each(['GET', 'POST', 'PUT', 'DELETE'])('%s to an unknown /api route → 404 NOT_FOUND JSON', async (method) => {
+  it.each(['GET', 'POST', 'PUT', 'DELETE'])('%s to an unknown /api route → 404 ROUTE_NOT_FOUND JSON', async (method) => {
     for (const path of ['/api/nope', '/api/v1/nope', '/api/v2/nope']) {
       const res = await fetch(`${base}${path}`, { method });
       expect(res.status).toBe(404);
-      // errorsMiddleware's existing error keys — the envelope change is a later phase.
-      const body = (await res.json()) as object;
-      expect(body).toMatchObject({ success: false, errorCode: 'NOT_FOUND' });
-      expect(Object.keys(body).sort()).toEqual(['errorCode', 'message', 'success']);
+      const body = (await res.json()) as { error: object };
+      expect(body).toMatchObject({ success: false, error: { code: 'ROUTE_NOT_FOUND' } });
+      expect(Object.keys(body).sort()).toEqual(['error', 'success']);
+      expect(Object.keys(body.error).sort()).toEqual(['code', 'message']);
     }
   });
 

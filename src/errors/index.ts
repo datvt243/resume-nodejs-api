@@ -6,6 +6,7 @@
  */
 export {
   AppError,
+  ErrorDetail,
   ERROR_STATUS,
   ErrorCode,
   ValidationError,

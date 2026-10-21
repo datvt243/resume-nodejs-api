@@ -131,6 +131,7 @@ export const authRefreshToken = async (req: Request, res: Response, next: NextFu
       return formatReturn(res, {
         statusCode: StatusCodes.UNAUTHORIZED,
         success: false,
+        errorCode: ErrorCode.NO_TOKEN,
         message: t('auth.noRefreshToken', req.lang),
       });
     }
@@ -152,6 +153,7 @@ export const authRefreshToken = async (req: Request, res: Response, next: NextFu
       return formatReturn(res, {
         statusCode: StatusCodes.UNAUTHORIZED,
         success: false,
+        errorCode: ErrorCode.INVALID_TOKEN,
         message: t('auth.invalidRefreshPayload', req.lang),
       });
 
@@ -318,6 +320,7 @@ export const authLogoutAll = async (req: Request, res: Response, next: NextFunct
       return formatReturn(res, {
         statusCode: StatusCodes.UNAUTHORIZED,
         success: false,
+        errorCode: ErrorCode.NO_TOKEN,
         message: t('auth.noTokenToLogout', req.lang),
       });
     }

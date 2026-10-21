@@ -14,7 +14,7 @@ const mockRenderAts = jest.fn();
 
 jest.mock('@/candidate_me/index', () => ({
   handlerGetAboutMe: (...args: unknown[]) => mockGetAboutMe(...args),
-  PROFILE_NOT_FOUND: 'Email không tồn tại',
+  profileNotFound: (lang?: string) => new (jest.requireActual('@/errors').NotFoundError)(jest.requireActual('@/utils/i18n').t('publicProfile.notFound', lang)),
 }));
 jest.mock('@/services/createPDF.ats', () => ({
   ...jest.requireActual('@/services/createPDF.ats'),
@@ -78,7 +78,7 @@ describe('fnDownloadPublicPdf', () => {
     expect(privateProfile.res.status.mock.calls).toEqual(unknown.res.status.mock.calls);
     expect(privateProfile.res.json.mock.calls).toEqual(unknown.res.json.mock.calls);
     expect(unknown.res.status).toHaveBeenCalledWith(StatusCodes.NOT_FOUND);
-    expect(unknown.res.json.mock.calls[0][0]).toMatchObject({ success: false, errorCode: 'NOT_FOUND' });
+    expect(unknown.res.json.mock.calls[0][0]).toMatchObject({ success: false, error: { code: 'NOT_FOUND' } });
     expect(privateProfile.res.send).not.toHaveBeenCalled();
     expect(mockRenderAts).not.toHaveBeenCalled();
   });

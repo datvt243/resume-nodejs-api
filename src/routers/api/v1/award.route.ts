@@ -25,7 +25,7 @@ const router = express.Router();
  *       - $ref: '#/components/parameters/SortParam'
  *     responses:
  *       200:
- *         description: List of awards. Passing `limit` switches `data` to `{ items, pagination }` instead of a bare array.
+ *         description: List of awards. `data` is always an array; `meta` holds page/limit/total/totalPages (one page with everything when `limit` is omitted).
  *         content:
  *           application/json:
  *             schema:
@@ -70,6 +70,10 @@ router.get(
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post('/create', asyncHandler(fnCreate));
 
@@ -96,6 +100,10 @@ router.post('/create', asyncHandler(fnCreate));
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.put('/update', asyncHandler(fnUpdate));
 
@@ -196,10 +204,22 @@ router.post(
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: No file, wrong type (non-image), or too large (> 5MB)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       403:
  *         description: Award does not belong to the authenticated candidate
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
  *         description: Award not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post(
   '/:id/images',

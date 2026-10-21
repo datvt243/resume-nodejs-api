@@ -5,6 +5,7 @@
  * @see https://github.com/datvt243
  */
 
+import { ErrorCode } from '@/errors/AppError';
 import swaggerJsdoc from 'swagger-jsdoc';
 import path from 'path';
 import { CAREER_BREAK_TYPES } from '@/models/experience.model';
@@ -53,9 +54,8 @@ const options: swaggerJsdoc.Options = {
       parameters: {
         /**
          * Pagination — shared by every CV-section `GET /` list endpoint
-         * via BaseController.baseGetAll. All three are optional;
-         * omitting `limit` returns the full, unpaginated array exactly as
-         * before (see ApiResponse vs ApiResponsePaginated).
+         * via BaseController.baseGetAll. All three are optional; `data` is
+         * always an array and `meta` describes it (see Pagination).
          */
         PageParam: {
           in: 'query',
@@ -69,7 +69,7 @@ const options: swaggerJsdoc.Options = {
           name: 'limit',
           required: false,
           schema: { type: 'integer', minimum: 1, maximum: 100 },
-          description: 'Page size (max 100). Providing this switches the response `data` shape from an array to `{ items, pagination }`.',
+          description: 'Page size (max 100). Without it the whole list comes back as one page; `data` is an array either way.',
         },
         SortParam: {
           in: 'query',
@@ -82,18 +82,38 @@ const options: swaggerJsdoc.Options = {
       schemas: {
         ApiResponse: {
           type: 'object',
+          description: 'Success envelope. List endpoints also carry `meta`.',
           properties: {
-            success: { type: 'boolean' },
+            success: { type: 'boolean', enum: [true] },
             message: { type: 'string' },
-            errors: { nullable: true },
             data: { nullable: true },
+            meta: { $ref: '#/components/schemas/Pagination' },
           },
         },
-        /**
-         * Shape of `data` when a `GET /` list endpoint is called with
-         * `?limit=` — otherwise `data` stays a plain array, as
-         * documented on ApiResponse.
-         */
+        ErrorResponse: {
+          type: 'object',
+          description: 'Error envelope, used by every 4xx/5xx JSON response (see API-STANDARD.md §1, §3).',
+          properties: {
+            success: { type: 'boolean', enum: [false] },
+            error: {
+              type: 'object',
+              required: ['code', 'message'],
+              properties: {
+                code: { type: 'string', enum: Object.values(ErrorCode) },
+                message: { type: 'string', description: 'Localized, safe to show to users' },
+                details: {
+                  type: 'array',
+                  description: 'Validation errors only, one entry per failing field',
+                  items: {
+                    type: 'object',
+                    properties: { field: { type: 'string', example: 'items.3.company' }, message: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+        // `meta` of every list response; without `?limit=` it is one page holding the whole list.
         Pagination: {
           type: 'object',
           properties: {

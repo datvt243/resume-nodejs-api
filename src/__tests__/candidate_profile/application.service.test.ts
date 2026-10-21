@@ -106,6 +106,6 @@ describe('POST /application/create with an unowned profile', () => {
 
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(json).toHaveBeenCalledWith(expect.objectContaining({ success: false, message: 'The selected CV profile does not exist or has been deleted' }));
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({ success: false, error: expect.objectContaining({ message: 'The selected CV profile does not exist or has been deleted' }) }));
   });
 });

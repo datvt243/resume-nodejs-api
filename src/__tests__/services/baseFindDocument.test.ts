@@ -64,9 +64,11 @@ describe('baseFindDocument', () => {
     expect(model.__query.limit).not.toHaveBeenCalled();
     expect(model.countDocuments).not.toHaveBeenCalled();
     expect(result.data).toEqual(docs);
+    // Unpaginated: one page holding everything.
+    expect(result).toMatchObject({ meta: { page: 1, limit: 2, total: 2, totalPages: 1 } });
   });
 
-  it('findOne: false, with a valid limit -> paginates and wraps data as { items, pagination }', async () => {
+  it('findOne: false, with a valid limit -> paginates; data stays an array and meta describes the page', async () => {
     const docs = [{ _id: '1' }, { _id: '2' }];
     const model = createFakeModel(docs);
 
@@ -76,10 +78,8 @@ describe('baseFindDocument', () => {
     expect(model.__query.limit).toHaveBeenCalledWith(2);
     // deletedAt: null is the soft-delete exclusion filter (issue #121).
     expect(model.countDocuments).toHaveBeenCalledWith({ deletedAt: null, candidateId: 'c1' });
-    expect(result.data).toEqual({
-      items: docs,
-      pagination: { page: 2, limit: 2, total: 2, totalPages: 1 },
-    });
+    expect(result.data).toEqual(docs);
+    expect(result).toMatchObject({ meta: { page: 2, limit: 2, total: 2, totalPages: 1 } });
   });
 
   it('clamps limit to the max page size', async () => {

@@ -12,9 +12,12 @@ export enum ErrorCode {
   BAD_REQUEST = 'BAD_REQUEST',
   VALIDATION_ERROR = 'VALIDATION_ERROR',
   NOT_FOUND = 'NOT_FOUND',
+  ROUTE_NOT_FOUND = 'ROUTE_NOT_FOUND',
   CONFLICT = 'CONFLICT',
   MALFORMED_JSON = 'MALFORMED_JSON',
   PAYLOAD_TOO_LARGE = 'PAYLOAD_TOO_LARGE',
+  FILE_INVALID_TYPE = 'FILE_INVALID_TYPE',
+  RATE_LIMITED = 'RATE_LIMITED',
 
   // Authentication errors
   UNAUTHORIZED = 'UNAUTHORIZED',
@@ -40,9 +43,12 @@ export const ERROR_STATUS: Record<ErrorCode, number> = {
   [ErrorCode.BAD_REQUEST]: StatusCodes.BAD_REQUEST,
   [ErrorCode.VALIDATION_ERROR]: StatusCodes.BAD_REQUEST,
   [ErrorCode.NOT_FOUND]: StatusCodes.NOT_FOUND,
+  [ErrorCode.ROUTE_NOT_FOUND]: StatusCodes.NOT_FOUND,
   [ErrorCode.CONFLICT]: StatusCodes.CONFLICT,
   [ErrorCode.MALFORMED_JSON]: StatusCodes.BAD_REQUEST,
   [ErrorCode.PAYLOAD_TOO_LARGE]: StatusCodes.REQUEST_TOO_LONG,
+  [ErrorCode.FILE_INVALID_TYPE]: StatusCodes.BAD_REQUEST,
+  [ErrorCode.RATE_LIMITED]: StatusCodes.TOO_MANY_REQUESTS,
   [ErrorCode.UNAUTHORIZED]: StatusCodes.UNAUTHORIZED,
   [ErrorCode.INVALID_TOKEN]: StatusCodes.UNAUTHORIZED,
   [ErrorCode.TOKEN_EXPIRED]: StatusCodes.UNAUTHORIZED,
@@ -56,14 +62,9 @@ export const ERROR_STATUS: Record<ErrorCode, number> = {
   [ErrorCode.SERVICE_UNAVAILABLE]: StatusCodes.SERVICE_UNAVAILABLE,
 };
 
-/**
- * The real shapes `errors` is constructed with across the codebase: a
- * single message (e.g. a Mongoose CastError's `.message`), a list of
- * per-field translated messages (Joi/Mongoose validation, one string per
- * failing field), a field-name-keyed map (`formatValidateError`'s return
- * shape), or absent entirely.
- */
-export type AppErrorDetails = string | string[] | Record<string, string> | null | undefined;
+// One entry per failing field; `field` is the full dotted path (`items.3.company`). Sent as the envelope's `error.details`.
+export type ErrorDetail = { field: string; message: string };
+export type AppErrorDetails = ErrorDetail[] | null | undefined;
 
 export interface IErrorOptions {
   message?: string;
