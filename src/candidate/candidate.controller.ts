@@ -43,7 +43,7 @@ export const fnUpdate = async (req: Request, res: Response, next: NextFunction) 
   const { isValidated, value, errors } = validateSchema({ schema: schemaCandidate, item: { ...req.body }, lang: req.lang });
   if (!isValidated)
     return formatReturn(res, {
-      statusCode: StatusCodes.UNAUTHORIZED,
+      statusCode: StatusCodes.BAD_REQUEST,
       success: false,
       message: t('validation.hasErrors', req.lang),
       errors,
@@ -228,7 +228,7 @@ export const fnUpdateFields = async (req: Request, res: Response, next: NextFunc
   });
   if (!isValidated)
     return formatReturn(res, {
-      statusCode: StatusCodes.UNAUTHORIZED,
+      statusCode: StatusCodes.BAD_REQUEST,
       success: false,
       message: t('validation.hasErrors', req.lang),
       errors,

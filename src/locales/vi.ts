@@ -9,8 +9,7 @@ export default {
   auth: {
     registerSuccess: 'Đăng ký thành công',
     emailAlreadyExists: 'Email đã tồn tại',
-    emailNotFound: 'Email không tồn tại',
-    wrongPassword: 'Mật khẩu không chính xác',
+    invalidCredentials: 'Email hoặc mật khẩu không chính xác',
     loginSuccess: 'Đăng nhập thành công',
     loginFailed: 'Đăng nhập thất bại',
     noRefreshToken: 'Không có refresh token',

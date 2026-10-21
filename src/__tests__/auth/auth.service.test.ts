@@ -152,7 +152,7 @@ describe('auth.service', () => {
 
       const result = await handlerLogin({ email: 'nonexistent@example.com', password: 'pass' });
 
-      expect(result).toEqual({ success: false, message: 'Email không tồn tại' });
+      expect(result).toEqual({ success: false, message: 'Email hoặc mật khẩu không chính xác' });
       expect(bcrypt.bcryptCompareHash).not.toHaveBeenCalled();
     });
 
@@ -164,7 +164,8 @@ describe('auth.service', () => {
 
       const result = await handlerLogin({ email: 'test@example.com', password: 'wrongpass' });
 
-      expect(result).toEqual({ success: false, message: 'Mật khẩu không chính xác' });
+      // Same message as the unknown-email case, so login can't enumerate registered emails.
+      expect(result).toEqual({ success: false, message: 'Email hoặc mật khẩu không chính xác' });
     });
   });
 

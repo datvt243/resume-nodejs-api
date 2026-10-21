@@ -214,7 +214,7 @@ export const createCrudController = (props: {
     try {
       if (booleanDefaultField && !value[booleanDefaultField]) value[booleanDefaultField] = false;
       const _result = await service.handlerCreate(value, req.lang);
-      return formatReturn(res, { statusCode: StatusCodes.CREATED, ..._result });
+      return formatReturn(res, { statusCode: _result.success ? StatusCodes.CREATED : StatusCodes.BAD_REQUEST, ..._result });
     } catch (err) {
       handleError({ err, next, lang: req.lang });
     }
@@ -279,12 +279,19 @@ export const createCrudController = (props: {
       const summary = { total: results.length, succeeded, failed: results.length - succeeded };
 
       /**
-       * Envelope `success` is always true here (the bulk request itself was
-       * processed) — never tie it to summary.failed. utils/helper.ts's
-       * formatResponse() nulls out `data` whenever `success` is false, which
-       * would silently drop `results`/`summary` on a partial failure, the
-       * one time the caller most needs to see them. Per-item outcome lives
-       * in `results[].success`/`summary`, not the envelope.
+       * Every item failed: a 400 with `success: false`. Written directly with
+       * the same body keys because utils/helper.ts's formatResponse() nulls
+       * out `data` whenever `success` is false, which would drop
+       * `results`/`summary`, the one thing the caller needs here.
+       */
+      if (succeeded === 0) {
+        return res.status(StatusCodes.BAD_REQUEST).json({ success: false, message: t('common.createFailed', lang), errors: null, data: { results, summary } });
+      }
+
+      /**
+       * At least one item was created: envelope `success` stays true and
+       * per-item outcome lives in `results[].success`/`summary`, for the same
+       * formatResponse() reason as above.
        */
       return formatReturn(res, {
         statusCode: StatusCodes.CREATED,
