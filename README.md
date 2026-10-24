@@ -20,7 +20,7 @@ Một ứng dụng API backend **hoàn chỉnh** để **quản lý hồ sơ ứ
 - 📊 **Public Profile Visits**: per-visit analytics (IP + geo + referrer host + viewed CV profile) on public profile views
 - 🗑️ **Soft Delete + Restore**: recoverable deletes across all CV sections
 - 🌐 **i18n**: Vietnamese/English via `Accept-Language`, localized free-text fields (career, descriptions, introduction)
-- 📄 **PDF/JSON/DOCX Export** (Pug + PDFKit/Puppeteer/docx)
+- 📄 **PDF/JSON/DOCX Export** (Puppeteer/docx)
 - 🤖 **ATS-Optimized PDF + Self-Check**: single-column, no-letter-spacing export template built for Applicant Tracking Systems, plus a self-check endpoint that extracts the PDF's own text and scores it against 10 ATS-safety checks + optional job-description keyword matching
 - 🛡️ **Rate Limiting** (Redis/mem fallback)
 - 📊 **Logging** (Winston daily)
@@ -61,7 +61,7 @@ Một ứng dụng API backend **hoàn chỉnh** để **quản lý hồ sơ ứ
 | Tech                              | Version         | Purpose                        |
 | --------------------------------- | --------------- | ------------------------------- |
 | Joi                                | 17.13.1         | Validation                      |
-| PDFKit / Puppeteer / Pug          | 0.15/22.13/3.0  | PDF                              |
+| Puppeteer                        | 22.13           | PDF                              |
 | docx                               | 9.7.1           | DOCX export                     |
 | pdf-lib / pdf-parse / xss         | 1.17/1.1/1.0    | ATS PDF metadata, text extraction, HTML sanitization |
 | multer                             | 2.3.0           | File uploads (CV, images)       |
@@ -87,12 +87,10 @@ backend/
 │   ├── candidate_me/ (public profile, search, visits, PDF/JSON/DOCX export, ATS self-check)
 │   ├── services/   (PDF classic + ATS/Redis/base DB ops)
 │   ├── utils/      (JWT/bcrypt/blacklist/i18n/csrf)
-│   ├── views/      (Pug)
-│   ├── public/     (assets/pdf)
+│   ├── public/     (generated PDFs + uploads)
 │   ├── __tests__/  (Jest)
 │   └── types/
 ├── scripts/       (GitHub automation)
-├── TODO.md        (progress)
 ├── package.json
 └── README.md
 ```
@@ -263,8 +261,8 @@ thiết kế của từng phần.
 - **CSRF**: required on non-Bearer auth flows (`/auth/refresh`, `/auth/logout`) — see `utils/csrf.ts`
 - **CORS**: `CORS_ORIGIN` (comma-separated allow-list) required for the httpOnly cookie flow — `credentials: true` cannot combine with a wildcard origin
 - **Logs**: Winston daily rotation
-- **Static**: public/ (CSS/JS/fonts/img/PDFs)
-- **PDF/DOCX**: services/createPDF.ts (classic) + services/createPDF.ats.ts (ATS) + views/
+- **Static**: public/ (generated PDFs + uploads)
+- **PDF/DOCX**: services/createPDF.ts (classic) + services/createPDF.ats.ts (ATS)
 
 ---
 

@@ -32,7 +32,7 @@ COPY . .
 EXPOSE 3001
 CMD ["npm", "run", "dev"]
 
-# ---- build: compile TypeScript -> dist/ (tsc && copy views/public) ----
+# ---- build: compile TypeScript -> dist/ (tsc && copy public) ----
 FROM deps AS build
 COPY . .
 RUN npm run build
