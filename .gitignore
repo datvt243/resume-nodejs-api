@@ -1,4 +1,6 @@
 /node_modules
+# Puppeteer's Chrome download (see .puppeteerrc.cjs)
+/.cache
 
 # build output
 /dist
