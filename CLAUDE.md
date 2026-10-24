@@ -16,7 +16,7 @@ Node.js/TypeScript REST API for managing candidate CVs/resumes with auth, PDF ex
 | Cache / Blacklist | Redis 4.6 (in-memory fallback) |
 | Auth | JWT (access + refresh), Bcrypt (12 rounds) |
 | Validation | Joi 17.13 |
-| PDF | Puppeteer 22.13 + PDFKit 0.15 + Pug 3.0 (classic template); `pdf-lib` (PDF metadata) + `pdf-parse` (ATS text extraction) + `xss` (sanitization) for the ATS template |
+| PDF | Puppeteer 22.13 (classic template, HTML built in `createPDF.ts`); `pdf-lib` (PDF metadata) + `pdf-parse` (ATS text extraction) + `xss` (sanitization) for the ATS template |
 | Logging | Winston 3.19 + daily-rotate-file |
 | Testing | Jest 29 + ts-jest |
 | Linting | ESLint 9 (flat config, type-aware via `typescript-eslint`) |
@@ -35,7 +35,7 @@ TypeScript runs with `strict` plus `noUncheckedIndexedAccess`,
 
 ```bash
 npm run dev          # ts-node + nodemon hot reload
-npm run build        # tsc + copy views/public → dist/
+npm run build        # tsc + copy public → dist/
 npm start            # build + NODE_ENV=production node dist/server.js
 npm test             # jest --passWithNoTests
 npm run lint         # eslint .
@@ -44,7 +44,7 @@ npm run lint:fix     # eslint . --fix
 npm run env:setup    # cp .env.example .env
 npm run env:dev      # cp .env.development .env
 npm run env:prod     # cp .env.production .env
-npm run copy         # copy views + public to dist/ (post-build fix)
+npm run copy         # copy public to dist/ (post-build fix)
 ```
 
 ---
@@ -183,9 +183,8 @@ src/
 │   ├── candidate.type.ts      # AggregatedCandidateData + section data types, shared by PDF/DOCX export
 │   └── express.d.ts           # Extends Express Request: user?: { _id: string }
 ├── logger/                    # Winston setup: console + combined + error logs; JSON in prod
-├── constant/                  # App-wide constants, incl. atsKeywords.ts (ATS keyword dictionary)
-├── views/                     # Pug templates for PDF
-└── public/                    # Static assets + generated PDFs
+├── constant/                  # atsKeywords.ts (ATS keyword dictionary)
+└── public/                    # Generated PDFs + uploads (served by express.static)
 ```
 
 ---
@@ -205,7 +204,7 @@ src/
 11. API router
 12. Global error handler
 
-Pug is set as view engine. Dev: port 3001, Prod: port 3008 (both respect `LOCAL_PORT` when set).
+Dev: port 3001, Prod: port 3008 (both respect `LOCAL_PORT` when set).
 
 ---
 
@@ -454,6 +453,6 @@ Always import as `@/utils/helper`, `@/models/candidate.model`, etc.
 ## Build Notes
 
 - `npm run build` = `tsc && npm run copy`
-- `copy` step: `cp -R ./src/views ./src/public ./dist/` — required because Pug templates and static assets are not compiled by tsc
-- If build succeeds but PDF/views break in prod: run `npm run copy` manually
+- `copy` step: `cp -R ./src/public ./dist/` — required because static assets are not compiled by tsc
+- If build succeeds but static files/uploads break in prod: run `npm run copy` manually
 - `dist/` is gitignored; always rebuild before deploying
