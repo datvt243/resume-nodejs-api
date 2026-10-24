@@ -17,7 +17,7 @@ import helmet from 'helmet';
 import session from 'express-session';
 import swaggerUi from 'swagger-ui-express';
 
-import { errorsMiddleware, notFoundHandler, rateLimitMiddleware, startMemStoreCleanup, requestLogger, languageMiddleware } from '@/middlewares';
+import { errorsMiddleware, notFoundHandler, rateLimitMiddleware, startMemStoreCleanup, requestLogger, languageMiddleware, httpsRedirect } from '@/middlewares';
 import { sessionConfig, corsConfig, helmetConfig, swaggerSpec, REQUEST_BODY_LIMIT } from '@/config';
 import { logger } from '@/logger';
 import router from '@/routers';
@@ -35,6 +35,7 @@ const runServer = async ({ portNumber }: { portNumber: number }) => {
   const app = express();
 
   app.use(requestLogger);
+  app.use(httpsRedirect);
   app.use(helmet(helmetConfig()));
 
   // parse cookies (httpOnly JWT cookies) → req.cookies
