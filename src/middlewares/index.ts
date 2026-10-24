@@ -9,3 +9,4 @@ export * from '@/middlewares/rateLimit.middleware';
 export * from '@/middlewares/requestLogger.middleware';
 export * from '@/middlewares/language.middleware';
 export * from '@/middlewares/csrf.middleware';
+export * from '@/middlewares/httpsRedirect.middleware';
