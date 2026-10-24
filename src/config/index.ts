@@ -3,6 +3,7 @@
  * @see https://github.com/datvt243
  */
 
+export * from '@/config/body.config';
 export * from '@/config/cors.config';
 export * from '@/config/helmet.config';
 export * from '@/config/joi.config';

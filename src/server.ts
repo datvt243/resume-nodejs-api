@@ -18,7 +18,7 @@ import session from 'express-session';
 import swaggerUi from 'swagger-ui-express';
 
 import { errorsMiddleware, notFoundHandler, rateLimitMiddleware, startMemStoreCleanup, requestLogger, languageMiddleware } from '@/middlewares';
-import { sessionConfig, corsConfig, helmetConfig, swaggerSpec } from '@/config';
+import { sessionConfig, corsConfig, helmetConfig, swaggerSpec, REQUEST_BODY_LIMIT } from '@/config';
 import { logger } from '@/logger';
 import router from '@/routers';
 import { initRedis } from '@/services/redis';
@@ -45,8 +45,8 @@ const runServer = async ({ portNumber }: { portNumber: number }) => {
   app.use(session(sessionConfig()));
   app.use(cors(corsConfig()));
 
-  app.use(bodyParser.urlencoded({ extended: true }));
-  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: true, limit: REQUEST_BODY_LIMIT }));
+  app.use(bodyParser.json({ limit: REQUEST_BODY_LIMIT }));
 
   /**
    * @swagger
