@@ -22,6 +22,7 @@ import { sessionConfig, corsConfig, helmetConfig, swaggerSpec, REQUEST_BODY_LIMI
 import { logger } from '@/logger';
 import router from '@/routers';
 import { initRedis } from '@/services/redis';
+import { createShutdown } from '@/utils/gracefulShutdown';
 
 dotenv.config();
 
@@ -115,11 +116,13 @@ const runServer = async ({ portNumber }: { portNumber: number }) => {
   } catch (err) {
     logger.error('[RateLimit] Failed to start memStore cleanup', { err: (err as Error).message, stack: (err as Error).stack });
   }
-  app.listen(_portNumber, () => {
+  const server = app.listen(_portNumber, () => {
     logger.info(`App listening on port: ${_portNumber} - ${_env}`);
   });
 
-  // TODO: close the MongoDB connection on process exit (coming soon)
+  const shutdown = createShutdown(server);
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 };
 
 const { LOCAL_PORT } = process.env;
