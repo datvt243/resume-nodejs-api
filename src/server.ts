@@ -91,9 +91,6 @@ const runServer = async ({ portNumber }: { portNumber: number }) => {
   app.use(notFoundHandler);
   app.use(errorsMiddleware);
 
-  app.set('view engine', 'pug');
-  app.set('views', './views');
-
   const _env = process.env['NODE_ENV'] || 'development';
   /**
    * Respect LOCAL_PORT whenever it's actually set, in every environment —
