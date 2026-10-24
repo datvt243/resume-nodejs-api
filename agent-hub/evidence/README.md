@@ -23,6 +23,9 @@ Date as `YYYY-mm-dd`, slug kebab-case from the task name.
 - `## Acceptance` — table | Criterion | Evidence | (evidence points to a
   specific output line — not "tests pass," but "Tests: 42 passed, 42
   total"); always has a "comments per code-comments.md" row
+- `## Supersedes` / `## Still open` — [synced 2026-10-24] other open rows
+  for the same issue: retired on SEAL, or kept open with a reason; `none`
+  if there are none
 - `## Noticed, not done` — out-of-scope findings, not fixed
 - `## Seal gate` — record approval if an outward-facing action happened,
   or "none"
@@ -63,6 +66,10 @@ Date as `YYYY-mm-dd`, slug kebab-case from the task name.
   unusual jump in hub size between two runs. Not a real token count.
 - Cold storage — not re-read wholesale every worker session, only opened
   when someone audits patterns on purpose. NEVER delete a line.
+- [synced 2026-10-24] TOKEN DISCIPLINE: over ~15KB → move lines older than
+  the current work session to `evidence/worker-runs-archive.log` (same
+  dir, plain append, create lazily) — VERBATIM, never reformat. Checked by
+  `/hub-tokens`. A move, not a cleanup: delete nothing.
 
 ## The three rules of this directory
 1. **VERBATIM, ALWAYS** — no claim without real cited evidence.

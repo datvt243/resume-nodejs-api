@@ -22,6 +22,10 @@
    — the `Typecheck` row: `tsc` runs inside it; `npm test` alone does not
    type-check all of `src/`.
 6. READ THE OUTPUT BACK verbatim — an uncited claim = `EDIT_UNVERIFIED`.
+6b. [synced 2026-10-24] `grep` the active diagram for other not-yet-SEALED
+   rows citing the same issue (`#<n>`)/task. Each goes in the note under
+   `## Supersedes` (this node finishes its work → `verify_seal` retires it)
+   or `## Still open` (1-line reason). None → `## Supersedes: none`.
 7. Only report `sealed_pending_verifier` once ALL criteria pass with
    evidence.
 8–9. If a new bug/trap is found (similar to the traps already recorded in
