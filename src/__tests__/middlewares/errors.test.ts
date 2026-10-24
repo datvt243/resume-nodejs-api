@@ -10,6 +10,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
 import { errorsMiddleware } from '@/middlewares/errors.middleware';
+import { REQUEST_BODY_LIMIT } from '@/config/body.config';
 import { logger } from '@/logger';
 
 jest.mock('@/logger');
@@ -25,7 +26,8 @@ let base: string;
 
 beforeAll(async () => {
   const app = express();
-  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: true, limit: REQUEST_BODY_LIMIT }));
+  app.use(bodyParser.json({ limit: REQUEST_BODY_LIMIT }));
   app.post('/echo', (_req, res) => {
     res.json({ ok: true });
   });
@@ -59,6 +61,7 @@ beforeEach(() => {
 });
 
 const postJson = (body: string) => fetch(`${base}/echo`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+const postForm = (body: string) => fetch(`${base}/echo`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
 
 describe('errorsMiddleware', () => {
   it('malformed JSON body → 400 MALFORMED_JSON', async () => {
@@ -67,10 +70,21 @@ describe('errorsMiddleware', () => {
     expect(await res.json()).toMatchObject({ success: false, error: { code: 'MALFORMED_JSON' } });
   });
 
-  it('body over the 100kb default limit → 413 PAYLOAD_TOO_LARGE', async () => {
-    const res = await postJson(JSON.stringify({ a: 'x'.repeat(200 * 1024) }));
+  it('JSON body over REQUEST_BODY_LIMIT → 413 PAYLOAD_TOO_LARGE', async () => {
+    const res = await postJson(JSON.stringify({ a: 'x'.repeat(1024 * 1024) }));
     expect(res.status).toBe(413);
     expect(await res.json()).toMatchObject({ success: false, error: { code: 'PAYLOAD_TOO_LARGE' } });
+  });
+
+  it('urlencoded body over REQUEST_BODY_LIMIT → 413 PAYLOAD_TOO_LARGE', async () => {
+    const res = await postForm(`a=${'x'.repeat(1024 * 1024)}`);
+    expect(res.status).toBe(413);
+    expect(await res.json()).toMatchObject({ success: false, error: { code: 'PAYLOAD_TOO_LARGE' } });
+  });
+
+  it('bodies over the old 100kb default but under REQUEST_BODY_LIMIT are accepted', async () => {
+    expect((await postJson(JSON.stringify({ a: 'x'.repeat(500 * 1024) }))).status).toBe(200);
+    expect((await postForm(`a=${'x'.repeat(500 * 1024)}`)).status).toBe(200);
   });
 
   it('Mongoose CastError reaching the middleware directly → 400 BAD_REQUEST', async () => {

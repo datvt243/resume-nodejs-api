@@ -65,8 +65,6 @@ flowchart TD
 
 
 
-| `add-public-profile-search` | SEALED | 2026-10-10 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-10/add-public-profile-search-seal.md`. |
-
 | `add-visit-stats-endpoint` | SEALED | 2026-10-10 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-10/add-visit-stats-endpoint-seal.md`. |
 
 | `add-visit-referrer-source` | SEALED | 2026-10-10 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-10/add-visit-referrer-source-seal.md`. |
@@ -94,3 +92,4 @@ Any regression must be a **new node** (LAI-13) — never edit an existing
 node's PM status directly to "undo" an existing SEAL.
 | `fix-render-puppeteer-cache-dir` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/render-puppeteer-cache-dir-seal.md`. |
 | `add-security-headers` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/add-security-headers-seal.md`. |
+| `set-request-body-limit` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/set-request-body-limit-seal.md`. |

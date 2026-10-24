@@ -79,6 +79,7 @@ src/
 ├── alias.ts                   # module-alias: @ → src/ (dev) or dist/ (prod)
 ├── config/
 │   ├── process.config.ts      # Env var validation + export
+│   ├── body.config.ts         # REQUEST_BODY_LIMIT for the JSON/urlencoded parsers
 │   ├── cors.config.ts         # CORS: CORS_ORIGIN allow-list (credentials: true)
 │   ├── session.config.ts      # Express session config
 │   ├── joi.config.ts          # Shared Joi schemas (email, password, phone, etc.)
@@ -196,7 +197,7 @@ src/
 3. Language middleware (`Accept-Language` → `req.lang` / `req.t(key)`)
 4. Session middleware
 5. CORS (`CORS_ORIGIN` allow-list, `credentials: true`)
-6. Body parser (JSON + URL-encoded)
+6. Body parser (JSON + URL-encoded, `REQUEST_BODY_LIMIT` = 1mb from `config/body.config.ts`; over → 413 `PAYLOAD_TOO_LARGE`)
 7. `GET /health` — exempt from rate limit
 8. Swagger UI (`/api-docs`, `/api-docs.json`) — exempt from rate limit
 9. Rate limiter (Redis or mem)
