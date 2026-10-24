@@ -13,11 +13,12 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import helmet from 'helmet';
 import session from 'express-session';
 import swaggerUi from 'swagger-ui-express';
 
 import { errorsMiddleware, notFoundHandler, rateLimitMiddleware, startMemStoreCleanup, requestLogger, languageMiddleware } from '@/middlewares';
-import { sessionConfig, corsConfig, swaggerSpec } from '@/config';
+import { sessionConfig, corsConfig, helmetConfig, swaggerSpec } from '@/config';
 import { logger } from '@/logger';
 import router from '@/routers';
 import { initRedis } from '@/services/redis';
@@ -33,6 +34,7 @@ const runServer = async ({ portNumber }: { portNumber: number }) => {
   const app = express();
 
   app.use(requestLogger);
+  app.use(helmet(helmetConfig()));
 
   // parse cookies (httpOnly JWT cookies) → req.cookies
   app.use(cookieParser());
