@@ -73,5 +73,7 @@ during this step — read and report only.
   `/ship`.
 - If step 5 flags the active diagram over ~15KB (or `/hub-tokens` reports
   it), that's a real signal to run an archive pass — see the diagram
-  file's own token-discipline note. `/boot` itself never edits anything;
+  file's own token-discipline note (normally `verify_seal` step 11
+  archives at SEAL time, so a flag means a pre-rule backlog or a skipped
+  step 11). `/boot` itself never edits anything;
   archiving is a separate, explicit action.

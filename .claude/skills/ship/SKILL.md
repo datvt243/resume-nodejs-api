@@ -164,6 +164,8 @@ Chỉ qua Bước 0 (guard branch) rồi bước này pass mới được chạy
 - `--merge` chỉ merge `<branch-hiện-tại>` → `staging`, bằng merge commit
   (`gh pr merge --merge`), không squash/rebase, không bypass branch
   protection — đổi điều này là thay đổi thiết kế, cần hỏi lại operator.
+- `NoForce`: KHÔNG bao giờ `--force`/`--force-with-lease`/`--no-verify` —
+  push bị từ chối hay hook fail → dừng, báo nguyên output thật cho operator.
 - KHÔNG bao giờ tự chạy phần việc của `/release` (merge `staging` →
   `main`, bump version, tạo tag) — 2 command tách biệt, không gộp.
 - KHÔNG gộp nhiều node SEAL không liên quan vào 1 commit nếu chúng không
