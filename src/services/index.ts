@@ -249,15 +249,13 @@ export const baseCreateDocument = async <T extends CrudDocument>(props: {
   const _message = t('common.createSuccess', lang);
 
   try {
-    let _data: unknown = await MODEL.create({ _id: null, ...document });
     /**
-     * If the hook returns something (not `undefined`), use that instead of
-     * `_data` — the hook used to receive `data` by-value destructuring, so
-     * reassigning inside the hook never actually updated `_data` here,
-     * which meant the response always returned `MODEL.create()`'s raw
-     * result (Mongoose keeps `_id: null` as passed, not the real id
-     * MongoDB assigns on save) instead of the freshly-refetched list.
+     * The CV-section models redeclare `_id: ObjectId`, which turns off Mongoose's
+     * auto id — generate it here so the returned document carries the real id
+     * (with `_id: null` only the driver's inserted copy got one).
      */
+    let _data: unknown = await MODEL.create({ ...document, _id: new Types.ObjectId() });
+    // A hook that returns something other than `undefined` replaces `data`.
     if (props?.hookAfterSave) {
       const replacement = await props.hookAfterSave(document, { success: true, message: _message, data: _data });
       if (replacement !== undefined) _data = replacement;
