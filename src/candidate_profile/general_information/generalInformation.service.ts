@@ -32,17 +32,6 @@ export const handlerCreate = async (document: Record<string, unknown>, lang: str
       model: MODEL,
       name: NAME,
       lang,
-      hookAfterSave: async (doc) => {
-        const savedCandidateId = typeof doc['candidateId'] === 'string' ? doc['candidateId'] : undefined;
-        const { success, data: find } = await withDBTimeout(
-          baseFindDocument({
-            model: MODEL,
-            fields: { candidateId: savedCandidateId },
-            findOne: false,
-          }),
-        );
-        return success ? find : undefined;
-      },
       hookHasErrors: () => {},
     }),
   );

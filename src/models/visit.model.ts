@@ -18,7 +18,7 @@ const schema = new Schema(
      * Mongoose's implicit auto-generating `_id` path (`auto: true`),
      * which those other models only get away with because they're always
      * created through `baseCreateDocument` (services/index.ts), which
-     * explicitly passes `_id: null` as a workaround. `Visit` is created
+     * generates the `_id` itself. `Visit` is created
      * directly via `Model.create()` (candidate_me/index.ts), bypassing
      * that helper — leaving `_id` out entirely lets Mongoose's default
      * auto-generation do its job, avoiding a real "document must have an
