@@ -47,10 +47,12 @@ Base directory for this skill: `.claude/skills/release`
   `fix`/`chore`/`docs`/`refactor`/`perf`/`test`/`style`/`build`/`ci` →
   patch. Ưu tiên major > minor > patch nếu commit range có nhiều loại.
 - Lệnh build/test THẬT (copy từ `agent-hub/doctrine/MEMORY.md`, không tự
-  đoán): `npm run build`, `npm test`, chạy từ repo root. Không có lint
-  script thật (`package.json` không có `"lint"` dù `.eslintrc.cjs` tồn
-  tại) — bước gate SKIP lint, báo rõ "lint: chưa cấu hình, bỏ qua",
-  không tự bịa lệnh, không fail vì thiếu.
+  đoán): `npm run build`, `npm test`, chạy từ repo root. Lint có script
+  thật (`npm run lint` = `eslint .`, config `eslint.config.mjs`) nhưng
+  codebase còn nợ lỗi lint có sẵn trên `main` (275 lỗi lúc v2.2.0) và CI
+  (`node.js.yml`) KHÔNG chạy lint — nên lint chỉ báo cáo, không chặn
+  release: so số lỗi `staging` với `main`, chỉ cảnh báo khi `staging`
+  thêm lỗi mới.
 
 ## 13 bước, đúng thứ tự
 
@@ -72,8 +74,16 @@ Base directory for this skill: `.claude/skills/release`
    Đọc verbatim output. **Fail bất kỳ lệnh nào → DỪNG NGAY, không tạo
    branch/PR/tag nào cả**, báo lỗi thật, dọn worktree
    (`git worktree remove --force /tmp/release-gate-check`) rồi thoát.
-   Lint: không có script thật, báo "lint: chưa cấu hình, bỏ qua" — không
-   fail vì việc này. Pass hết → dọn worktree, tiếp tục.
+   Lint (báo cáo, không chặn — xem Bối cảnh), chạy trong cùng worktree
+   sau khi build+test pass:
+   ```
+   npm run lint 2>&1 | grep '✖'          # số lỗi trên staging
+   git checkout -q origin/main && npx eslint . 2>&1 | grep '✖'   # baseline main
+   ```
+   Không có dòng `✖` = 0 lỗi. `staging` nhiều lỗi hơn `main` → ghi rõ
+   "lint: +N lỗi mới so với main" trong báo cáo (kèm file bằng
+   `npx eslint <file đổi trong main..staging>`), vẫn tiếp tục release.
+   Xong → dọn worktree, tiếp tục.
 
 4. **Xác định version mới**:
    - `git tag -l 'v*' --sort=-v:refname | head -1` lấy tag mới nhất.
@@ -183,7 +193,7 @@ Base directory for this skill: `.claude/skills/release`
       🔀 PR staging sync: <url> (#<số>) — hoặc "n/a (lần đầu)"
       🚀 Deploy: <url gh run> (tự kích hoạt qua deploy.yml)
       ✅ Issues closed: #a (auto), #b (manual fallback), ... — hoặc "none"
-      🧪 Gate: npm run build clean, npm test <X passed>/<X total>, lint skip (chưa cấu hình)
+      🧪 Gate: npm run build clean, npm test <X passed>/<X total>, lint <N> lỗi (main <M>, +<N-M> mới | không đổi)
       ```
 
 ## Ràng buộc cứng
