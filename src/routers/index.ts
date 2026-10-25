@@ -122,17 +122,17 @@ router.get('/api/me/:email', asyncHandler(fnGetAboutMe));
 
 /**
  * @swagger
- * /api/me/{email}/visit:
+ * /api/me/{identifier}/visit:
  *   post:
  *     tags: [CandidateMe]
  *     summary: Record a visit to a candidate's public profile (count, timestamp, IP, geo-location), no auth required
  *     parameters:
  *       - in: path
- *         name: email
+ *         name: identifier
  *         required: true
+ *         description: Vanity slug (checked first) or email, same as GET /api/me/{identifier}
  *         schema:
  *           type: string
- *           format: email
  *     requestBody:
  *       required: false
  *       content:
@@ -156,13 +156,13 @@ router.get('/api/me/:email', asyncHandler(fnGetAboutMe));
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
  *       404:
- *         description: Unknown email
+ *         description: Unknown identifier
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/api/me/:email/visit', asyncHandler(fnRecordVisit));
+router.post('/api/me/:identifier/visit', asyncHandler(fnRecordVisit));
 
 /**
  * @swagger

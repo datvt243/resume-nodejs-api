@@ -1,29 +1,27 @@
 /**
- * Spot-check for issue #157 — exercises createCrudService's real
- * handlerCreate (BaseService.ts) end-to-end through the real, unmocked
- * services/index.ts (baseCreateDocument + its hookAfterSave refetch), the
- * same code path every CV section's real POST .../create endpoint uses
- * (e.g. education). Only the Mongoose model itself is faked. Confirms the
- * response's data._id is the real persisted id, not null.
+ * Exercises createCrudService's real handlerCreate (BaseService.ts) through
+ * the real, unmocked services/index.ts baseCreateDocument — the code path
+ * every CV section's POST .../create uses. Only the Mongoose model is faked.
+ * The response's `data` must be the one created document with its real id,
+ * never null and never the candidate's whole list.
  */
-import type { Model } from 'mongoose';
+import { Types, type Model } from 'mongoose';
 import { createCrudService } from '@/candidate_profile/BaseService';
-import { CrudDocument } from '@/services';
+import { handlerCreate as generalInformationCreate } from '@/candidate_profile/general_information/generalInformation.service';
+import GeneralInformation from '@/models/generalInformation.model';
+import Award from '@/models/award.model';
+import { baseCreateDocument, CrudDocument } from '@/services';
 
-// createCrudService is generic over a real `Model<T>` (issue #181) — this
-// fake only implements the methods it actually calls, so it's cast through
-// `unknown` (relaxed test policy, tracking issue #177).
-function createFakeEducationModel() {
+// createCrudService is generic over a real `Model<T>` — this fake only
+// implements the methods it actually calls, so it's cast through `unknown`.
+function createFakeModel() {
   const docs: Record<string, any>[] = [];
   return {
+    docs,
     validate: jest.fn().mockResolvedValue(undefined),
-    create: jest.fn(async (doc: Record<string, any>): Promise<Record<string, any>> => {
-      // Mirrors real Mongoose behavior for MODEL.create({ _id: null, ... }):
-      // an explicit `_id: null` is NOT kept as null — Mongoose still
-      // assigns a real ObjectId-shaped id.
-      const saved: Record<string, any> = { ...doc, _id: `real-id-${docs.length + 1}` };
-      docs.push(saved);
-      return saved;
+    create: jest.fn((doc: Record<string, any>) => {
+      docs.push(doc);
+      return Promise.resolve(doc);
     }),
     find: jest.fn((query: Record<string, any>) => ({
       exec: jest.fn().mockResolvedValue(docs.filter((d) => d['candidateId'] === query['candidateId'])),
@@ -31,17 +29,51 @@ function createFakeEducationModel() {
   };
 }
 
-describe('createCrudService handlerCreate — real CV section create flow (issue #157)', () => {
-  it('returns the real persisted _id in data, not null, for a section like education', async () => {
-    const model = createFakeEducationModel();
-    const { handlerCreate } = createCrudService({ model: model as unknown as Model<CrudDocument>, name: 'education' });
+describe('createCrudService handlerCreate', () => {
+  it.each(['education', 'award'])('%s: returns the created document (not a list) with its persisted _id, also on a second create', async (name) => {
+    const model = createFakeModel();
+    const { handlerCreate } = createCrudService({ model: model as unknown as Model<CrudDocument>, name });
 
-    const result: any = await handlerCreate({ candidateId: 'c1', school: 'MIT' });
+    await handlerCreate({ candidateId: 'c1', name: 'first' });
+    const result: any = await handlerCreate({ candidateId: 'c1', name: 'second' });
 
-    expect(result.success).toBe(true);
-    const data = Array.isArray(result.data) ? result.data[0] : result.data;
-    expect(data._id).toBeDefined();
-    expect(data._id).not.toBeNull();
-    expect(data._id).toBe('real-id-1');
+    expect(Array.isArray(result.data)).toBe(false);
+    expect(result.data.name).toBe('second');
+    expect(result.data._id).toBeInstanceOf(Types.ObjectId);
+    expect(result.data._id).toBe(model.docs[1]?.['_id']);
+    expect(model.find).not.toHaveBeenCalled();
+  });
+});
+
+describe('generalInformation handlerCreate', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('returns the created document, not a one-item array', async () => {
+    const created = { _id: new Types.ObjectId(), candidateId: 'c1' };
+    jest.spyOn(GeneralInformation, 'findOne').mockReturnValue({ exec: jest.fn().mockResolvedValue(null) } as any);
+    jest.spyOn(GeneralInformation, 'validate').mockResolvedValue(undefined);
+    jest.spyOn(GeneralInformation, 'create').mockResolvedValue(created as any);
+
+    const result: any = await generalInformationCreate({ candidateId: 'c1' });
+
+    expect(result.data).toBe(created);
+  });
+});
+
+describe('baseCreateDocument with a real CV-section model', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('the Mongoose document create() builds carries a real ObjectId, not null', async () => {
+    // Stand-in for the DB round-trip: build the real Mongoose document from what create() receives.
+    jest.spyOn(Award, 'validate').mockResolvedValue(undefined);
+    jest.spyOn(Award, 'create').mockImplementation(((doc: Record<string, unknown>) => Promise.resolve(new Award(doc))) as any);
+
+    const result: any = await baseCreateDocument({
+      document: { candidateId: new Types.ObjectId().toString(), name: 'Award' },
+      model: Award as unknown as Model<CrudDocument>,
+      name: 'award',
+    });
+
+    expect(result.data._id).toBeInstanceOf(Types.ObjectId);
   });
 });
