@@ -67,9 +67,6 @@ flowchart TD
 
 
 
-| `add-public-ats-pdf-download` | SEALED | 2026-10-10 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-16/add-public-ats-pdf-download-seal.md`. |
-
-| `add-visit-profile-tracking` | SEALED | 2026-10-16 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-16/add-visit-profile-tracking-seal.md`. |
 
 | `add-refresh-token-reuse-detection` | SEALED | 2026-10-16 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-16/add-refresh-token-reuse-detection-seal-r2.md`. |
 
@@ -93,3 +90,5 @@ node's PM status directly to "undo" an existing SEAL.
 | `set-request-body-limit` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/set-request-body-limit-seal.md`. |
 | `claude-md-refactor` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/claude-md-refactor-seal.md`. |
 | `readme-vi-rewrite` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/readme-vi-rewrite-seal.md`. |
+| `add-graceful-shutdown` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/add-graceful-shutdown-seal.md`. |
+| `enforce-https` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/enforce-https-seal.md`. |
