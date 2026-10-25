@@ -59,6 +59,37 @@ describe('candidate_me/index.ts (issue #135)', () => {
       expect(MODEL.Visit.create).not.toHaveBeenCalled();
     });
 
+    it('records a visit addressed by vanity slug, looked up by slug first', async () => {
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
+
+      const result = await handlerRecordVisit('vo-tan-dat', { ip: '', socket: {} } as any);
+
+      expect(result.success).toBe(true);
+      expect(jest.mocked(MODEL.Candidate).findOne).toHaveBeenCalledTimes(1);
+      expect(jest.mocked(MODEL.Candidate).findOne).toHaveBeenCalledWith({ slug: 'vo-tan-dat' });
+      expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ candidateId: 'c1' }));
+    });
+
+    it('falls back to email when no slug matches', async () => {
+      (MODEL.Candidate.findOne as jest.Mock)
+        .mockReturnValueOnce({ select: () => ({ exec: jest.fn().mockResolvedValue(null) }) })
+        .mockReturnValueOnce({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
+
+      await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {} } as any);
+
+      expect(jest.mocked(MODEL.Candidate).findOne).toHaveBeenNthCalledWith(2, { email: 'votan.it@gmail.com' });
+      expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ candidateId: 'c1' }));
+    });
+
+    it('404s an unknown identifier after trying slug and email, recording nothing', async () => {
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue(null) }) });
+
+      await expect(handlerRecordVisit('no-such-slug', { ip: '', socket: {} } as any)).rejects.toMatchObject({ statusCode: 404 });
+
+      expect(jest.mocked(MODEL.Candidate).findOne).toHaveBeenCalledTimes(2);
+      expect(jest.mocked(MODEL.Visit).create).not.toHaveBeenCalled();
+    });
+
     it('stores only the normalized referrer hostname from the body, ignoring the Referer header', async () => {
       (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
       const req = { ip: '', socket: {}, headers: { referer: 'https://datvt243.github.io/' }, body: { referrer: 'https://www.LinkedIn.com/feed/?trk=abc' } };

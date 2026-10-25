@@ -226,24 +226,26 @@ export const handlerGetAboutMe = async ({
 };
 
 export const fnRecordVisit = async (req: Request, res: Response, next: NextFunction) => {
-  const { email } = req.params;
-  if (!email) return next(new BadRequestError(t('publicProfile.identifierRequired', req.lang)));
+  const { identifier } = req.params;
+  if (!identifier) return next(new BadRequestError(t('publicProfile.identifierRequired', req.lang)));
 
   try {
-    const _result = await handlerRecordVisit(email, req);
+    const _result = await handlerRecordVisit(identifier, req);
     return formatReturn(res, _result);
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }
 };
 
-export const handlerRecordVisit = async (email: string, req: Request) => {
+export const handlerRecordVisit = async (identifier: string, req: Request) => {
   const { candidateQuerySafe } = await import('@/utils/querySafe');
-  // Same fail-closed check as handlerGetAboutMe above — a rejected
-  // email must not fall through to an unfiltered findOne({}).
-  const safeEmailQuery = candidateQuerySafe.safeQuery({}, { email });
-  const candidate = 'email' in safeEmailQuery ? await MODEL.Candidate.findOne(safeEmailQuery).select('_id').exec() : null;
-  // Same 404 as handlerGetAboutMe above for an unknown email.
+  // Slug first, then email, with the same fail-closed check as handlerGetAboutMe above — a rejected value must not fall through to an unfiltered findOne({}).
+  const findBy = async (field: 'slug' | 'email') => {
+    const safeQuery = candidateQuerySafe.safeQuery({}, { [field]: identifier });
+    return field in safeQuery ? MODEL.Candidate.findOne(safeQuery).select('_id').exec() : null;
+  };
+  const candidate = (await findBy('slug')) ?? (await findBy('email'));
+  // Same 404 as handlerGetAboutMe above for an unknown identifier.
   if (!candidate) throw profileNotFound(req.lang);
 
   /**

@@ -218,7 +218,7 @@ router.get('/cv-file', asyncHandler(fnDownloadCV));
  * /api/v1/candidate/visits:
  *   get:
  *     tags: [Candidate]
- *     summary: Get the authenticated candidate's own profile visit count + list (recorded via POST /api/me/{email}/visit)
+ *     summary: Get the authenticated candidate's own profile visit count + list (recorded via POST /api/me/{identifier}/visit)
  *     security:
  *       - bearerAuth: []
  *     responses:

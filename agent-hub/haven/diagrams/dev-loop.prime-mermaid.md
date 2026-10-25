@@ -69,7 +69,6 @@ flowchart TD
 
 
 
-| `add-application-profile-link` | SEALED | 2026-10-16 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-16/add-application-profile-link-seal.md`. |
 | `fix-refresh-rotation-race` | SEALED | 2026-10-18 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-18/fix-refresh-rotation-race-seal.md`. |
 | `fix-public-profile-deleted-entries` | SEALED | 2026-10-18 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: see archived row. |
 | `add-experience-career-break` | SEALED | 2026-10-19 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: see archived row. |
@@ -92,3 +91,4 @@ node's PM status directly to "undo" an existing SEAL.
 | `add-graceful-shutdown` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/add-graceful-shutdown-seal.md`. |
 | `enforce-https` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/enforce-https-seal.md`. |
 | `fix-create-returns-created-doc` | SEALED | 2026-10-25 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-25/fix-create-returns-created-doc-seal.md`. |
+| `fix-visit-accepts-slug` | SEALED | 2026-10-25 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-25/fix-visit-accepts-slug-seal.md`. |
