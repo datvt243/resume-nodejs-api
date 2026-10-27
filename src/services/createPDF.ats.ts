@@ -358,7 +358,7 @@ export const renderAtsHtml = (content: AtsContent, lang: SupportedLang = 'vi'): 
   <h1 class="name">${escapeHtml(content.fullName)}</h1>
   ${content.headline ? `<p class="headline">${escapeHtml(content.headline)}</p>` : ''}
   <p class="contact">${buildContactLine(content.contact)}</p>
-  ${content.summary ? `<section class="section"><h2 class="heading">${escapeHtml(t('cv.summary', lang))}</h2><p class="summary">${escapeHtml(content.summary)}</p></section>` : ''}
+  ${content.summary ? `<section class="section"><h2 class="heading">${escapeHtml(t('cv.summary', lang))}</h2><div class="summary">${sanitizeDescription(content.summary)}</div></section>` : ''}
   ${sectionsHtml}
 </body>
 </html>`;
