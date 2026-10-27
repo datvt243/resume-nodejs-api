@@ -156,6 +156,13 @@ describe('renderAtsHtml — ATS-safety invariants (doctrine/standards/pdf-export
     expect(html).toContain(`<html lang="${lang}">`);
   });
 
+  it('renders the CKEditor-authored summary as sanitized HTML, not escaped tags', () => {
+    const { html } = pageRenderAts({ RECORD: { ...fixture, introduction: '<p>Frontend Developer</p><script>alert(1)</script>' }, lang: 'en' });
+    expect(html).toContain('<div class="summary"><p>Frontend Developer</p>');
+    expect(html).not.toContain('&lt;p&gt;');
+    expect(html).not.toContain('<script>');
+  });
+
   it('renders standard localized headings in the expected order (en)', () => {
     const { html } = pageRenderAts({ RECORD: fixture, lang: 'en' });
     const order = ['>Skills<', '>Experience<', '>Projects<', '>Education<', '>Languages<'];
