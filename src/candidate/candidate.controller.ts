@@ -18,6 +18,7 @@ import {
   handlerUploadCV,
   handlerGetCVFile,
   handlerGetVisits,
+  handlerDeleteVisits,
 } from '@/candidate/candidate.service';
 import { CV_UPLOAD_DIR } from '@/middlewares/uploadCV.middleware';
 import { parseLinkedInExportZip } from '@/candidate/parseLinkedInExport.service';
@@ -182,6 +183,17 @@ export const fnGetVisits = async (req: Request, res: Response, next: NextFunctio
     if (!req.user?._id) throw new AuthenticationError();
     const { data: visits, message } = await handlerGetVisits(req.user._id, req.lang);
     return ok(res, visits, message, listMeta(visits.length));
+  } catch (err) {
+    handleError({ err, next, lang: req.lang });
+  }
+};
+
+export const fnDeleteVisits = async (req: Request, res: Response, next: NextFunction) => {
+  // Self only, same as fnGetVisits: the id comes from the verified JWT, never from the request.
+  try {
+    if (!req.user?._id) throw new AuthenticationError();
+    const { data, message } = await handlerDeleteVisits(req.user._id, req.lang);
+    return ok(res, data, message);
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }
