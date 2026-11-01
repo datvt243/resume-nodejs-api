@@ -49,7 +49,7 @@ export const password = Joi.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_L
 
 export const firstName = Joi.string().min(1).max(15).trim().strict().required();
 
-export const lastName = Joi.string().min(3).max(35).trim().strict().required();
+export const lastName = Joi.string().min(1).max(35).trim().strict().required();
 
 export const fullName = Joi.string().min(3).max(50).trim().strict().required();
 
