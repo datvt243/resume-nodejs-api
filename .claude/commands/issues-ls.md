@@ -18,7 +18,7 @@ a GitHub repo — no writes, no approval gate needed.
    report the exact output plus a one-line hint (`gh auth login`) — don't
    work around it (no calling the GitHub REST API directly with a token).
 3. **List issues.** `gh issue list --state open --limit 50 --json
-   number,title,labels,state,updatedAt,url` by default. If `$ARGUMENTS`
+   number,title,labels,state,updatedAt` by default. If `$ARGUMENTS`
    is given, pass it through verbatim as extra flags to `gh issue list`
    instead of `--state open --limit 50` (e.g. `/issues-ls --state all`,
    `/issues-ls --label bug --assignee @me`), still adding the `--json`
@@ -39,8 +39,24 @@ a GitHub repo — no writes, no approval gate needed.
    - Any of those still `OPEN` in step 3's listing → display state
      **`done-dev`** (merged into the integration branch, not released
      yet). Everything else keeps its raw state.
-5. **Display as a table**: issue number, title, **Status**, labels,
-   state, updated-at, URL.
+5. **Display as tables, one per group**: issue number, title,
+   **Priority**, **Status**, labels, state, updated-at.
+   - **Group** = the first `[TAG]` in the title that isn't a priority tag
+     (`[QC]`, `[TEST]`, `[ENHANCEMENT]`…) — it marks a campaign/feature, so
+     related issues (e.g. a QC round's findings) sit together. Each group
+     gets its own `### <TAG>` heading + table, in order of first appearance;
+     titles without a tag go last under `### Other`. No title has a tag →
+     one plain table, no headings. Strip the group tag and the priority tag
+     from the Title cell (the heading/Priority column already show them).
+   - **Issue number** is plain `#123` — no URL column, no markdown link.
+   - **Priority**, first match wins:
+     1. A `priority: <level>` label (case-insensitive) → Jira's levels
+        `Highest`, `High`, `Medium`, `Low`, `Lowest` (e.g. `priority:
+        high` → `High`).
+     2. A title tag: `[P0]`–`[P4]` → `P0`–`P4`; `[CRITICAL]`/`[HIGH]`/
+        `[MEDIUM]`/`[LOW]` → that word lowercased.
+     3. A `critical` label → `critical`.
+     None → `—`. Leave `priority: *` labels out of the Labels column.
    - **Status** comes from the issue's `status: <value>` label(s) (e.g.
      `status: pending` → `pending`, `status: waiting-backend` →
      `waiting-backend`) — GitHub's own state is only `OPEN`/`CLOSED`, so

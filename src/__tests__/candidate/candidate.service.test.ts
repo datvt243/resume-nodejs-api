@@ -12,7 +12,7 @@
  */
 import fs from 'fs';
 import * as MODELS from '@/models';
-import { handlerGetInformationByEmail, handlerGetInformationById, handlerDelete } from '@/candidate/candidate.service';
+import { handlerGetInformationByEmail, handlerGetInformationById, handlerDelete, handlerDeleteVisits } from '@/candidate/candidate.service';
 
 jest.mock('@/models', () => ({
   Candidate: { findOne: jest.fn(), findById: jest.fn(), deleteOne: jest.fn() },
@@ -25,7 +25,7 @@ jest.mock('@/models', () => ({
   Award: { deleteMany: jest.fn(), find: jest.fn() },
   Application: { deleteMany: jest.fn() },
   Profile: { deleteMany: jest.fn() },
-  Visit: {},
+  Visit: { deleteMany: jest.fn() },
 }));
 
 describe('candidate.service.ts password exclusion (issue #152)', () => {
@@ -172,5 +172,16 @@ describe('candidate.service.ts handlerDelete (issue #158)', () => {
     expect(MODELS.Project.find).toHaveBeenCalledWith({ candidateId: 'cand4' }, { images: 1 });
     expect(MODELS.Certificate.find).toHaveBeenCalledWith({ candidateId: 'cand4' }, { images: 1 });
     expect(MODELS.Award.find).toHaveBeenCalledWith({ candidateId: 'cand4' }, { images: 1 });
+  });
+
+  describe('handlerDeleteVisits', () => {
+    it("hard-deletes every visit of the candidate and returns the count", async () => {
+      (MODELS.Visit.deleteMany as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue({ deletedCount: 3 }) });
+
+      const result = await handlerDeleteVisits('cand1');
+
+      expect((MODELS.Visit.deleteMany as jest.Mock).mock.calls).toEqual([[{ candidateId: 'cand1' }]]);
+      expect(result).toMatchObject({ success: true, data: { deletedCount: 3 } });
+    });
   });
 });

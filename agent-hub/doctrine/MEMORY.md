@@ -17,8 +17,8 @@
 | Test | `npm test` | `/Users/_david/Workspace/Project/resume/resume-nodejs-api` |
 | Test one file | `npx jest <path/to/file.test.ts>` | `/Users/_david/Workspace/Project/resume/resume-nodejs-api` |
 | Build | `npm run build` | `/Users/_david/Workspace/Project/resume/resume-nodejs-api` |
-| Lint | `npm run lint` (= `eslint .`) | `/Users/_david/Workspace/Project/resume/resume-nodejs-api` |
-| Typecheck | `n/a` as a standalone script — happens implicitly inside `npm run build` (`tsc && npm run copy`) | `/Users/_david/Workspace/Project/resume/resume-nodejs-api` |
+| Lint | `npm run lint` (= `eslint .`) — `baseline: 274 errors on staging @ v2.2.4` (exit 1, run 2026-11-01); count ≤ 274 and none in changed files, cite the count | `/Users/_david/Workspace/Project/resume/resume-nodejs-api` |
+| Typecheck | `inside Build` — `npm run build` runs `tsc && npm run copy`, which type-checks every shipped file (`npx tsc --noEmit`: 0 errors, 2026-11-01) | `/Users/_david/Workspace/Project/resume/resume-nodejs-api` |
 | Run locally | `npm run dev` | `/Users/_david/Workspace/Project/resume/resume-nodejs-api` |
 
 `npm test` = `jest --passWithNoTests` (see `package.json`).

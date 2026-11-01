@@ -65,6 +65,7 @@ export default {
     cvFileNotFound: 'No CV has been uploaded yet',
     getVisitsSuccess: 'Visits fetched successfully',
     getVisitStatsSuccess: 'Visit stats fetched successfully',
+    deleteVisitsSuccess: 'All visits deleted successfully',
     visitStatsInvalidQuery: 'Invalid stats query: interval must be day, week or month; dates YYYY-MM-DD with from <= to; tz a valid IANA time zone; at most 400 buckets',
   },
   linkedinImport: {
@@ -195,6 +196,7 @@ export default {
     careerGoal: 'Career goal',
     yearsOfExperience: 'Years of experience',
     professionalSkillsGroup: 'Skill group',
+    mainSkills: 'Main skills',
     candidateId: 'Candidate ID',
     _id: 'ID',
     slug: 'Slug',

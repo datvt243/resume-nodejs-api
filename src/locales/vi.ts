@@ -65,6 +65,7 @@ export default {
     cvFileNotFound: 'Chưa có CV nào được tải lên',
     getVisitsSuccess: 'Lấy danh sách lượt ghé thăm thành công',
     getVisitStatsSuccess: 'Lấy thống kê lượt ghé thăm thành công',
+    deleteVisitsSuccess: 'Xoá toàn bộ lượt ghé thăm thành công',
     visitStatsInvalidQuery: 'Tham số thống kê không hợp lệ: interval là day, week hoặc month; ngày dạng YYYY-MM-DD với from <= to; tz là múi giờ IANA hợp lệ; tối đa 400 mốc',
   },
   linkedinImport: {
@@ -195,6 +196,7 @@ export default {
     careerGoal: 'Mục tiêu nghề nghiệp',
     yearsOfExperience: 'Số năm kinh nghiệm',
     professionalSkillsGroup: 'Nhóm kỹ năng',
+    mainSkills: 'Kỹ năng chính',
     candidateId: 'ID ứng viên',
     _id: 'ID',
     slug: 'Slug',

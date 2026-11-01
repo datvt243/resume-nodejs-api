@@ -333,6 +333,7 @@ const options: swaggerJsdoc.Options = {
             openToWork: { type: 'boolean' },
             careerGoal: { type: 'string' },
             personalSkills: { type: 'array', items: { type: 'object' } },
+            mainSkills: { type: 'array', maxItems: 5, items: { type: 'object' } },
             professionalSkills: { type: 'array', items: { type: 'object' } },
             professionalSkillsGroup: { type: 'array', items: { type: 'string' } },
             foreignLanguages: { type: 'array', items: { type: 'object' } },

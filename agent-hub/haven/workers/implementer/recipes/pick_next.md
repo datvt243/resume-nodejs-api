@@ -3,67 +3,83 @@
 - Output: `{node, diagram, current_state, acceptance: string[],
   files: string[], blocked_by: string|null}`
 
-> [GUARD, added 2026-08-31] If `/boot` already ran in THIS SAME session,
-> `NORTHSTAR.md` / `doctrine/MEMORY.md` / `doctrine/domains/PROJECT.md` /
-> `haven/diagrams/` are already in context from that pass — steps 1-2 below
-> REUSE that content, don't `Read` it again (a second full read of the same
-> 4 files is pure duplication, same class of token waste as the
-> `agent-hub/CLAUDE.md` case already fixed in `boot/SKILL.md`). Only `Read`
-> for real when: (a) `/worker implementer` is invoked without a prior
-> `/boot` this session, or (b) the content might have changed since it was
-> last read.
+> [GUARD] If `/boot` already ran in THIS SAME session
+> (same context), `NORTHSTAR.md` / `doctrine/MEMORY.md` /
+> `doctrine/domains/PROJECT.md` / `haven/diagrams/` are already in
+> context verbatim from that — steps 1-2 below ONLY reuse that existing
+> content, do NOT `Read` it again (re-reading = duplicating 4 files
+> verbatim in the same context, wasted tokens for nothing — the same
+> class of bug already caught in `boot/SKILL.md`). Only `Read` for real
+> when: (a) `/worker implementer` is called without `/boot` having run
+> first this session, or (b) that content is genuinely absent or
+> suspected to have changed since it was last read.
 
 ## Steps
-1. Get `NORTHSTAR.md` + `doctrine/MEMORY.md` + `doctrine/domains/PROJECT.md`
-   — reuse from `/boot` if available (see GUARD above), else `Read` fresh.
-2. Get every diagram in `haven/diagrams/`, list every node + PM status —
-   reuse from `/boot` if available (see GUARD above), else `Read` fresh.
-   [clarified 2026-09-05] "every diagram" means every file WITHOUT
-   `archive` in its name — an archive file is cold storage, not re-read
-   here, matching `/boot` step 5's rule exactly.
-3. Find the earliest PENDING node on the critical path (e.g. the seed node
-   `fix-chrome-executable-path` in `dev-loop.prime-mermaid.md`).
-4. No match → don't invent work; report "no PENDING node" clearly, stop.
-   [added 2026-10-24] Before adding a new node, `grep` its slug in
-   `dev-loop-archive.md` — sealed pointers get dropped from the active
-   file (`verify_seal` step 11c), so a taken slug may only be there;
-   taken → pick a new slug.
-   [synced 2026-10-24] Also `grep` the active diagram for a not-yet-SEALED
-   row of the same task/issue (`#<n>`) — found → resume THAT row in place
-   (state + Notes pointer), never add a "recheck" node beside it (LAI-13's
-   new-node rule covers SEALED nodes only).
-4b. [synced 2026-10-24, analyze-lite / Layer 1.5] Self-check the picked
-   node's acceptance criteria before coding — not a verify pass, no state
-   change, no separate evidence. Block on exactly 3 error classes:
-   - Ambiguity: vague adjective ("fast", "clean") with no measurement/command.
-   - Underspecification: no pass/fail condition mapping to a command in
-     `doctrine/MEMORY.md`.
-   - Coverage gap: criteria point to no file/anchor that will change.
-   Found one → rewrite the criteria on the node first; the evidence note
-   adds `## Acceptance criteria clarified: <before> → <after>`.
-5. Locate code anchors by grep — real paths in `src/`, never invented
-   (e.g. `src/services/createPDF.ts:14-25`,
-   `src/config/cors.config.ts:8`).
-6. Declare blockers: if a needed command is still `<<FILL>>` in
-   `doctrine/MEMORY.md` (currently: lint/typecheck), report blocked
-   instead of guessing.
-7. [added 2026-09-02] Measure `hub_bytes_before` — the total bytes across
-   the 5 categories `/hub-tokens` calls the "per-session total" (root
-   files, `doctrine/`, the active `haven/diagrams/`, 2 worker bundles).
-   Record this number in the evidence note at step 8 — the verifier reads
-   it back to compute the hub-size diff in `worker-runs.log`.
-8. Evidence: write `evidence/implementer/<date>/<slug>-plan.md`, including
-   the line `## Hub bytes before: <N>` from step 7.
+1. Get the content of `NORTHSTAR.md` + `doctrine/MEMORY.md` +
+   `doctrine/domains/<project>.md` — reuse from `/boot` if available (see
+   the GUARD above), otherwise `Read` fresh.
+2. Get the list of EVERY diagram + PM status — reuse from `/boot` if
+   available (see the GUARD above), otherwise `Read` fresh. [clarified
+   2026-09-02] "EVERY diagram" means every file WITHOUT `archive` in its
+   name — an archive file is cold storage, not re-read here, matching
+   `/boot` step 5's rule exactly.
+3. Find the earliest PENDING node on the critical path.
+4. No match → don't invent work; clearly report "no PENDING node", stop.
+   Creating a new node for an explicit task instead: `grep` the slug in
+   `dev-loop-archive.md` first — sealed pointers get dropped from the
+   active file (`verify_seal` step 11c), so a taken slug may only be
+   visible there; taken → pick a new slug. And `grep`
+   the active diagram for a not-yet-SEALED row of the same task/issue
+   (`#<n>`) first — found → resume THAT row (state + Notes pointer
+   updated in place), never add a "recheck" node beside it (LAI-13's
+   new-node rule covers SEALED nodes only). The template's `<<FILL>>`
+   placeholder row is replaced by the first real node, not kept.
+5. Quickly self-check the acceptance
+   criteria of the node just picked — NOT a verify pass, only blocks
+   starting to code against a criterion that could never have been
+   verified in the first place. Check for exactly 3 minimal error
+   classes:
+   - **Ambiguity**: the criterion uses a vague adjective ("fast",
+     "stable", "clean"...) without a specific measurement/test command.
+   - **Underspecification**: no clear pass/fail condition (doesn't map to
+     any test command in `doctrine/MEMORY.md`).
+   - **Coverage gap**: the acceptance criteria don't point to any
+     file/anchor that will change.
+   Found an error → rewrite the acceptance criteria right on the node
+   (clearer wording, a specific test command/measurement added) before
+   moving to step 6, don't silently implement against a vague criterion.
+   The node's state doesn't change (still PENDING) — this is the
+   implementer's own self-check, not a second independent pass/gate, no
+   separate evidence (the evidence note in step 9 only needs 1 extra
+   line if the acceptance criteria were rewritten:
+   `## Acceptance criteria clarified: <before> → <after>`).
+6. Locate code anchors via grep — real paths, don't invent them.
+7. Declare blockers: fill in whatever `<<FILL>>` is needed in
+   `doctrine/MEMORY.md`.
+8. Measure `hub_bytes_before` — the "per-session
+   total", with the exact command in `evidence/README.md` (Format —
+   worker-runs.log). Record this number in the evidence note at step 9 — this is
+   the real input the verifier uses to compute the hub-size diff in
+   `worker-runs.log`, not something specific to `/todo`.
+9. Evidence: write `evidence/implementer/<date>/<slug>-plan.md`,
+   including the line `## Hub bytes before: <N>` from step 8 (and the
+   acceptance-criteria-clarified line from step 5 if it was edited).
 
 ## Hard rules honored
-`NodeBeforeCode` | `EvidencePerAction` | `NoSilentFailure` | `AppendOnly`
+`NodeBeforeCode` | `EvidencePerAction` | `NoSilentFailure`
 
 ## Failure branches
 | Failure | Handling |
 |---|---|
-| No diagram exists yet | Create `haven/diagrams/<slug>.prime-mermaid.md` matching the `dev-loop` format. [added 2026-09-05] Always APPEND the new row at the END of the PM status table, never insert it in the middle — required for `agent-hub/.gitattributes`' `merge=union` to merge cleanly when 2 branches each add a different new node around the same time. |
-| Task is ambiguous | Stop and ask, don't guess |
+| No diagram yet | Create `haven/diagrams/<slug>.prime-mermaid.md` matching the `dev-loop` format |
+| The task is vague | Stop and ask, don't guess |
+| Acceptance criteria vague/not measurable (step 5) | Rewrite it right on the node, state it clearly in the evidence — do NOT implement before fixing it |
 
 ## Runtime
 `/worker implementer "<task>"`. No API key, no network call — Claude Code
 IS the runtime.
+
+## Project extensions
+- Code anchors: grep real paths in `src/` (e.g.
+  `src/services/createPDF.ts`, `src/config/cors.config.ts`), never invent
+  them.

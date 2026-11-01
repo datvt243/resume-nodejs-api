@@ -31,6 +31,11 @@ const _sub = {
   personalSkills: Joi.array().items({
     name: Joi.string(),
   }),
+  mainSkills: Joi.array()
+    .items({
+      name: Joi.string(),
+    })
+    .max(5),
   foreignLanguages: foreignLanguages,
   socialMedia: Joi.object({
     github: Joi.string(),
