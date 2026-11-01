@@ -12,4 +12,10 @@ describe('schemaEducation — school', () => {
   it.each(['MIT', 'RMIT', 'FPT', 'ĐH Huế'])('accepts %s', (school) => {
     expect(schemaEducation.validate({ ...base, school }).error).toBeUndefined();
   });
+
+  it('trims surrounding spaces from school and major', () => {
+    const { error, value } = schemaEducation.validate({ ...base, school: ' MIT ', major: ' Computer Science ' });
+    expect(error).toBeUndefined();
+    expect(value).toMatchObject({ school: 'MIT', major: 'Computer Science' });
+  });
 });

@@ -13,7 +13,7 @@ const objectIdArray = Joi.array().items(Joi.string().pattern(/^[0-9a-fA-F]{24}$/
 
 export const schemaProfile = Joi.object({
   _id,
-  name: Joi.string().min(1).max(100).trim().strict().required(),
+  name: Joi.string().min(1).max(100).trim().required(),
   educationIds: objectIdArray,
   experienceIds: objectIdArray,
   projectIds: objectIdArray,
