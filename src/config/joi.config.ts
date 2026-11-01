@@ -41,23 +41,22 @@ export const getObject = (fields: Joi.SchemaMap) => {
 export const email = Joi.string()
   .email({ minDomainSegments: 2, tlds: { allow: ['com', 'net', 'vn'] } })
   .trim()
-  .strict()
   .required();
 import { passwordRegex } from '@/config/regex.config';
 
 export const password = Joi.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH).regex(passwordRegex).trim().strict().required();
 
-export const firstName = Joi.string().min(1).max(15).trim().strict().required();
+export const firstName = Joi.string().min(1).max(15).trim().required();
 
-export const lastName = Joi.string().min(3).max(35).trim().strict().required();
+export const lastName = Joi.string().min(1).max(35).trim().required();
 
-export const fullName = Joi.string().min(3).max(50).trim().strict().required();
+export const fullName = Joi.string().min(3).max(50).trim().required();
 
-export const company = Joi.string().min(0).max(100).trim().strict().required();
+export const company = Joi.string().min(0).max(100).trim().required();
 
-export const position = Joi.string().min(0).max(100).trim().strict().required();
+export const position = Joi.string().min(0).max(100).trim().required();
 
-export const phone = Joi.string().pattern(phoneRegex).trim().strict().required();
+export const phone = Joi.string().pattern(phoneRegex).trim().required();
 
 /**
  * Free-text content stored per language (vi/en) — see
@@ -98,5 +97,5 @@ export const descriptionOptional = Joi.object(localizedTextShape).label('Mô t�
 
 export const _stringDefault = (props: JoiProps) => {
   const { min = 3, max = 100, title = 'Title' } = props;
-  return Joi.string().min(min).max(max).trim().strict().required().label(title);
+  return Joi.string().min(min).max(max).trim().required().label(title);
 };
