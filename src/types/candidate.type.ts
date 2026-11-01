@@ -104,6 +104,7 @@ export interface GeneralInformationData {
   career?: string;
   careerGoal?: string;
   personalSkills?: Skill[];
+  mainSkills?: Skill[];
   professionalSkills?: Skill[];
   professionalSkillsGroup?: string[];
   foreignLanguages?: Language[];

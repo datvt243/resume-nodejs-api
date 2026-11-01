@@ -195,6 +195,7 @@ export default {
     careerGoal: 'Career goal',
     yearsOfExperience: 'Years of experience',
     professionalSkillsGroup: 'Skill group',
+    mainSkills: 'Main skills',
     candidateId: 'Candidate ID',
     _id: 'ID',
     slug: 'Slug',
