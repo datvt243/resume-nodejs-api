@@ -3,7 +3,7 @@
 - Output: `{node, diagram, current_state, acceptance: string[],
   files: string[], blocked_by: string|null}`
 
-> [GUARD, added 2026-08-31] If `/boot` already ran in THIS SAME session,
+> [GUARD] If `/boot` already ran in THIS SAME session,
 > `NORTHSTAR.md` / `doctrine/MEMORY.md` / `doctrine/domains/PROJECT.md` /
 > `haven/diagrams/` are already in context from that pass — steps 1-2 below
 > REUSE that content, don't `Read` it again (a second full read of the same
@@ -24,7 +24,7 @@
 3. Find the earliest PENDING node on the critical path (e.g. the seed node
    `fix-chrome-executable-path` in `dev-loop.prime-mermaid.md`).
 4. No match → don't invent work; report "no PENDING node" clearly, stop.
-   [added 2026-10-24] Before adding a new node, `grep` its slug in
+   Before adding a new node, `grep` its slug in
    `dev-loop-archive.md` — sealed pointers get dropped from the active
    file (`verify_seal` step 11c), so a taken slug may only be there;
    taken → pick a new slug.
@@ -47,9 +47,7 @@
 6. Declare blockers: if a needed command is still `<<FILL>>` in
    `doctrine/MEMORY.md` (currently: lint/typecheck), report blocked
    instead of guessing.
-7. [added 2026-09-02] Measure `hub_bytes_before` — the total bytes across
-   the 5 categories `/hub-tokens` calls the "per-session total" (root
-   files, `doctrine/`, the active `haven/diagrams/`, 2 worker bundles).
+7. Measure `hub_bytes_before` — the "per-session total", with the exact command in `evidence/README.md` (Format — worker-runs.log).
    Record this number in the evidence note at step 8 — the verifier reads
    it back to compute the hub-size diff in `worker-runs.log`.
 8. Evidence: write `evidence/implementer/<date>/<slug>-plan.md`, including
@@ -61,7 +59,7 @@
 ## Failure branches
 | Failure | Handling |
 |---|---|
-| No diagram exists yet | Create `haven/diagrams/<slug>.prime-mermaid.md` matching the `dev-loop` format. [added 2026-09-05] Always APPEND the new row at the END of the PM status table, never insert it in the middle — required for `agent-hub/.gitattributes`' `merge=union` to merge cleanly when 2 branches each add a different new node around the same time. |
+| No diagram exists yet | Create `haven/diagrams/<slug>.prime-mermaid.md` matching the `dev-loop` format. Always APPEND the new row at the END of the PM status table, never insert it in the middle — required for `agent-hub/.gitattributes`' `merge=union` to merge cleanly when 2 branches each add a different new node around the same time. |
 | Task is ambiguous | Stop and ask, don't guess |
 
 ## Runtime
