@@ -47,6 +47,16 @@ no `(#N)` refs, plus whatever project opt-ins that file enables);
 doesn't type-check is not a typecheck. Missing either in the evidence
 note = `EDIT_UNVERIFIED`.
 
+## Forbidden states (Cost = KILL — stop immediately, don't self-continue)
+| State | Means |
+|---|---|
+| `ADHOC_WORK` | Touching code without a worker identity + no node on the diagram |
+| `NO_EVIDENCE` | A real action happened but no note was written to `evidence/` |
+| `EDIT_UNVERIFIED` | Claiming a result (test pass, correct output...) without actually having run it and read it back |
+| `CODE_IN_HAVEN` | Runnable code (`.ts`/`.py`/`.sh`...) leaked into `haven/` — that tree is memory only |
+| `DIAGRAM_DRIFT` | Code changed but diagram PM status wasn't updated to match |
+
+## Project extensions
 **Touching PDF/DOCX export** (`src/services/createPDF*.ts`,
 `createDocx.ts`, or any new export format) is a special case of the
 default loop: the diff must hold the 10 invariants in
@@ -59,15 +69,6 @@ note, or name which one doesn't apply and why. A change that only passes
 `npm test`/`npm run build` without extracting the rendered PDF's real
 text is `EDIT_UNVERIFIED` for any of the first five rules, since those
 defects are invisible to the type checker and to a visual check.
-
-## Forbidden states (Cost = KILL — stop immediately, don't self-continue)
-| State | Means |
-|---|---|
-| `ADHOC_WORK` | Touching code without a worker identity + no node on the diagram |
-| `NO_EVIDENCE` | A real action happened but no note was written to `evidence/` |
-| `EDIT_UNVERIFIED` | Claiming a result (test pass, correct output...) without actually having run it and read it back |
-| `CODE_IN_HAVEN` | Runnable code (`.ts`/`.py`/`.sh`...) leaked into `haven/` — that tree is memory only |
-| `DIAGRAM_DRIFT` | Code changed but diagram PM status wasn't updated to match |
 
 ## Seal gate
 Before any **outward-facing** action — `commit` · `push` · `publish` ·
