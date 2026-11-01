@@ -8,7 +8,7 @@ import { _id, _boolean, candidateId, startDate, endDate, descriptionOptional } f
 
 export const schemaEducation = Joi.object({
   _id,
-  school: Joi.string().min(10).max(255).trim().strict().required(),
+  school: Joi.string().min(1).max(255).trim().strict().required(),
   major: Joi.string().min(3).max(255).trim().strict().required(),
   startDate,
   endDate,
