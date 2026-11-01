@@ -15,6 +15,7 @@ import {
   fnUploadCV,
   fnDownloadCV,
   fnGetVisits,
+  fnDeleteVisits,
   fnGetVisitStats,
   fnParseLinkedInExport,
   fnParseCvPdf,
@@ -239,6 +240,24 @@ router.get('/cv-file', asyncHandler(fnDownloadCV));
  *                       $ref: '#/components/schemas/Pagination'
  */
 router.get('/visits', asyncHandler(fnGetVisits));
+
+/**
+ * @swagger
+ * /api/v1/candidate/visits:
+ *   delete:
+ *     tags: [Candidate]
+ *     summary: Permanently delete all of the authenticated candidate's own profile visits (hard delete, no restore)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Visits deleted; `data.deletedCount` is the number removed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ */
+router.delete('/visits', asyncHandler(fnDeleteVisits));
 
 /**
  * @swagger

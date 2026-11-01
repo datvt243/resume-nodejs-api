@@ -120,6 +120,12 @@ export const handlerGetVisits = async (candidateId: string, lang: string = DEFAU
   return { success: true, message: t('candidate.getVisitsSuccess', lang), data: visits };
 };
 
+// Hard delete on purpose: Visit has no deletedAt, and the candidate is wiping their own analytics.
+export const handlerDeleteVisits = async (candidateId: string, lang: string = DEFAULT_LANG) => {
+  const { deletedCount } = await MODELS.Visit.deleteMany({ candidateId }).exec();
+  return { success: true, message: t('candidate.deleteVisitsSuccess', lang), data: { deletedCount } };
+};
+
 export const handlerDelete = async (_id: string, lang: string = DEFAULT_LANG) => {
   if (!(await MODEL.findById(_id))) {
     return { success: false, message: t('common.idNotFound', lang) };
