@@ -339,3 +339,27 @@ describe('own-CV endpoints when the candidate no longer exists', () => {
     expect(json.mock.calls[0][0]).toMatchObject({ success: false, error: { code: 'NOT_FOUND' } });
   });
 });
+
+describe('handlerGetAboutMe — localized education school/major', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue({ _id: '507f1f77bcf86cd799439011', email: 'a@b.co' }) });
+    const emptyFind = { exec: jest.fn().mockResolvedValue([]) };
+    for (const model of [MODEL.generalInformation, MODEL.Experience, MODEL.Reference, MODEL.Project, MODEL.Certificate, MODEL.Award]) {
+      (model.find as jest.Mock).mockReturnValue(emptyFind);
+    }
+    (MODEL.Education.find as jest.Mock).mockReturnValue({
+      exec: jest.fn().mockResolvedValue([{ school: { vi: 'ĐH Bách Khoa', en: 'HCMUT' }, major: { vi: 'Khoa học máy tính', en: '' }, description: { vi: 'Mô tả', en: '' } }]),
+    });
+  });
+
+  it('resolves school/major to the requested language', async () => {
+    const result = await handlerGetAboutMe({ identifier: 'a@b.co', lang: 'en' });
+    expect(result.data.educations[0]).toMatchObject({ school: 'HCMUT' });
+  });
+
+  it('falls back to vi when the requested language is empty', async () => {
+    const result = await handlerGetAboutMe({ identifier: 'a@b.co', lang: 'en' });
+    expect(result.data.educations[0]).toMatchObject({ major: 'Khoa học máy tính', description: 'Mô tả' });
+  });
+});

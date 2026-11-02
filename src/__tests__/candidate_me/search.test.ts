@@ -115,7 +115,7 @@ describe('handlerSearchPublicProfiles', () => {
       $or: [{ positionDesired: pattern }, { 'professionalSkills.name': pattern }],
     });
     expect(mockExperienceDistinct).toHaveBeenCalledWith('candidateId', { deletedAt: null, $or: [{ company: pattern }, { position: pattern }, { skills: pattern }] });
-    expect(mockEducationDistinct).toHaveBeenCalledWith('candidateId', { deletedAt: null, $or: [{ school: pattern }, { major: pattern }] });
+    expect(mockEducationDistinct).toHaveBeenCalledWith('candidateId', { deletedAt: null, $or: [{ 'school.vi': pattern }, { 'school.en': pattern }, { 'major.vi': pattern }, { 'major.en': pattern }] });
 
     const used = mockExperienceDistinct.mock.calls[0][1].$or[0].company as RegExp;
     expect(used.test('Senior C++ (Senior) dev')).toBe(true);
@@ -129,7 +129,7 @@ describe('handlerSearchPublicProfiles', () => {
 
     const filter = mockEducationDistinct.mock.calls[0][1];
     expect(Object.keys(filter)).toEqual(['deletedAt', '$or']);
-    expect(filter.$or[0].school).toEqual(/\{"\$gt": ""\}/i);
+    expect(filter.$or[0]['school.vi']).toEqual(/\{"\$gt": ""\}/i);
   });
 
   it('paginates with the { items, meta } shape', async () => {
@@ -180,7 +180,7 @@ describe('fnSearchPublicProfiles', () => {
 
     expect(candidateChain.skip).toHaveBeenCalledWith(0);
     expect(candidateChain.limit).toHaveBeenCalledWith(100);
-    expect(mockEducationDistinct.mock.calls[0][1].$or[0].school).toEqual(/node/i);
+    expect(mockEducationDistinct.mock.calls[0][1].$or[0]['school.vi']).toEqual(/node/i);
     expect(res.json).toHaveBeenCalledWith({ success: true, message: '', data: [], meta: { page: 1, limit: 100, total: 0, totalPages: 1 } });
   });
 

@@ -95,6 +95,16 @@ export const description = Joi.object(localizedTextShape).required().label('Mô 
 
 export const descriptionOptional = Joi.object(localizedTextShape).label('Mô tả');
 
+/**
+ * Localized name field (Education school/major): `vi` is required since
+ * public reads fall back to it when the requested language is empty.
+ */
+export const localizedName = (min: number) =>
+  Joi.object({
+    vi: Joi.string().min(min).max(255).trim().required(),
+    en: Joi.string().max(255).trim().allow(''),
+  }).required();
+
 export const _stringDefault = (props: JoiProps) => {
   const { min = 3, max = 100, title = 'Title' } = props;
   return Joi.string().min(min).max(max).trim().required().label(title);

@@ -4,12 +4,12 @@
  */
 
 import Joi from 'joi';
-import { _id, _boolean, candidateId, startDate, endDate, descriptionOptional } from '@/config/joi.config';
+import { _id, _boolean, candidateId, startDate, endDate, descriptionOptional, localizedName } from '@/config/joi.config';
 
 export const schemaEducation = Joi.object({
   _id,
-  school: Joi.string().min(1).max(255).trim().required(),
-  major: Joi.string().min(3).max(255).trim().required(),
+  school: localizedName(1),
+  major: localizedName(3),
   startDate,
   endDate,
   isCurrent: _boolean,

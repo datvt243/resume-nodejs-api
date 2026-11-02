@@ -26,10 +26,10 @@ import * as MODELS from '@/models';
 import { CrudDocument } from '@/services';
 
 /**
- * { model, field } pairs — only free-text description/introduction-style
- * fields, never proper-noun/label fields (school, company, position
- * title, etc). `Model<CrudDocument>` + a narrow, justified cast per
- * entry — same Mongoose `Model<T>` invariance pattern as elsewhere.
+ * { model, field } pairs — free-text description/introduction-style
+ * fields plus Education school/major; other proper-noun/label fields
+ * (company, position title, etc) stay plain strings.
+ * `Model<CrudDocument>` + a narrow, justified cast per entry — same Mongoose `Model<T>` invariance pattern as elsewhere.
  * `CrudDocument`'s own fields are irrelevant here (this script only
  * ever calls `.updateMany()` with raw field-name strings, never typed
  * field access), it's just the minimal real `Model<T>` shape available
@@ -38,6 +38,8 @@ import { CrudDocument } from '@/services';
 const TARGETS: { name: string; model: Model<CrudDocument>; field: string }[] = [
   { name: 'Candidate.introduction', model: MODELS.Candidate as unknown as Model<CrudDocument>, field: 'introduction' },
   { name: 'Education.description', model: MODELS.Education as unknown as Model<CrudDocument>, field: 'description' },
+  { name: 'Education.school', model: MODELS.Education as unknown as Model<CrudDocument>, field: 'school' },
+  { name: 'Education.major', model: MODELS.Education as unknown as Model<CrudDocument>, field: 'major' },
   { name: 'Experience.description', model: MODELS.Experience as unknown as Model<CrudDocument>, field: 'description' },
   { name: 'Award.description', model: MODELS.Award as unknown as Model<CrudDocument>, field: 'description' },
   { name: 'Certificate.description', model: MODELS.Certificate as unknown as Model<CrudDocument>, field: 'description' },
