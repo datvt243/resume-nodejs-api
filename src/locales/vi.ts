@@ -197,6 +197,7 @@ export default {
     yearsOfExperience: 'Số năm kinh nghiệm',
     professionalSkillsGroup: 'Nhóm kỹ năng',
     mainSkills: 'Kỹ năng chính',
+    familiarSkills: 'Kỹ năng quen thuộc',
     candidateId: 'ID ứng viên',
     _id: 'ID',
     slug: 'Slug',
