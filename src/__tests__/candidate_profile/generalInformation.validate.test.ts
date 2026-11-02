@@ -13,3 +13,9 @@ describe('schemaGeneralInformationPatch — mainSkills', () => {
     expect(error?.details[0]?.path).toEqual(['mainSkills']);
   });
 });
+
+describe('schemaGeneralInformationPatch — familiarSkills', () => {
+  it('accepts any number of familiar skills', () => {
+    expect(schemaGeneralInformationPatch.validate({ _id, familiarSkills: skills(20) }).error).toBeUndefined();
+  });
+});
