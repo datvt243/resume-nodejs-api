@@ -11,8 +11,8 @@ const ObjectId = mongoose.Schema.Types.ObjectId;
 const schema = new Schema(
   {
     _id: ObjectId,
-    school: { type: String, default: '', required: [false, 'Vui lòng nhập Tên trường'] },
-    major: { type: String, default: '', required: [false, 'Vui lòng nhập ngành học'] },
+    school: { type: localizedTextSchema, default: () => ({}) },
+    major: { type: localizedTextSchema, default: () => ({}) },
     startDate: { type: Number, default: '', required: [false, 'Vui lòng nhập ngày bắt đầu'] },
     endDate: { type: Number, default: '', required: [false, 'Vui lòng nhập ngày kết thúc'] },
     description: { type: localizedTextSchema, default: () => ({}) },
