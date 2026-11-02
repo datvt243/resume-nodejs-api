@@ -58,7 +58,7 @@ export const handlerSearchPublicProfiles = async ({ query, page, limit }: { quer
   const matchedIds = await Promise.all([
     MODEL.generalInformation.distinct('candidateId', { deletedAt: null, $or: [{ positionDesired: pattern }, { 'professionalSkills.name': pattern }] }).exec(),
     MODEL.Experience.distinct('candidateId', { deletedAt: null, $or: [{ company: pattern }, { position: pattern }, { skills: pattern }] }).exec(),
-    MODEL.Education.distinct('candidateId', { deletedAt: null, $or: [{ school: pattern }, { major: pattern }] }).exec(),
+    MODEL.Education.distinct('candidateId', { deletedAt: null, $or: [{ 'school.vi': pattern }, { 'school.en': pattern }, { 'major.vi': pattern }, { 'major.en': pattern }] }).exec(),
   ]);
 
   /**

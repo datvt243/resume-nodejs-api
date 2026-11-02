@@ -28,7 +28,7 @@ const resolveLocalizedText = (value: unknown, lang: string): string => {
   if (typeof value === 'string') return value; // defensive: pre-migration data shape
   if (!value || typeof value !== 'object') return '';
   const localized = value as Record<string, unknown>;
-  const resolved = localized[lang] ?? localized['vi'] ?? localized['en'] ?? '';
+  const resolved = localized[lang] || localized['vi'] || localized['en'] || '';
   return typeof resolved === 'string' ? resolved : '';
 };
 
@@ -200,6 +200,7 @@ export const handlerGetAboutMe = async ({
     dataResult[key] = (dataResult[key] || []).map((item: Record<string, unknown>) => ({
       ...item,
       description: resolveLocalizedText(item['description'], lang),
+      ...(key === 'educations' && { school: resolveLocalizedText(item['school'], lang), major: resolveLocalizedText(item['major'], lang) }),
     }));
   }
   if (dataResult.generalInformation && Object.keys(dataResult.generalInformation).length) {
