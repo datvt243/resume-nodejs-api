@@ -25,6 +25,7 @@ const schema = new Schema(
     careerGoal: { type: localizedTextSchema, default: () => ({}) },
     personalSkills: { type: [personalSkills], default: [] },
     mainSkills: { type: [personalSkills], default: [] },
+    familiarSkills: { type: [personalSkills], default: [] },
     professionalSkills: { type: [professionalSkillsSchema], default: [] },
     professionalSkillsGroup: { type: Array, of: String, default: [], required: [false, 'Vui lòng nhập nhóm'] },
     foreignLanguages: {
