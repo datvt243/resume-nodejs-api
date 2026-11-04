@@ -95,3 +95,5 @@
 2026-11-01T15:59:12Z role=verifier outcome=SEAL node=delete-all-visits rerun=none hub_bytes_before=83519 hub_bytes_after=83521
 2026-11-02T00:10:32Z role=verifier outcome=SEAL node=add-familiar-skills rerun=none hub_bytes_before=83521 hub_bytes_after=83513
 2026-11-02T01:12:20Z role=verifier outcome=SEAL node=localize-education-school-major rerun=partial hub_bytes_before=83513 hub_bytes_after=83531
+2026-11-04T17:45:27Z role=verifier outcome=REOPEN node=cast-legacy-localized-strings rerun=partial hub_bytes_before=84566 hub_bytes_after=84566
+2026-11-04T17:48:04Z role=verifier outcome=SEAL node=cast-legacy-localized-strings rerun=partial hub_bytes_before=84566 hub_bytes_after=83584
