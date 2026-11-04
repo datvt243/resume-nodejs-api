@@ -73,7 +73,6 @@ flowchart TD
 
 
 
-| `docs-wiki-api-response-standard` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: see archived row. |
 | `audit-response-error-handling` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: see archived row. |
 | `remove-unused-files` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/remove-unused-files-seal.md`. |
 
@@ -92,3 +91,4 @@ node's PM status directly to "undo" an existing SEAL.
 | `fix-lastname-min-length` | SEALED | 2026-10-31 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-31/fix-lastname-min-length-seal.md`. |
 | `fix-education-school-min-length` | SEALED | 2026-11-01 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-01/fix-education-school-min-length-seal.md`. |
 | `fix-trim-strict-rejects-spaces` | SEALED | 2026-11-01 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-01/fix-trim-strict-rejects-spaces-seal.md`. |
+| `cast-legacy-localized-strings` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/cast-legacy-localized-strings-seal-r2.md`. |
