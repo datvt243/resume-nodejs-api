@@ -14,7 +14,7 @@ export const schemaProject = Joi.object({
   technology: _arrayString,
   companyId: Joi.string().trim().strict(),
   images: _arrayString,
-  link: _stringDefault({ min: 0, max: 100, title: 'Liên kết' }),
+  link: Joi.string().trim().max(100).allow('').label('Liên kết'),
   isWorking: _boolean,
   startDate,
   endDate,
