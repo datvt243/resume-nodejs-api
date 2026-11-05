@@ -15,7 +15,7 @@
  */
 import { Response } from 'express';
 import { Document, Packer, Paragraph, HeadingLevel, TextRun, BorderStyle } from 'docx';
-import { t } from '@/utils/i18n';
+import { t, type SupportedLang } from '@/utils/i18n';
 import { buildAtsContent, cvFilename } from '@/services/createPDF.ats';
 import { AggregatedCandidateData, GeneralInformationData, Skill, EducationData, ExperienceData, ProjectData, Award, Certificate, Reference, Language } from '@/types/candidate.type';
 
@@ -235,12 +235,12 @@ export const renderDocxDocument = (content: DocxContent, theme: DocxTheme = 'cla
 };
 
 /** I/O wrapper: builds the content model, renders it, packs to a buffer, sends it. */
-export const createCVDocx = async (data: AggregatedCandidateData, res: Response, theme: DocxTheme = 'classic') => {
+export const createCVDocx = async (data: AggregatedCandidateData, res: Response, theme: DocxTheme = 'classic', lang: SupportedLang = 'vi') => {
   const content = buildDocxContent(data);
   const doc = renderDocxDocument(content, theme);
   const buffer = await Packer.toBuffer(doc);
 
-  res.setHeader('Content-Disposition', `attachment; filename="${cvFilename({ cvFileName: data.cvFileName, content: buildAtsContent({ RECORD: data }) }, 'docx')}"`);
+  res.setHeader('Content-Disposition', `attachment; filename="${cvFilename({ cvFileName: data.cvFileName, content: buildAtsContent({ RECORD: data }), lang }, 'docx')}"`);
   res.contentType('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
   res.send(buffer);
 };

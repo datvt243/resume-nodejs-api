@@ -390,11 +390,15 @@ const slugifyFilename = (value: string): string =>
 
 /**
  * Attachment filename for every CV download: the candidate's own `cvFileName`
- * when set, else `<fullName>_<headline>_CV` — names only, never the email.
+ * when set, else `<fullName>_<headline>_CV` — names only, never the email —
+ * plus a `_VI`/`_EN` suffix so both languages don't download under one name.
  * Always slugified, so the value is safe inside a quoted `Content-Disposition`.
  */
-export const cvFilename = ({ cvFileName = '', content }: { cvFileName?: string | undefined; content: Pick<AtsContent, 'fullName' | 'headline'> }, ext: 'pdf' | 'docx' = 'pdf'): string =>
-  `${cvFileName.trim() ? slugifyFilename(cvFileName) : `${slugifyFilename(content.fullName)}_${slugifyFilename(content.headline || 'CV')}_CV`}.${ext}`;
+export const cvFilename = ({ cvFileName = '', content, lang }: { cvFileName?: string | undefined; content: Pick<AtsContent, 'fullName' | 'headline'>; lang: SupportedLang }, ext: 'pdf' | 'docx' = 'pdf'): string => {
+  const base = cvFileName.trim() ? slugifyFilename(cvFileName) : `${slugifyFilename(content.fullName)}_${slugifyFilename(content.headline || 'CV')}_CV`;
+  // A name the candidate already suffixed must not become `..._VI_VI`.
+  return `${/_(vi|en)$/i.test(base) ? base : `${base}_${lang.toUpperCase()}`}.${ext}`;
+};
 
 export interface CreateCVAtsOptions {
   lang?: SupportedLang;
@@ -478,7 +482,7 @@ export const createCVAts = async ({
     fs.writeFileSync(path.join(dir, `${slugifyFilename(content.email)}-ats.pdf`), buffer);
   }
 
-  res.setHeader('Content-Disposition', `attachment; filename="${cvFilename({ cvFileName: data.cvFileName, content })}"`);
+  res.setHeader('Content-Disposition', `attachment; filename="${cvFilename({ cvFileName: data.cvFileName, content, lang: options.lang ?? 'vi' })}"`);
   res.contentType('application/pdf');
   res.send(buffer);
 };

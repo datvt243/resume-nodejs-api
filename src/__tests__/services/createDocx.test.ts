@@ -154,17 +154,21 @@ describe('career break entries', () => {
 });
 
 describe('createCVDocx download filename', () => {
-  const send = async (data: Record<string, unknown>) => {
+  const send = async (data: Record<string, unknown>, lang?: 'vi' | 'en') => {
     const res = { setHeader: jest.fn(), contentType: jest.fn(), send: jest.fn() };
-    await createCVDocx(data, res as never);
+    await createCVDocx(data, res as never, 'classic', lang);
     return res.setHeader.mock.calls.find(([name]) => name === 'Content-Disposition')?.[1];
   };
 
   it('uses cvFileName when set', async () => {
-    expect(await send({ email: 'a@b.com', firstName: 'Đạt', lastName: 'Võ', cvFileName: 'Dat Vo CV' })).toBe('attachment; filename="Dat_Vo_CV.docx"');
+    expect(await send({ email: 'a@b.com', firstName: 'Đạt', lastName: 'Võ', cvFileName: 'Dat Vo CV' })).toBe('attachment; filename="Dat_Vo_CV_VI.docx"');
   });
 
   it('falls back to the name, never the email', async () => {
-    expect(await send({ email: 'a@b.com', firstName: 'Đạt', lastName: 'Võ' })).toBe('attachment; filename="Dat_Vo_CV_CV.docx"');
+    expect(await send({ email: 'a@b.com', firstName: 'Đạt', lastName: 'Võ' })).toBe('attachment; filename="Dat_Vo_CV_CV_VI.docx"');
+  });
+
+  it('suffixes the requested lang', async () => {
+    expect(await send({ email: 'a@b.com', firstName: 'Đạt', lastName: 'Võ', cvFileName: 'Dat Vo CV' }, 'en')).toBe('attachment; filename="Dat_Vo_CV_EN.docx"');
   });
 });

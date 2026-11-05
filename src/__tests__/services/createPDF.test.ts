@@ -325,16 +325,16 @@ describe('download filename', () => {
 
     await createCV({ email: 'a@b.com', firstName: 'Đạt', lastName: 'Võ', cvFileName: 'Võ Đạt - CV 2026' }, res as any);
 
-    expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="Vo_Dat_CV_2026.pdf"');
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="Vo_Dat_CV_2026_VI.pdf"');
   });
 
   it('createCV falls back to <fullName>_<headline>_CV without cvFileName, never the email', async () => {
     (puppeteer.launch as jest.Mock).mockResolvedValue(createFakeBrowser());
     const res = createFakeRes();
 
-    await createCV({ email: 'a@b.com', firstName: 'Đạt', lastName: 'Võ', generalInformation: { career: 'Backend Developer' } }, res as any);
+    await createCV({ email: 'a@b.com', firstName: 'Đạt', lastName: 'Võ', generalInformation: { career: 'Backend Developer' } }, res as any, { lang: 'en' });
 
-    expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="Dat_Vo_Backend_Developer_CV.pdf"');
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="Dat_Vo_Backend_Developer_CV_EN.pdf"');
   });
 });
 
@@ -342,16 +342,21 @@ describe('cvFilename', () => {
   const content = { fullName: 'Võ Tấn Đạt', headline: 'Frontend Developer' };
 
   it.each([
-    ['', 'Vo_Tan_Dat_Frontend_Developer_CV.pdf'],
-    ['   ', 'Vo_Tan_Dat_Frontend_Developer_CV.pdf'],
-    ['Đạt CV', 'Dat_CV.pdf'],
-    ['../../etc/passwd', 'etc_passwd.pdf'],
-    ['a"; filename="evil.exe\r\nX-Injected: 1', 'a_filename_evil_exe_X_Injected_1.pdf'],
-  ])('maps cvFileName %p to %p', (cvFileName, expected) => {
-    expect(cvFilename({ cvFileName, content })).toBe(expected);
+    ['', 'vi', 'Vo_Tan_Dat_Frontend_Developer_CV_VI.pdf'],
+    ['   ', 'en', 'Vo_Tan_Dat_Frontend_Developer_CV_EN.pdf'],
+    ['Đạt CV', 'vi', 'Dat_CV_VI.pdf'],
+    ['Đạt CV', 'en', 'Dat_CV_EN.pdf'],
+    ['Dat CV_VI', 'vi', 'Dat_CV_VI.pdf'],
+    ['dat cv en', 'vi', 'dat_cv_en.pdf'],
+    ['Dat CV_Vi ', 'en', 'Dat_CV_Vi.pdf'],
+    ['venv', 'en', 'venv_EN.pdf'],
+    ['../../etc/passwd', 'vi', 'etc_passwd_VI.pdf'],
+    ['a"; filename="evil.exe\r\nX-Injected: 1', 'vi', 'a_filename_evil_exe_X_Injected_1_VI.pdf'],
+  ] as const)('maps cvFileName %p with lang %p to %p', (cvFileName, lang, expected) => {
+    expect(cvFilename({ cvFileName, content, lang })).toBe(expected);
   });
 
   it('uses the requested extension', () => {
-    expect(cvFilename({ cvFileName: 'my cv', content }, 'docx')).toBe('my_cv.docx');
+    expect(cvFilename({ cvFileName: 'my cv', content, lang: 'en' }, 'docx')).toBe('my_cv_EN.docx');
   });
 });

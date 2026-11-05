@@ -77,7 +77,7 @@ export const fnDownloadPublicPdf = async (req: Request, res: Response, next: Nex
     if (!data || data.isPublic === false) return next(profileNotFound(lang));
 
     const { buffer, content } = await renderCached(data, lang);
-    res.setHeader('Content-Disposition', `attachment; filename="${cvFilename({ cvFileName: data.cvFileName, content })}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${cvFilename({ cvFileName: data.cvFileName, content, lang })}"`);
     res.contentType('application/pdf');
     res.send(buffer);
   } catch (err) {
