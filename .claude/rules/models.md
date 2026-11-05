@@ -16,7 +16,7 @@ All models use Mongoose with `timestamps: true` and `candidateId` foreign key (e
 | Model | Key Fields |
 |---|---|
 | Candidate | email, password, firstName, lastName, gender, marital, birthday, address, phone, introduction, socialMedia, slug (vanity public-profile URL), cvFile ({ originalName, uploadedAt } metadata for the uploaded PDF résumé), isPublic (default true — gates whether `GET /api/me/:slug-or-email` returns anything), emailVerified (default false, informational only, doesn't gate login) |
-| GeneralInformation | candidateId, position/career, professionalSkills[], personalSkills[], foreignLanguages[], workLocation, workForm |
+| GeneralInformation | candidateId, position/career, professionalSkills[], personalSkills[], foreignLanguages[], workLocation, workForm, salaryDesiredFrom/salaryDesiredTo (Number or null, `To >= From`; a legacy single `salaryDesired` is read as From = To on hydrate and still accepted as input) |
 | Experience | candidateId, company, position, startDate, endDate, isCurrent, description, skills[] |
 | Education | candidateId, school, major, startDate, endDate, isCurrent, description |
 | Project | candidateId, name, position, description, technology[], startDate, endDate, isWorking, images[], link, type (`company`\|`personal`, default `personal`), experienceId (ref experience; required iff `company`, ownership checked in `project.service.ts`) |

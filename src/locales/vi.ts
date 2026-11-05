@@ -194,6 +194,8 @@ export default {
     levelCurrent: 'Cấp bậc hiện tại',
     levelDesired: 'Cấp bậc mong muốn',
     salaryDesired: 'Lương mong muốn',
+    salaryDesiredFrom: 'Lương mong muốn từ',
+    salaryDesiredTo: 'Lương mong muốn đến',
     education: 'Học vấn',
     workLocation: 'Địa điểm làm việc',
     workForm: 'Hình thức làm việc',
