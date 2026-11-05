@@ -51,6 +51,7 @@ export const candidateQuerySafe = new QuerySafe([
   'linkedin',
   'website',
   'slug',
+  'cvFileName',
 ]);
 
 export const idQuerySafe = new QuerySafe(['_id', 'candidateId', 'email']);

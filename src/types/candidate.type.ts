@@ -123,6 +123,7 @@ export interface GeneralInformationData {
  * boundary stays loose until that's addressed.
  */
 export interface AggregatedCandidateData {
+  cvFileName?: string;
   firstName?: string;
   lastName?: string;
   phone?: string;

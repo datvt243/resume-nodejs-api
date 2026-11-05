@@ -382,11 +382,19 @@ const slugifyFilename = (value: string): string =>
   value
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
+    // NFD doesn't decompose đ/Đ (a distinct letter, not d + a mark)
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
     .replace(/[^a-zA-Z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '') || 'CV';
 
-/** Attachment filename for an ATS PDF — names only, never the email. */
-export const atsPdfFilename = (content: AtsContent): string => `${slugifyFilename(content.fullName)}_${slugifyFilename(content.headline || 'CV')}_CV.pdf`;
+/**
+ * Attachment filename for every CV download: the candidate's own `cvFileName`
+ * when set, else `<fullName>_<headline>_CV` — names only, never the email.
+ * Always slugified, so the value is safe inside a quoted `Content-Disposition`.
+ */
+export const cvFilename = ({ cvFileName = '', content }: { cvFileName?: string | undefined; content: Pick<AtsContent, 'fullName' | 'headline'> }, ext: 'pdf' | 'docx' = 'pdf'): string =>
+  `${cvFileName.trim() ? slugifyFilename(cvFileName) : `${slugifyFilename(content.fullName)}_${slugifyFilename(content.headline || 'CV')}_CV`}.${ext}`;
 
 export interface CreateCVAtsOptions {
   lang?: SupportedLang;
@@ -470,7 +478,7 @@ export const createCVAts = async ({
     fs.writeFileSync(path.join(dir, `${slugifyFilename(content.email)}-ats.pdf`), buffer);
   }
 
-  res.setHeader('Content-Disposition', `attachment; filename="${atsPdfFilename(content)}"`);
+  res.setHeader('Content-Disposition', `attachment; filename="${cvFilename({ cvFileName: data.cvFileName, content })}"`);
   res.contentType('application/pdf');
   res.send(buffer);
 };
