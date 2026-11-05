@@ -12,6 +12,8 @@ export const schemaCandidatePatch = getObject({
   candidateId,
   isPublic: _boolean,
   slug,
+  // sanitised again when used as a filename; rejecting these up front keeps the stored value honest
+  cvFileName: Joi.string().trim().max(100).pattern(/^[^\\/"\r\n]*$/).allow('').label('Tên file CV'),
   socialMedia: Joi.object({
     github: Joi.string(),
     linkedin: Joi.string(),

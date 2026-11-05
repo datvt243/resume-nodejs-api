@@ -14,7 +14,7 @@ import { handleError } from '@/utils';
 import { BadRequestError } from '@/errors';
 import { t } from '@/utils/i18n';
 import { handlerGetAboutMe, profileNotFound } from '@/candidate_me/index';
-import { atsPdfFilename, renderAtsPdfBuffer, type AtsContent } from '@/services/createPDF.ats';
+import { cvFilename, renderAtsPdfBuffer, type AtsContent } from '@/services/createPDF.ats';
 import type { AggregatedCandidateData } from '@/types/candidate.type';
 import type { SupportedLang } from '@/utils/i18n';
 
@@ -77,7 +77,7 @@ export const fnDownloadPublicPdf = async (req: Request, res: Response, next: Nex
     if (!data || data.isPublic === false) return next(profileNotFound(lang));
 
     const { buffer, content } = await renderCached(data, lang);
-    res.setHeader('Content-Disposition', `attachment; filename="${atsPdfFilename(content)}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${cvFilename({ cvFileName: data.cvFileName, content })}"`);
     res.contentType('application/pdf');
     res.send(buffer);
   } catch (err) {

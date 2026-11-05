@@ -8,7 +8,7 @@
  * that the actual library wiring produces a valid .docx).
  */
 import { Packer } from 'docx';
-import { buildDocxContent, renderDocxDocument } from '@/services/createDocx';
+import { buildDocxContent, createCVDocx, renderDocxDocument } from '@/services/createDocx';
 
 describe('buildDocxContent', () => {
   it('builds contact line, introduction, and section content from aggregated candidate data', () => {
@@ -150,5 +150,21 @@ describe('career break entries', () => {
     });
     const line = content.sections.find((s) => s.heading === 'Kinh nghiệm làm việc')?.lines[0];
     expect(line).toMatch(/^Nghỉ việc tạm thời — Du lịch \(/);
+  });
+});
+
+describe('createCVDocx download filename', () => {
+  const send = async (data: Record<string, unknown>) => {
+    const res = { setHeader: jest.fn(), contentType: jest.fn(), send: jest.fn() };
+    await createCVDocx(data, res as never);
+    return res.setHeader.mock.calls.find(([name]) => name === 'Content-Disposition')?.[1];
+  };
+
+  it('uses cvFileName when set', async () => {
+    expect(await send({ email: 'a@b.com', firstName: 'Đạt', lastName: 'Võ', cvFileName: 'Dat Vo CV' })).toBe('attachment; filename="Dat_Vo_CV.docx"');
+  });
+
+  it('falls back to the name, never the email', async () => {
+    expect(await send({ email: 'a@b.com', firstName: 'Đạt', lastName: 'Võ' })).toBe('attachment; filename="Dat_Vo_CV_CV.docx"');
   });
 });

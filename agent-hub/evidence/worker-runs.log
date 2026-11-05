@@ -100,3 +100,5 @@
 2026-11-05T10:56:23Z role=verifier outcome=SEAL node=fix-project-link-optional rerun=none hub_bytes_before=83928 hub_bytes_after=83628
 2026-11-05T11:03:36Z role=verifier outcome=SEAL node=add-project-type-experience-link rerun=none hub_bytes_before=84361 hub_bytes_after=83654
 2026-11-05T11:09:42Z role=verifier outcome=SEAL node=salary-desired-range rerun=none hub_bytes_before=84195 hub_bytes_after=83638
+2026-11-05T11:18:26Z role=verifier outcome=REOPEN node=add-cv-file-name rerun=partial hub_bytes_before=84303 hub_bytes_after=84303
+2026-11-05T11:20:15Z role=verifier outcome=SEAL node=add-cv-file-name rerun=partial hub_bytes_before=84303 hub_bytes_after=83633

@@ -26,6 +26,12 @@ describe('corsConfig', () => {
     expect(config.origin).not.toBe('*');
   });
 
+  it('exposes Content-Disposition so a cross-origin client can read the download filename', () => {
+    const corsConfig = loadWith({ CORS_ORIGIN: 'https://app.example.com', NODE_ENV: 'production' });
+
+    expect(corsConfig().exposedHeaders).toEqual(['Content-Disposition']);
+  });
+
   it('reflects an explicit comma-separated allow-list as an array', () => {
     const corsConfig = loadWith({ CORS_ORIGIN: 'https://app.example.com, https://admin.example.com', NODE_ENV: 'production' });
     const config = corsConfig();
