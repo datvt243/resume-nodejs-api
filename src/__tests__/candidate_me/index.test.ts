@@ -12,6 +12,7 @@
  * QuerySafe.safeQuery only accepts string values.
  */
 
+import geoip from 'geoip-lite';
 import * as MODEL from '@/models';
 import { fnExportPDF, fnGetAboutMe, handlerGetAboutMe, handlerRecordVisit, normalizeReferrer } from '@/candidate_me';
 import { fnAtsCheck } from '@/candidate_me/ats-check';
@@ -53,7 +54,7 @@ describe('candidate_me/index.ts (issue #135)', () => {
 
   describe('handlerRecordVisit', () => {
     it('fails closed and never queries the DB when the email is rejected by QuerySafe', async () => {
-      await expect(handlerRecordVisit('$where:1', { ip: '1.2.3.4', socket: {} } as any)).rejects.toMatchObject({ statusCode: 404 });
+      await expect(handlerRecordVisit('$where:1', { ip: '1.2.3.4', socket: {}, headers: {} } as any)).rejects.toMatchObject({ statusCode: 404 });
 
       expect(MODEL.Candidate.findOne).not.toHaveBeenCalled();
       expect(MODEL.Visit.create).not.toHaveBeenCalled();
@@ -62,7 +63,7 @@ describe('candidate_me/index.ts (issue #135)', () => {
     it('records a visit addressed by vanity slug, looked up by slug first', async () => {
       (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
 
-      const result = await handlerRecordVisit('vo-tan-dat', { ip: '', socket: {} } as any);
+      const result = await handlerRecordVisit('vo-tan-dat', { ip: '', socket: {}, headers: {} } as any);
 
       expect(result.success).toBe(true);
       expect(jest.mocked(MODEL.Candidate).findOne).toHaveBeenCalledTimes(1);
@@ -75,7 +76,7 @@ describe('candidate_me/index.ts (issue #135)', () => {
         .mockReturnValueOnce({ select: () => ({ exec: jest.fn().mockResolvedValue(null) }) })
         .mockReturnValueOnce({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
 
-      await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {} } as any);
+      await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, headers: {} } as any);
 
       expect(jest.mocked(MODEL.Candidate).findOne).toHaveBeenNthCalledWith(2, { email: 'votan.it@gmail.com' });
       expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ candidateId: 'c1' }));
@@ -84,7 +85,7 @@ describe('candidate_me/index.ts (issue #135)', () => {
     it('404s an unknown identifier after trying slug and email, recording nothing', async () => {
       (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue(null) }) });
 
-      await expect(handlerRecordVisit('no-such-slug', { ip: '', socket: {} } as any)).rejects.toMatchObject({ statusCode: 404 });
+      await expect(handlerRecordVisit('no-such-slug', { ip: '', socket: {}, headers: {} } as any)).rejects.toMatchObject({ statusCode: 404 });
 
       expect(jest.mocked(MODEL.Candidate).findOne).toHaveBeenCalledTimes(2);
       expect(jest.mocked(MODEL.Visit).create).not.toHaveBeenCalled();
@@ -103,10 +104,31 @@ describe('candidate_me/index.ts (issue #135)', () => {
     it('still records the visit with a null referrer when the body has none', async () => {
       (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
 
-      const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {} } as any);
+      const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, headers: {} } as any);
 
       expect(result.success).toBe(true);
       expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ referrer: null }));
+    });
+
+    it('stores the leftmost X-Forwarded-For IP and its geo location, not the proxy address', async () => {
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
+      const lookup = jest.spyOn(geoip, 'lookup').mockReturnValue({ city: 'Hanoi', region: 'HN', country: 'VN' } as any);
+      const req = { ip: '10.0.0.1', socket: {}, headers: { 'x-forwarded-for': '203.0.113.7, 10.0.0.2' } };
+
+      await handlerRecordVisit('votan.it@gmail.com', req as any);
+
+      expect(lookup).toHaveBeenCalledWith('203.0.113.7');
+      expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ ip: '203.0.113.7', location: 'Hanoi, HN, VN' }));
+      lookup.mockRestore();
+    });
+
+    it('falls back to req.ip when X-Forwarded-For is not an IP', async () => {
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
+      const req = { ip: '10.0.0.1', socket: {}, headers: { 'x-forwarded-for': '<script>, 1.2.3.4' } };
+
+      await handlerRecordVisit('votan.it@gmail.com', req as any);
+
+      expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ ip: '10.0.0.1' }));
     });
 
     const ownProfileId = '64b7f0c2a1b2c3d4e5f60799';
@@ -119,7 +141,7 @@ describe('candidate_me/index.ts (issue #135)', () => {
       candidateFound();
       profileLookupResolving({ _id: ownProfileId });
 
-      const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, body: { profile: ownProfileId } } as any);
+      const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, headers: {}, body: { profile: ownProfileId } } as any);
 
       expect(result.success).toBe(true);
       expect(jest.mocked(MODEL.Profile).findOne).toHaveBeenCalledWith({ _id: ownProfileId, candidateId: 'c1', deletedAt: null });
@@ -130,7 +152,7 @@ describe('candidate_me/index.ts (issue #135)', () => {
       candidateFound();
       profileLookupResolving(null);
 
-      const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, body: { profile: ownProfileId } } as any);
+      const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, headers: {}, body: { profile: ownProfileId } } as any);
 
       expect(result.success).toBe(true);
       expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ profileId: null }));
@@ -141,7 +163,7 @@ describe('candidate_me/index.ts (issue #135)', () => {
       async (profile) => {
         candidateFound();
 
-        const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, body: { profile } } as any);
+        const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, headers: {}, body: { profile } } as any);
 
         expect(result.success).toBe(true);
         expect(jest.mocked(MODEL.Profile).findOne).not.toHaveBeenCalled();
