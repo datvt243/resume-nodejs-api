@@ -98,3 +98,4 @@
 2026-11-04T17:45:27Z role=verifier outcome=REOPEN node=cast-legacy-localized-strings rerun=partial hub_bytes_before=84566 hub_bytes_after=84566
 2026-11-04T17:48:04Z role=verifier outcome=SEAL node=cast-legacy-localized-strings rerun=partial hub_bytes_before=84566 hub_bytes_after=83584
 2026-11-05T10:56:23Z role=verifier outcome=SEAL node=fix-project-link-optional rerun=none hub_bytes_before=83928 hub_bytes_after=83628
+2026-11-05T11:03:36Z role=verifier outcome=SEAL node=add-project-type-experience-link rerun=none hub_bytes_before=84361 hub_bytes_after=83654

@@ -4,6 +4,7 @@
  */
 
 import Joi from 'joi';
+import { PROJECT_TYPES } from '@/models/project.model';
 import { _id, candidateId, startDate, endDate, description, _stringDefault, _arrayString, _boolean } from '@/config/joi.config';
 
 export const schemaProject = Joi.object({
@@ -12,7 +13,15 @@ export const schemaProject = Joi.object({
   description,
   position: _stringDefault({ min: 0, max: 100, title: 'Vị trí' }),
   technology: _arrayString,
-  companyId: Joi.string().trim().strict(),
+  type: Joi.string()
+    .valid(...PROJECT_TYPES)
+    .default('personal'),
+  // ownership is checked in project.service.ts
+  experienceId: Joi.when('type', {
+    is: 'company',
+    then: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
+    otherwise: Joi.valid(null, ''),
+  }),
   images: _arrayString,
   link: Joi.string().trim().max(100).allow('').label('Liên kết'),
   isWorking: _boolean,

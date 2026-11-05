@@ -100,6 +100,9 @@ export default {
   application: {
     profileNotFound: 'The selected CV profile does not exist or has been deleted',
   },
+  project: {
+    experienceNotFound: 'The selected work experience does not exist or has been deleted',
+  },
   images: {
     noFilesUploaded: 'No file was uploaded',
     uploadSuccess: 'Images uploaded successfully',
@@ -162,6 +165,7 @@ export default {
     'objectId.base': '{{label}} must be a valid ObjectId',
   },
   fieldLabels: {
+    experienceId: 'Work experience',
     email: 'Email',
     password: 'Password',
     repassword: 'Confirm password',

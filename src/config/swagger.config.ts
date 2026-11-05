@@ -255,6 +255,8 @@ const options: swaggerJsdoc.Options = {
             technology: { type: 'array', items: { type: 'string' } },
             images: { type: 'array', items: { type: 'string' } },
             link: { type: 'string' },
+            type: { type: 'string', enum: ['company', 'personal'], default: 'personal' },
+            experienceId: { type: 'string', nullable: true, description: 'Required when type is company: one of the candidate\'s own Experience ids' },
             isWorking: { type: 'boolean' },
             startDate: { type: 'number' },
             endDate: { type: 'number' },

@@ -19,7 +19,7 @@ All models use Mongoose with `timestamps: true` and `candidateId` foreign key (e
 | GeneralInformation | candidateId, position/career, professionalSkills[], personalSkills[], foreignLanguages[], workLocation, workForm |
 | Experience | candidateId, company, position, startDate, endDate, isCurrent, description, skills[] |
 | Education | candidateId, school, major, startDate, endDate, isCurrent, description |
-| Project | candidateId, name, position, description, technology[], startDate, endDate, isWorking, images[], link |
+| Project | candidateId, name, position, description, technology[], startDate, endDate, isWorking, images[], link, type (`company`\|`personal`, default `personal`), experienceId (ref experience; required iff `company`, ownership checked in `project.service.ts`) |
 | Certificate | candidateId, name, organization, startDate, endDate, isNoExpiration, link, images[], description |
 | Award | candidateId, name, organization, issueDate, link, images[], description |
 | Reference | candidateId, fullName, phone, company, position |
