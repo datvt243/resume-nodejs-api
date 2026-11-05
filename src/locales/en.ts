@@ -194,6 +194,8 @@ export default {
     levelCurrent: 'Current level',
     levelDesired: 'Desired level',
     salaryDesired: 'Desired salary',
+    salaryDesiredFrom: 'Desired salary from',
+    salaryDesiredTo: 'Desired salary to',
     education: 'Education level',
     workLocation: 'Work location',
     workForm: 'Work type',
