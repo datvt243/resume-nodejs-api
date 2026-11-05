@@ -351,7 +351,7 @@ export const fnExportPDF = async (req: Request, res: Response, next: NextFunctio
     // ?format=docx — same aggregated data, packed as a .docx instead of
     // rendered to PDF.
     if (req.query['format'] === 'docx') {
-      await createCVDocx(data, res, theme);
+      await createCVDocx(data, res, theme, lang);
       return;
     }
 
@@ -361,7 +361,7 @@ export const fnExportPDF = async (req: Request, res: Response, next: NextFunctio
       return;
     }
 
-    await createCV(data, res, { theme });
+    await createCV(data, res, { theme, lang });
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }

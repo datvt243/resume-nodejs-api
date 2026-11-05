@@ -58,7 +58,7 @@ describe('fnDownloadPublicPdf', () => {
 
     expect(mockGetAboutMe).toHaveBeenCalledWith({ identifier: 'dat-vo', lang: 'en', profileId: '64b7f0c2a1b2c3d4e5f60718' });
     expect(mockRenderAts).toHaveBeenCalledWith(publicData(), { lang: 'en' });
-    expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="Vo_Tan_Frontend_Developer_CV.pdf"');
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="Vo_Tan_Frontend_Developer_CV_EN.pdf"');
     expect(res.contentType).toHaveBeenCalledWith('application/pdf');
     expect(res.send).toHaveBeenCalledWith(rendered.buffer);
   });
@@ -67,7 +67,7 @@ describe('fnDownloadPublicPdf', () => {
     mockGetAboutMe.mockResolvedValue({ success: true, data: publicData({ cvFileName: 'Dat Vo CV' }) });
     const { res } = await download({ identifier: 'dat-vo' });
 
-    expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="Dat_Vo_CV.pdf"');
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="Dat_Vo_CV_VI.pdf"');
   });
 
   it('defaults to the ats template and vi', async () => {
