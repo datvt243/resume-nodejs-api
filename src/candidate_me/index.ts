@@ -6,6 +6,7 @@
 import { NextFunction, Request, Response } from 'express';
 import type { Model, Types } from 'mongoose';
 import geoip from 'geoip-lite';
+import { isIP } from 'net';
 
 import { formatReturn, handleError } from '@/utils';
 import { BadRequestError, NotFoundError } from '@/errors';
@@ -249,13 +250,7 @@ export const handlerRecordVisit = async (identifier: string, req: Request) => {
   // Same 404 as handlerGetAboutMe above for an unknown identifier.
   if (!candidate) throw profileNotFound(req.lang);
 
-  /**
-   * Same IP-extraction pattern already used by rateLimit.middleware.ts —
-   * no `trust proxy` is configured on the Express app, so behind a
-   * reverse proxy (e.g. Render) this may resolve to the proxy's address
-   * rather than the real client IP; out of scope to fix here.
-   */
-  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const ip = visitorIp(req);
   const geo = ip && ip !== 'unknown' ? geoip.lookup(ip) : null;
   const location = geo ? [geo.city, geo.region, geo.country].filter(Boolean).join(', ') : '';
 
@@ -266,6 +261,21 @@ export const handlerRecordVisit = async (identifier: string, req: Request) => {
   await MODEL.Visit.create({ candidateId: candidate._id, ip, location, referrer, profileId });
 
   return { success: true, message: t('publicProfile.visitRecorded', req.lang), data: null };
+};
+
+/**
+ * The visitor's IP: the leftmost `X-Forwarded-For` entry (set by the site's
+ * relay, then appended to by Render's proxy), else the socket address. Read
+ * here only, not via a global `trust proxy`, so the rate-limit key keeps
+ * using the unspoofable connecting address. A direct caller can forge this
+ * header; accepted, since the visit endpoint is public and a whole visit is
+ * forgeable anyway.
+ */
+const visitorIp = (req: Request): string => {
+  const xff = req.headers['x-forwarded-for'];
+  const first = (Array.isArray(xff) ? xff[0] : xff)?.split(',')[0]?.trim();
+  if (first && isIP(first)) return first;
+  return req.ip || req.socket.remoteAddress || 'unknown';
 };
 
 /**
