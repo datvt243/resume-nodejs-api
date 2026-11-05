@@ -8,6 +8,8 @@ import { localizedTextSchema } from '@/models/part';
 const Schema = mongoose.Schema;
 const ObjectId = mongoose.Schema.Types.ObjectId;
 
+export const PROJECT_TYPES = ['company', 'personal'];
+
 const schema = new Schema(
   {
     _id: ObjectId,
@@ -15,7 +17,9 @@ const schema = new Schema(
     description: { type: localizedTextSchema, default: () => ({}) },
     position: { type: String, default: '', required: [false, 'Vui lòng nhập vị trí công việc'] },
     technology: { type: Array, of: String },
-    companyId: ObjectId,
+    // default also covers legacy projects stored before `type` existed
+    type: { type: String, enum: PROJECT_TYPES, default: 'personal' },
+    experienceId: { type: ObjectId, default: null, ref: 'experience' },
     images: { type: Array, of: String },
     link: { type: String, default: '', required: [false, 'Vui lòng nhập liên kết'] },
     isWorking: { type: Boolean, default: false },
