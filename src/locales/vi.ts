@@ -100,6 +100,9 @@ export default {
   application: {
     profileNotFound: 'CV profile đã chọn không tồn tại hoặc đã bị xoá',
   },
+  project: {
+    experienceNotFound: 'Kinh nghiệm làm việc đã chọn không tồn tại hoặc đã bị xoá',
+  },
   images: {
     noFilesUploaded: 'Không có file nào được tải lên',
     uploadSuccess: 'Tải ảnh lên thành công',
@@ -162,6 +165,7 @@ export default {
     'objectId.base': '{{label}} phải là ObjectId hợp lệ',
   },
   fieldLabels: {
+    experienceId: 'Kinh nghiệm làm việc',
     email: 'Email',
     password: 'Password',
     repassword: 'Xác nhận mật khẩu',
@@ -190,6 +194,8 @@ export default {
     levelCurrent: 'Cấp bậc hiện tại',
     levelDesired: 'Cấp bậc mong muốn',
     salaryDesired: 'Lương mong muốn',
+    salaryDesiredFrom: 'Lương mong muốn từ',
+    salaryDesiredTo: 'Lương mong muốn đến',
     education: 'Học vấn',
     workLocation: 'Địa điểm làm việc',
     workForm: 'Hình thức làm việc',

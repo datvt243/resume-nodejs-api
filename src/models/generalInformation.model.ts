@@ -16,7 +16,8 @@ const schema = new Schema(
     career: { type: localizedTextSchema, default: () => ({}) },
     levelCurrent: { type: String, default: '', required: [false, 'Vui lòng nhập cấp bậc hiện tại'] },
     levelDesired: { type: String, default: '', required: [false, 'Vui lòng nhập cấp bậc mong muốn'] },
-    salaryDesired: { type: Number, default: '', required: [false, 'Vui lòng nhập mức lương mong muốn'] },
+    salaryDesiredFrom: { type: Number, default: null },
+    salaryDesiredTo: { type: Number, default: null },
     education: { type: String, default: '', required: [false, 'Vui lòng học vấn'] },
     yearsOfExperience: { type: Number, default: 0, required: [false, 'Vui lòng nhập số năm kinh nghiệm'] },
     workLocation: { type: String, default: '', required: [false, 'Vui lòng nhập địa điểm làm việc'] },
@@ -38,6 +39,15 @@ const schema = new Schema(
   },
   { timestamps: true },
 );
+
+// A document saved before the range existed only has `salaryDesired`; read it as an exact range instead of migrating.
+schema.pre('init', function (raw: unknown) {
+  if (typeof raw !== 'object' || raw === null) return;
+  const doc = raw as Record<string, unknown>;
+  if (doc['salaryDesired'] == null || doc['salaryDesiredFrom'] !== undefined || doc['salaryDesiredTo'] !== undefined) return;
+  doc['salaryDesiredFrom'] = doc['salaryDesired'];
+  doc['salaryDesiredTo'] = doc['salaryDesired'];
+});
 
 const generalInformation = mongoose.model('general-information', schema);
 

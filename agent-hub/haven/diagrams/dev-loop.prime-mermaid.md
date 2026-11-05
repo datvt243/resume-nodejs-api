@@ -51,6 +51,10 @@ flowchart TD
 
 | Node | State | Notes |
 |---|---|---|
+| `add-cv-file-name` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/add-cv-file-name-seal-r2.md`. |
+| `salary-desired-range` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/salary-desired-range-seal.md`. |
+| `add-project-type-experience-link` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/add-project-type-experience-link-seal.md`. |
+| `fix-project-link-optional` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/fix-project-link-optional-seal.md`. |
 | `fix-candidate-password-leak` | PENDING | `src/candidate/candidate.service.ts` — `handlerGetInformationByEmail` has no `.select()` at all; `handlerGetInformationById` double-wraps `whitelistSelect([select])`, making the select a permanent no-op. Result: `GET /api/v1/candidate/:email` and `PUT/PATCH /candidate/update` return the raw bcrypt password hash in the response. |
 | `fix-refresh-token-expiry-unused` | PENDING | `TOKEN_EXP_IN` (`.env`, already exported in config) is never used at any `jwtSign()` call site (`auth.service.ts`, `auth.controller.ts`, `api/v1/auth/services/login.ts`) — access and refresh tokens always share the same default 1h expiry, so the refresh token is pointless. |
 | `localize-education-school-major` | SEALED | 2026-11-02 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-02/localize-education-school-major-seal.md`. |
@@ -73,13 +77,9 @@ flowchart TD
 
 
 
-| `audit-response-error-handling` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: see archived row. |
-| `remove-unused-files` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/remove-unused-files-seal.md`. |
 
 Any regression must be a **new node** (LAI-13) — never edit an existing
 node's PM status directly to "undo" an existing SEAL.
-| `fix-render-puppeteer-cache-dir` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/render-puppeteer-cache-dir-seal.md`. |
-| `add-security-headers` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/add-security-headers-seal.md`. |
 | `set-request-body-limit` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/set-request-body-limit-seal.md`. |
 | `claude-md-refactor` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/claude-md-refactor-seal.md`. |
 | `readme-vi-rewrite` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/readme-vi-rewrite-seal.md`. |

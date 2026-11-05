@@ -9,6 +9,7 @@ import path from 'path';
 import fs from 'fs';
 import { Response } from 'express';
 import { t } from '@/utils/i18n';
+import { buildAtsContent, cvFilename } from '@/services/createPDF.ats';
 import {
   informationPersonal,
   Skill,
@@ -81,6 +82,7 @@ export const createCV = async (data: AggregatedCandidateData, res: Response, opt
       },
     });
 
+    res.setHeader('Content-Disposition', `attachment; filename="${cvFilename({ cvFileName: data.cvFileName, content: buildAtsContent({ RECORD: data }) })}"`);
     res.contentType('application/pdf');
     res.send(pdfBuffer);
   } finally {

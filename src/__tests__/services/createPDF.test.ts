@@ -7,6 +7,7 @@
  */
 
 import { pageRender, createCV, renderPdfBuffer } from '@/services/createPDF';
+import { cvFilename } from '@/services/createPDF.ats';
 import puppeteer from 'puppeteer';
 
 describe('pageRender', () => {
@@ -169,7 +170,7 @@ function createFakeBrowser() {
 }
 
 function createFakeRes() {
-  const res = { contentType: jest.fn(), send: jest.fn(), status: jest.fn() };
+  const res = { contentType: jest.fn(), send: jest.fn(), status: jest.fn(), setHeader: jest.fn() };
   res.status.mockReturnValue(res);
   return res;
 }
@@ -312,5 +313,45 @@ describe('career break entries', () => {
     });
     expect(html).toContain('Nghỉ việc tạm thời');
     expect(html).toContain('Năm nghỉ (gap year)');
+  });
+});
+
+describe('download filename', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  it('createCV sends the classic PDF as an attachment named from cvFileName', async () => {
+    (puppeteer.launch as jest.Mock).mockResolvedValue(createFakeBrowser());
+    const res = createFakeRes();
+
+    await createCV({ email: 'a@b.com', firstName: 'Đạt', lastName: 'Võ', cvFileName: 'Võ Đạt - CV 2026' }, res as any);
+
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="Vo_Dat_CV_2026.pdf"');
+  });
+
+  it('createCV falls back to <fullName>_<headline>_CV without cvFileName, never the email', async () => {
+    (puppeteer.launch as jest.Mock).mockResolvedValue(createFakeBrowser());
+    const res = createFakeRes();
+
+    await createCV({ email: 'a@b.com', firstName: 'Đạt', lastName: 'Võ', generalInformation: { career: 'Backend Developer' } }, res as any);
+
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="Dat_Vo_Backend_Developer_CV.pdf"');
+  });
+});
+
+describe('cvFilename', () => {
+  const content = { fullName: 'Võ Tấn Đạt', headline: 'Frontend Developer' };
+
+  it.each([
+    ['', 'Vo_Tan_Dat_Frontend_Developer_CV.pdf'],
+    ['   ', 'Vo_Tan_Dat_Frontend_Developer_CV.pdf'],
+    ['Đạt CV', 'Dat_CV.pdf'],
+    ['../../etc/passwd', 'etc_passwd.pdf'],
+    ['a"; filename="evil.exe\r\nX-Injected: 1', 'a_filename_evil_exe_X_Injected_1.pdf'],
+  ])('maps cvFileName %p to %p', (cvFileName, expected) => {
+    expect(cvFilename({ cvFileName, content })).toBe(expected);
+  });
+
+  it('uses the requested extension', () => {
+    expect(cvFilename({ cvFileName: 'my cv', content }, 'docx')).toBe('my_cv.docx');
   });
 });

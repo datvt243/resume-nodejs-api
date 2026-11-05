@@ -63,6 +63,13 @@ describe('fnDownloadPublicPdf', () => {
     expect(res.send).toHaveBeenCalledWith(rendered.buffer);
   });
 
+  it('names the attachment from the candidate cvFileName when set', async () => {
+    mockGetAboutMe.mockResolvedValue({ success: true, data: publicData({ cvFileName: 'Dat Vo CV' }) });
+    const { res } = await download({ identifier: 'dat-vo' });
+
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="Dat_Vo_CV.pdf"');
+  });
+
   it('defaults to the ats template and vi', async () => {
     await download({ identifier: 'dat-vo' });
 

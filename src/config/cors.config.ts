@@ -22,5 +22,7 @@ const allowedOrigins = (CORS_ORIGIN || '')
 export const corsConfig = () => ({
   origin: allowedOrigins.length > 0 ? allowedOrigins : NODE_ENV !== 'production',
   credentials: true,
+  // lets a cross-origin client read the download filename
+  exposedHeaders: ['Content-Disposition'],
   optionsSuccessStatus: 200,
 });
