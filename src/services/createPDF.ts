@@ -8,7 +8,7 @@ import puppeteer, { Browser } from 'puppeteer';
 import path from 'path';
 import fs from 'fs';
 import { Response } from 'express';
-import { t } from '@/utils/i18n';
+import { t, type SupportedLang } from '@/utils/i18n';
 import { buildAtsContent, cvFilename } from '@/services/createPDF.ats';
 import {
   informationPersonal,
@@ -42,7 +42,7 @@ const PDF_OUTPUT_DIR = path.join(__dirname, '..', 'public', 'pdf');
 /** `classic` is the pre-existing visual template; `modern` is an additional visual theme (same content, different styling) — see `getHTMLLayout`'s `getStyles`. */
 export type PdfTheme = 'classic' | 'modern';
 
-export const createCV = async (data: AggregatedCandidateData, res: Response, options: { theme?: PdfTheme } = {}) => {
+export const createCV = async (data: AggregatedCandidateData, res: Response, options: { theme?: PdfTheme; lang?: SupportedLang } = {}) => {
   let browser: Browser | undefined;
   try {
     if (!fs.existsSync(PDF_OUTPUT_DIR)) fs.mkdirSync(PDF_OUTPUT_DIR, { recursive: true });
@@ -82,7 +82,7 @@ export const createCV = async (data: AggregatedCandidateData, res: Response, opt
       },
     });
 
-    res.setHeader('Content-Disposition', `attachment; filename="${cvFilename({ cvFileName: data.cvFileName, content: buildAtsContent({ RECORD: data }) })}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${cvFilename({ cvFileName: data.cvFileName, content: buildAtsContent({ RECORD: data }), lang: options.lang ?? 'vi' })}"`);
     res.contentType('application/pdf');
     res.send(pdfBuffer);
   } finally {

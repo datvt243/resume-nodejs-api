@@ -48,6 +48,11 @@ a GitHub repo — no writes, no approval gate needed.
      titles without a tag go last under `### Other`. No title has a tag →
      one plain table, no headings. Strip the group tag and the priority tag
      from the Title cell (the heading/Priority column already show them).
+   - **`done-dev` issues (step 4) get their own group**, pulled out of
+     their tag group: a final `### done-dev` heading + table, after
+     `### Other` — so what's left above is the real remaining work. Here
+     keep the group tag in the Title cell (no tag heading to show it).
+     No `done-dev` issues → no such section.
    - **Issue number** is plain `#123` — no URL column, no markdown link.
    - **Priority**, first match wins:
      1. A `priority: <level>` label (case-insensitive) → Jira's levels

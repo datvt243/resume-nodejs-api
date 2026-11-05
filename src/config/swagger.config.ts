@@ -152,7 +152,7 @@ const options: swaggerJsdoc.Options = {
                 uploadedAt: { type: 'number', description: 'Unix timestamp (ms)' },
               },
             },
-            cvFileName: { type: 'string', maxLength: 100, description: 'Filename (without extension) for every CV download; sanitized to [A-Za-z0-9_]. Empty: <fullName>_<headline>_CV.' },
+            cvFileName: { type: 'string', maxLength: 100, description: 'Filename (without extension) for every CV download; sanitized to [A-Za-z0-9_], then suffixed _VI/_EN per ?lang= (skipped if it already ends in _vi/_en, any case). Empty: <fullName>_<headline>_CV.' },
             isPublic: { type: 'boolean', description: 'Whether GET /api/me/:email serves this profile publicly. Default true.' },
             emailVerified: { type: 'boolean', description: 'Set via GET /auth/verify-email. Does not block login. Default false.' },
           },
