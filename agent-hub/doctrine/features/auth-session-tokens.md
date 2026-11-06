@@ -1,8 +1,8 @@
 # Session tokens: refresh, logout, logout from all devices
 
-- Status: draft
+- Status: verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/auth-session-tokens-spec.md`
 - Source: backfill from code
-- Issues: -
+- Issues: #391, #392
 - Anchors: `src/routers/api/v1/auth.route.ts`, `src/auth/auth.controller.ts`, `src/middlewares/verifyToken.middleware.ts`, `src/middlewares/csrf.middleware.ts`, `src/utils/helper-auth.ts`, `src/utils/tokenBlacklist.ts`, `src/utils/sessionRevocation.ts`, `src/utils/authCookies.ts`, `src/utils/csrf.ts`, `src/utils/jwt.ts`
 
 ## Goal
@@ -57,13 +57,14 @@ one session or every session, and reject stolen or reused tokens.
 - Listing or naming individual sessions/devices.
 
 ## Open questions
-- `/auth/logout` blacklists only the access token; the refresh token stays usable until it expires and can mint new pairs. Intended?
-- The `?token=` query parameter is accepted by every protected route (shared extractor), though the Swagger for `/download-pdf` says it is the only endpoint that accepts it. Restrict it to `/download-pdf`?
-- An `Authorization` header without the `Bearer` scheme is accepted as a raw token. Intended?
-- `/auth/logout` doesn't verify the token (any string gets blacklisted). Fine?
+- `/auth/logout` blacklists only the access token; the refresh token stays usable until it expires and can mint new pairs. Intended? → **Answer (operator 2026-11-07):** Bug: revoke the refresh token too — #391
+- The `?token=` query parameter is accepted by every protected route (shared extractor), though the Swagger for `/download-pdf` says it is the only endpoint that accepts it. Restrict it to `/download-pdf`? → **Answer (operator 2026-11-07):** Change: only /download-pdf — #392
+- An `Authorization` header without the `Bearer` scheme is accepted as a raw token. Intended? → **Answer (operator 2026-11-07):** Intended
+- `/auth/logout` doesn't verify the token (any string gets blacklisted). Fine? → **Answer (operator 2026-11-07):** Intended (harmless)
 
 ## Changelog
 | Date | Change | Why | Node |
 |---|---|---|---|
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
+| 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/auth-session-tokens-spec.md` | - |

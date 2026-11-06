@@ -1,8 +1,8 @@
 # Public profile, search and public PDF
 
-- Status: draft
+- Status: verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/public-profile-spec.md`
 - Source: backfill from code
-- Issues: -
+- Issues: #382, #386, #397
 - Anchors: `src/routers/index.ts`, `src/candidate_me/index.ts`, `src/candidate_me/search.ts`, `src/candidate_me/public-pdf.ts`, `src/services/createPDF.ats.ts`, `src/models/candidate.model.ts`
 
 ## Goal
@@ -55,15 +55,16 @@ and download it as PDF, unless the candidate made their profile private.
 - Owner-only data (applications, visits).
 
 ## Open questions
-- The public payload includes every candidate field except password: email, phone, address, birthday, gender, marital, `cvFile`, `cvFileName`, `emailVerified`, `isPublic`. Should it be an explicit whitelist?
-- Lookup by email means anyone who knows an email can confirm it's registered (if the profile is public). Keep the email fallback?
-- Search reveals that a candidate matches a keyword even when the match is in data their `?profile=` views hide. Intended?
-- Profiles are public by default (`isPublic` defaults to true). Intended?
-- The public PDF cache is per process (not shared across instances) and keyed on the full data. OK?
-- The global rate limiter keys on `req.ip`, and `trust proxy` is never set, so behind Render's proxy every visitor probably shares one 100-requests/15-min bucket. Live 2026-11-06: `x-ratelimit-remaining` fell by 15 more than this reviewer's own requests across about 8 requests. Set `trust proxy` (with the right hop count)?
+- The public payload includes every candidate field except password: email, phone, address, birthday, gender, marital, `cvFile`, `cvFileName`, `emailVerified`, `isPublic`. Should it be an explicit whitelist? → **Answer (operator 2026-11-07):** Bug — #382
+- Lookup by email means anyone who knows an email can confirm it's registered (if the profile is public). Keep the email fallback? → **Answer (operator 2026-11-07):** Intended (old share links)
+- Search reveals that a candidate matches a keyword even when the match is in data their `?profile=` views hide. Intended? → **Answer (operator 2026-11-07):** Change: search must only match entries that belong to at least one of the candidate's profiles — #397
+- Profiles are public by default (`isPublic` defaults to true). Intended? → **Answer (operator 2026-11-07):** Intended
+- The public PDF cache is per process (not shared across instances) and keyed on the full data. OK? → **Answer (operator 2026-11-07):** Intended (single instance today)
+- The global rate limiter keys on `req.ip`, and `trust proxy` is never set, so behind Render's proxy every visitor probably shares one 100-requests/15-min bucket. Live 2026-11-06: `x-ratelimit-remaining` fell by 15 more than this reviewer's own requests across about 8 requests. Set `trust proxy` (with the right hop count)? → **Answer (operator 2026-11-07):** Bug — #386
 
 ## Changelog
 | Date | Change | Why | Node |
 |---|---|---|---|
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
+| 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/public-profile-spec.md` | - |

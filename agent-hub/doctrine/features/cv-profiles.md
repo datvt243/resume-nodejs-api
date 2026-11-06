@@ -1,8 +1,8 @@
 # CV profiles (named subsets)
 
-- Status: draft
+- Status: verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/cv-profiles-spec.md`
 - Source: backfill from code
-- Issues: -
+- Issues: #400, #405
 - Anchors: `src/routers/api/v1/profile.route.ts`, `src/candidate_profile/profile/profile.controller.ts`, `src/candidate_profile/profile/profile.service.ts`, `src/candidate_profile/profile/profile.validate.ts`, `src/candidate_me/index.ts`
 
 ## Goal
@@ -37,13 +37,14 @@ without duplicating data.
 - Section ordering or per-profile field overrides.
 
 ## Open questions
-- The listed ids aren't checked for ownership or existence on create/update. Public rendering only reads the owner's own entries, so foreign ids just match nothing. Should they be rejected up front?
-- The default `Tổng hợp` profile is a snapshot: entries added later aren't added to it. Intended?
-- A GET has a write side effect (creates the default profile). Intended?
-- Owner export (`GET /download-pdf`) and `POST /cv/ats-check` don't accept `?profile=`. Should they?
+- The listed ids aren't checked for ownership or existence on create/update. Public rendering only reads the owner's own entries, so foreign ids just match nothing. Should they be rejected up front? → **Answer (operator 2026-11-07):** Change: reject unknown/foreign/deleted ids with 400 — #405
+- The default `Tổng hợp` profile is a snapshot: entries added later aren't added to it. Intended? → **Answer (operator 2026-11-07):** Intended
+- A GET has a write side effect (creates the default profile). Intended? → **Answer (operator 2026-11-07):** Intended
+- Owner export (`GET /download-pdf`) and `POST /cv/ats-check` don't accept `?profile=`. Should they? → **Answer (operator 2026-11-07):** Change — #400
 
 ## Changelog
 | Date | Change | Why | Node |
 |---|---|---|---|
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
+| 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-profiles-spec.md` | - |

@@ -1,8 +1,8 @@
 # CV section CRUD (education, experience, award, certificate, project, reference)
 
-- Status: draft
+- Status: verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/cv-section-crud-spec.md`
 - Source: backfill from code
-- Issues: -
+- Issues: #381, #402, #403, #404
 - Anchors: `src/candidate_profile/BaseController.ts`, `src/candidate_profile/BaseService.ts`, `src/services/index.ts`, `src/routers/api/v1/education.route.ts`, `src/routers/api/v1/experience.route.ts`, `src/routers/api/v1/award.route.ts`, `src/routers/api/v1/certificate.route.ts`, `src/routers/api/v1/project.route.ts`, `src/routers/api/v1/reference.route.ts`, `src/candidate_profile/education/`, `src/candidate_profile/experience/`, `src/candidate_profile/awards/`, `src/candidate_profile/certificates/`, `src/candidate_profile/project/`, `src/candidate_profile/reference_information/`, `src/middlewares/uploadImages.middleware.ts`
 
 ## Goal
@@ -75,16 +75,17 @@ Per-section differences:
 - Removing or reordering individual images.
 
 ## Open questions
-- Deleting an already-deleted entry succeeds again and moves `deletedAt` forward (lookup doesn't exclude deleted). Should it be 404?
-- Image upload accepts a soft-deleted entry (`findById` doesn't filter `deletedAt`). Intended?
-- Bulk partial success returns 201 with the message `common.createFailed`. Should the message reflect partial success?
-- Bulk create runs items sequentially, one DB round-trip each, up to 100. OK?
-- Image upload has no automated test. Add one?
-- Uploaded images stay on disk when an entry is soft-deleted, and there is no per-entry image cap (5 per request, unlimited requests). Intended?
-- `DELETE /delete/:id` and `POST /restore/:id` fail open on an id containing `$`: `idQuerySafe` drops it, `baseCheckDocumentById` runs `findOne({})` and acts on the collection's first document: 403 if it's someone else's, deleted/restored if it's the caller's (`services/index.ts`). Should a dropped id be 404?
+- Deleting an already-deleted entry succeeds again and moves `deletedAt` forward (lookup doesn't exclude deleted). Should it be 404? → **Answer (operator 2026-11-07):** Bug: 404 — #403
+- Image upload accepts a soft-deleted entry (`findById` doesn't filter `deletedAt`). Intended? → **Answer (operator 2026-11-07):** Bug: 404 — #403
+- Bulk partial success returns 201 with the message `common.createFailed`. Should the message reflect partial success? → **Answer (operator 2026-11-07):** Bug: partial-success message — #404
+- Bulk create runs items sequentially, one DB round-trip each, up to 100. OK? → **Answer (operator 2026-11-07):** Intended
+- Image upload has no automated test. Add one? → **Answer (operator 2026-11-07):** Change: add tests — #402
+- Uploaded images stay on disk when an entry is soft-deleted, and there is no per-entry image cap (5 per request, unlimited requests). Intended? → **Answer (operator 2026-11-07):** Intended (restore needs them)
+- `DELETE /delete/:id` and `POST /restore/:id` fail open on an id containing `$`: `idQuerySafe` drops it, `baseCheckDocumentById` runs `findOne({})` and acts on the collection's first document: 403 if it's someone else's, deleted/restored if it's the caller's (`services/index.ts`). Should a dropped id be 404? → **Answer (operator 2026-11-07):** Bug — #381
 
 ## Changelog
 | Date | Change | Why | Node |
 |---|---|---|---|
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
+| 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-section-crud-spec.md` | - |

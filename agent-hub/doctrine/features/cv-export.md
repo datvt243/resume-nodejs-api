@@ -1,8 +1,8 @@
 # CV export (PDF / DOCX / JSON, themes)
 
-- Status: draft
+- Status: verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/cv-export-spec.md`
 - Source: backfill from code
-- Issues: -
+- Issues: #383, #400
 - Anchors: `src/routers/api/v1/index.ts`, `src/candidate_me/index.ts`, `src/services/createPDF.ts`, `src/services/createPDF.ats.ts`, `src/services/createDocx.ts`, `src/services/pdfMetadata.ts`, `src/middlewares/verifyToken.middleware.ts`
 
 ## Goal
@@ -51,13 +51,14 @@ as the raw aggregated data, in either language and in a chosen template.
 - Public (unauthenticated) export: see `public-profile`.
 
 ## Open questions
-- Classic/modern PDF is always saved to `public/pdf/<email>.pdf`, which `express.static` serves without auth, so anyone who can guess an email can fetch that CV (known trap in `PROJECT.md`). Should the disk write be removed?
-- Unknown `format`/`template` values silently fall back instead of returning 400 (the public PDF route does return 400 for a bad template). Make them consistent?
-- `?profile=` isn't supported on owner export. Should it be?
-- The route is named `download-pdf` but also serves DOCX and JSON. OK?
+- Classic/modern PDF is always saved to `public/pdf/<email>.pdf`, which `express.static` serves without auth, so anyone who can guess an email can fetch that CV (known trap in `PROJECT.md`). Should the disk write be removed? → **Answer (operator 2026-11-07):** Bug — #383
+- Unknown `format`/`template` values silently fall back instead of returning 400 (the public PDF route does return 400 for a bad template). Make them consistent? → **Answer (operator 2026-11-07):** Intended
+- `?profile=` isn't supported on owner export. Should it be? → **Answer (operator 2026-11-07):** Change: support it — #400
+- The route is named `download-pdf` but also serves DOCX and JSON. OK? → **Answer (operator 2026-11-07):** Intended
 
 ## Changelog
 | Date | Change | Why | Node |
 |---|---|---|---|
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
+| 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-export-spec.md` | - |
