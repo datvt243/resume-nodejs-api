@@ -35,3 +35,9 @@ Separate spawned agent (Agent tool), blank context. Received only the
 dispatch prompt (task, operator's "behavior đúng" confirmation, the
 operator's answers + issue numbers). No implementer reasoning, no main
 session transcript. All Behavior items re-checked by reading code myself.
+
+## Round 2 (revised answer)
+Task: replace Q2 answer with the operator's revision (2026-11-07, after research). Behavior unchanged (describes code today); Status stays verified; Changelog row added.
+- No status-transition rules (e.g. `rejected` → `applied` is allowed). Intended? → **Answer (operator 2026-11-07, revised after research):** Change — add status `accepted`; create at any status; same status re-saved OK; forward to a higher rank allowed incl. skips (`applied → interview → offer → accepted`, `accepted` only from `offer`); backward → 400; `applied`/`interview`/`offer` → `rejected` allowed (rejected = process ended without a hire, incl. declined offer/withdrawn); `accepted` and `rejected` final — #410. Frontend follow-up: datvt243/resume-vuejs-website#423.
+
+Isolation: separate spawned agent, blank context; received only the dispatch prompt with the revised answer verbatim. No code read or changed this round.
