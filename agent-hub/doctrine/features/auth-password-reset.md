@@ -1,8 +1,8 @@
 # Password reset
 
-- Status: draft
+- Status: verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/auth-password-reset-spec.md`
 - Source: backfill from code
-- Issues: -
+- Issues: #385, #387, #393
 - Anchors: `src/routers/api/v1/auth.route.ts`, `src/auth/auth.controller.ts`, `src/auth/auth.service.ts`, `src/auth/auth.validate.ts`, `src/utils/passwordReset.ts`
 
 ## Goal
@@ -39,13 +39,14 @@ single-use reset link.
 - Sending real emails (stub logs the link).
 
 ## Open questions
-- A successful reset does not revoke existing sessions (no logout-all), so a stolen session survives a password change. Intended?
-- Requesting several resets leaves several valid tokens alive at once. Intended?
-- forgot-password has no per-email throttle beyond the global auth rate limit. Enough?
-- With Redis, `consumeResetToken` does `GET` then `DEL` (not atomic, `utils/passwordReset.ts`), so two concurrent resets with the same token can both succeed — single-use is not guaranteed under concurrency (same pattern in `utils/emailVerification.ts`). Use `GETDEL`?
+- A successful reset does not revoke existing sessions (no logout-all), so a stolen session survives a password change. Intended? → **Answer (operator 2026-11-07):** Change: reset revokes all sessions — #393
+- Requesting several resets leaves several valid tokens alive at once. Intended? → **Answer (operator 2026-11-07):** Intended (each expires in 15 min)
+- forgot-password has no per-email throttle beyond the global auth rate limit. Enough? → **Answer (operator 2026-11-07):** covered by #387
+- With Redis, `consumeResetToken` does `GET` then `DEL` (not atomic, `utils/passwordReset.ts`), so two concurrent resets with the same token can both succeed — single-use is not guaranteed under concurrency (same pattern in `utils/emailVerification.ts`). Use `GETDEL`? → **Answer (operator 2026-11-07):** Bug — #385
 
 ## Changelog
 | Date | Change | Why | Node |
 |---|---|---|---|
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
+| 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/auth-password-reset-spec.md` | - |

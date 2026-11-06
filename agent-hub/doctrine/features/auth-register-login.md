@@ -1,8 +1,8 @@
 # Register, login and email verification
 
-- Status: draft
+- Status: verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/auth-register-login-spec.md`
 - Source: backfill from code
-- Issues: -
+- Issues: #385, #387, #389, #390
 - Anchors: `src/routers/api/v1/auth.route.ts`, `src/routers/api/v2/auth.route.ts`, `src/auth/auth.controller.ts`, `src/auth/auth.service.ts`, `src/auth/auth.validate.ts`, `src/utils/emailVerification.ts`, `src/utils/slug.ts`, `src/utils/authCookies.ts`
 
 ## Goal
@@ -13,7 +13,7 @@ API tokens, and can confirm their email address.
 1. `POST /api/v1/auth/register` with `{ email, password, repassword }`:
    password must be 12–128 chars and match `passwordRegex`; `repassword`
    must equal `password`. `email` must be a valid address whose TLD is
-   `com`, `net` or `vn` only (`config/joi.config.ts` `email`; e.g.
+   `com`, `net` or `vn` only (`src/config/joi.config.ts` `email`; e.g.
    `a@b.io`, `a@b.org` → 400). Invalid → 400 with per-field `details`.
 2. Register with an email that already exists → 409 (`EMAIL_EXISTS`).
 3. Register success → 201, `data: null`. The password is stored as a
@@ -57,16 +57,18 @@ API tokens, and can confirm their email address.
 - Blocking unverified accounts.
 
 ## Open questions
-- `GET /auth/login` reads credentials from the request body; GET bodies are usually dropped by clients/proxies. Keep it, or remove the GET route?
-- Register skips Mongoose model validation before save (TODO in `auth.service.ts`). Intended for now?
-- No way to re-send a verification link; tokens live in memory when Redis is down and vanish on restart. Is that acceptable?
-- Register success returns no tokens; the client must call login separately. Intended?
-- The email TLD whitelist (`com`/`net`/`vn`) rejects `.org`, `.io`, `.dev`, `.edu`… on register, login and forgot-password. Intended, or should any valid TLD pass?
-- Login re-applies the register password rules, so an account whose password predates the current rules (e.g. < 12 chars) gets 400 and can never log in. Intended?
-- The v2 auth router has no `authLimiter` (only v1 does); and since the global limiter (100/15 min) is stricter than `authLimiter` (150/15 min), the auth limiter never binds. Intended?
+- `GET /auth/login` reads credentials from the request body; GET bodies are usually dropped by clients/proxies. Keep it, or remove the GET route? → **Answer (operator 2026-11-07):** Change: remove the GET route — #389
+- Register skips Mongoose model validation before save (TODO in `auth.service.ts`). Intended for now? → **Answer (operator 2026-11-07):** Intended
+- No way to re-send a verification link; tokens live in memory when Redis is down and vanish on restart. Is that acceptable? → **Answer (operator 2026-11-07):** Intended (accepted for now)
+- Register success returns no tokens; the client must call login separately. Intended? → **Answer (operator 2026-11-07):** Intended
+- The email TLD whitelist (`com`/`net`/`vn`) rejects `.org`, `.io`, `.dev`, `.edu`… on register, login and forgot-password. Intended, or should any valid TLD pass? → **Answer (operator 2026-11-07):** Intended (keep)
+- Login re-applies the register password rules, so an account whose password predates the current rules (e.g. < 12 chars) gets 400 and can never log in. Intended? → **Answer (operator 2026-11-07):** Bug: login should only require a non-empty password — #390
+- The v2 auth router has no `authLimiter` (only v1 does); and since the global limiter (100/15 min) is stricter than `authLimiter` (150/15 min), the auth limiter never binds. Intended? → **Answer (operator 2026-11-07):** Bug — #387
 
 ## Changelog
 | Date | Change | Why | Node |
 |---|---|---|---|
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
+| 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified; joi.config path corrected to `src/config/joi.config.ts` | analyst backfill re-check, see `evidence/analyst/2026-11-07/auth-register-login-spec.md` | - |
+| 2026-11-07 | Issues += #385 (also covers the non-atomic GET+DEL in `src/utils/emailVerification.ts`) | operator | - |

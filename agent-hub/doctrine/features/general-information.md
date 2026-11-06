@@ -1,8 +1,8 @@
 # General information
 
-- Status: draft
+- Status: verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/general-information-spec.md`
 - Source: backfill from code
-- Issues: -
+- Issues: #408
 - Anchors: `src/routers/api/v1/generalInformation.route.ts`, `src/candidate_profile/general_information/generalInformation.controller.ts`, `src/candidate_profile/general_information/generalInformation.service.ts`, `src/candidate_profile/general_information/generalInformation.validate.ts`, `src/models/generalInformation.model.ts`
 
 ## Goal
@@ -37,11 +37,12 @@ summary and goal, skills, languages, salary, open-to-work.
 - Multiple general-information records per candidate.
 
 ## Open questions
-- GET returns an object rather than the `data: []` + `meta` list shape every other list uses. That fits one record per candidate, but should `API-STANDARD.md` record it as an exception?
-- Update needs the record's `_id` from the client even though there is only one per candidate. Should it be keyed by candidate instead?
-- The one-per-candidate rule is checked in code only (read then create); two concurrent creates could both pass. Is a unique index wanted?
+- GET returns an object rather than the `data: []` + `meta` list shape every other list uses. That fits one record per candidate, but should `API-STANDARD.md` record it as an exception? → **Answer (operator 2026-11-07):** Intended
+- Update needs the record's `_id` from the client even though there is only one per candidate. Should it be keyed by candidate instead? → **Answer (operator 2026-11-07):** Intended (same as other sections)
+- The one-per-candidate rule is enforced in code (read then create → 409) AND by the model's unique index on `candidateId` (`src/models/generalInformation.model.ts:14`), but it isn't confirmed that the index exists in the prod DB. OK? → **Answer (operator 2026-11-07):** Intended: the unique index is in the model; confirming it exists in prod (and that there are no duplicates) is tracked in #408.
 
 ## Changelog
 | Date | Change | Why | Node |
 |---|---|---|---|
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
+| 2026-11-07 | Open question 3 rewritten to match code (unique index exists in model); operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/general-information-spec.md` | - |

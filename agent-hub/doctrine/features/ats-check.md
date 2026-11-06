@@ -1,8 +1,8 @@
 # ATS check
 
-- Status: draft
+- Status: verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/ats-check-spec.md`
 - Source: backfill from code
-- Issues: -
+- Issues: #406, #407
 - Anchors: `src/routers/api/v1/cv.route.ts`, `src/candidate_me/ats-check.ts`, `src/services/atsChecks.ts`, `src/services/atsExtract.ts`, `src/services/keywordMatcher.ts`, `src/services/createPDF.ats.ts`, `src/services/createPDF.ts`
 
 ## Goal
@@ -44,13 +44,14 @@ description.
 - Checking an uploaded third-party PDF (only the candidate's own render).
 
 ## Open questions
-- With `template=classic`, metadata and section headings are never supplied, so `metadata` always fails and `standard-headings` always passes without checking anything (empty heading list). Is that intended?
-- The success message `ATS self-check completed` is hard-coded English, not i18n. Intended?
-- The classic render here ignores `lang` (`renderPdfBuffer` takes no options); the data itself is localized. OK?
-- `modern` can't be checked. Intended?
-- `jobDescription` has no length cap beyond the 1mb body limit. Enough?
+- With `template=classic`, metadata and section headings are never supplied, so `metadata` always fails and `standard-headings` always passes without checking anything (empty heading list). Is that intended? → **Answer (operator 2026-11-07):** Bug: report both as not applicable for classic, excluded from score — #406
+- The success message `ATS self-check completed` is hard-coded English, not i18n. Intended? → **Answer (operator 2026-11-07):** Bug: i18n — #407
+- The classic render here ignores `lang` (`renderPdfBuffer` takes no options); the data itself is localized. OK? → **Answer (operator 2026-11-07):** Intended
+- `modern` can't be checked. Intended? → **Answer (operator 2026-11-07):** Intended
+- `jobDescription` has no length cap beyond the 1mb body limit. Enough? → **Answer (operator 2026-11-07):** Intended
 
 ## Changelog
 | Date | Change | Why | Node |
 |---|---|---|---|
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
+| 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/ats-check-spec.md` | - |

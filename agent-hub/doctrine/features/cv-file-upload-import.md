@@ -1,8 +1,8 @@
 # CV file upload and import (PDF parse, LinkedIn ZIP)
 
-- Status: draft
+- Status: verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/cv-file-upload-import-spec.md`
 - Source: backfill from code
-- Issues: -
+- Issues: #383, #384, #388, #401, #402
 - Anchors: `src/routers/api/v1/candidate.route.ts`, `src/candidate/candidate.controller.ts`, `src/candidate/candidate.service.ts`, `src/middlewares/uploadCV.middleware.ts`, `src/middlewares/uploadCvPdfParse.middleware.ts`, `src/middlewares/uploadLinkedInExport.middleware.ts`, `src/candidate/parseCvPdf.service.ts`, `src/candidate/parseLinkedInExport.service.ts`
 
 ## Goal
@@ -55,15 +55,16 @@ Import (stateless, nothing is saved):
 - OCR; saving parsed entries server-side.
 
 ## Open questions
-- The stored CV lives under `public/uploads/cv/<candidateId>-cv.pdf`, which `express.static` serves without auth to anyone who knows the candidate id (known trap in `PROJECT.md`). Move it out of `public/`?
-- LinkedIn: an end date that exists but can't be parsed also yields `isCurrent: true`. Intended?
-- Upload and download of the stored CV have no automated test. Add one?
-- A `cvFile` record whose file is missing on disk: `res.download` errors, and the resulting status isn't defined. What should it return?
-- A failed re-upload deletes the previous CV: multer's disk storage writes straight to the final `<candidateId>-cv.pdf` (`createWriteStream` truncates it), and on `LIMIT_FILE_SIZE` multer unlinks that path. The candidate's `cvFile` metadata stays, so `GET /cv-file` then points at a missing file. Write to a temp name and rename on success?
-- Parsed entries come back with plain-string `school`/`major`/`description` while bulk create needs `{ vi, en }` (rule 6). Should the parser return the localized shape?
+- The stored CV lives under `public/uploads/cv/<candidateId>-cv.pdf`, which `express.static` serves without auth to anyone who knows the candidate id (known trap in `PROJECT.md`). Move it out of `public/`? → **Answer (operator 2026-11-07):** Bug — #383
+- LinkedIn: an end date that exists but can't be parsed also yields `isCurrent: true`. Intended? → **Answer (operator 2026-11-07):** Bug: blank endDate + isCurrent false — #401
+- Upload and download of the stored CV have no automated test. Add one? → **Answer (operator 2026-11-07):** Change: add tests — #402
+- A `cvFile` record whose file is missing on disk: `res.download` errors, and the resulting status isn't defined. What should it return? → **Answer (operator 2026-11-07):** Bug: return 404 — tracked in #384 (comment)
+- A failed re-upload deletes the previous CV: multer's disk storage writes straight to the final `<candidateId>-cv.pdf` (`createWriteStream` truncates it), and on `LIMIT_FILE_SIZE` multer unlinks that path. The candidate's `cvFile` metadata stays, so `GET /cv-file` then points at a missing file. Write to a temp name and rename on success? → **Answer (operator 2026-11-07):** Bug — #384
+- Parsed entries come back with plain-string `school`/`major`/`description` while bulk create needs `{ vi, en }` (rule 6). Should the parser return the localized shape? → **Answer (operator 2026-11-07):** Bug — #388
 
 ## Changelog
 | Date | Change | Why | Node |
 |---|---|---|---|
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
+| 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-file-upload-import-spec.md` | - |
