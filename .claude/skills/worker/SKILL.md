@@ -1,7 +1,7 @@
 ---
 name: worker
-description: "Trở thành một worker của agent-hub (implementer hoặc verifier) và thực hiện một task theo đúng recipe của worker đó. Dùng: /worker <implementer|verifier> \"<task>\""
-argument-hint: <implementer|verifier> "<task>"
+description: "Trở thành một worker của agent-hub (analyst, implementer hoặc verifier) và thực hiện một task theo đúng recipe của worker đó. Dùng: /worker <analyst|implementer|verifier> \"<task>\""
+argument-hint: <analyst|implementer|verifier> "<task>"
 ---
 
 # /worker <wid> "<task>"
@@ -15,6 +15,16 @@ argument-hint: <implementer|verifier> "<task>"
 > active) — xem "Batch verify" trong `recipes/verify_seal.md`. Batch chỉ
 > gộp chi phí spawn subagent (load bundle 1 lần cho cả lô), verdict vẫn
 > tính RIÊNG, ĐỘC LẬP cho từng node.
+
+> **`analyst`** (BA, kit 2026-11-06): MUST run as a **separate subagent**
+> (Agent tool, blank context). The subagent loads
+> `agent-hub/haven/workers/analyst/` (`manifest.yaml`, `SOUL.md`,
+> `recipes/spec_feature.md` — no MEMORY.md) and gets the task (issue title
+> + body) plus any operator answers from a previous round. Returns
+> `spec_ready` | `needs_input` (relay its questions to the operator
+> verbatim, never answer them yourself; re-run with the answers) |
+> `no_feature` | `blocked`. Backfill an existing feature by hand:
+> `/worker analyst "document <feature>"`.
 
 ## Vòng chạy bắt buộc
 1. **Load bundle** — đọc đúng thứ tự:

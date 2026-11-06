@@ -29,6 +29,9 @@ Repo: `github.com/datvt243/resume-nodejs-api`. Author: DatVT.
 - `dist/` is always gitignored, never hand-edited — always rebuild with
   `npm run build`.
 
+## Branch naming
+Branch naming: `<number>-<slug>` (`gh issue develop` default; kept over kit default)
+
 ## Diagram-first
 The diagram (`haven/diagrams/`) is the source of truth for progress — code
 must match it.
