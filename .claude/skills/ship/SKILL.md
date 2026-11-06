@@ -148,6 +148,11 @@ Chỉ qua Bước 0 (guard branch) rồi bước này pass mới được chạy
     - Nếu bị chặn không merge được (chưa CI xong, cần review...), báo rõ
       lý do `gh` trả về, dừng ở đó — PR vẫn ở trạng thái mở, không coi là
       lỗi của `/ship`, chỉ là "chưa merge được, PR đang chờ: <url>".
+11. **Return to working branch** (`ReturnToWorkingBranch`, kit
+    2026-11-06): merge confirmed by real output → `git checkout staging &&
+    git pull --ff-only` without asking (local-only), report `git branch
+    --show-current`. Merge blocked/failed → skip, stay on the branch.
+    Checkout fails → report the real error, never force/stash/discard.
 
 ## Ràng buộc cứng
 - `SealedOnly`: KHÔNG BAO GIỜ chạy quá Bước 0.5 nếu node liên quan chưa
