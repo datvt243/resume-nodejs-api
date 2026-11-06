@@ -33,10 +33,11 @@ profile they sent.
 
 ## Open questions
 - `jobLink` isn't validated as a URL. Intended? → **Answer (operator 2026-11-07):** Change: validate http(s) URL when present — #409
-- No status-transition rules (e.g. `rejected` → `applied` is allowed). Intended? → **Answer (operator 2026-11-07):** Change: forward only applied → interview → offer; applied/interview → rejected; offer and rejected are final — #410
+- No status-transition rules (e.g. `rejected` → `applied` is allowed). Intended? → **Answer (operator 2026-11-07, revised after research):** Change — add status `accepted`; create at any status; same status re-saved OK; forward to a higher rank allowed incl. skips (`applied → interview → offer → accepted`, `accepted` only from `offer`); backward → 400; `applied`/`interview`/`offer` → `rejected` allowed (rejected = process ended without a hire, incl. declined offer/withdrawn); `accepted` and `rejected` final — #410. Frontend follow-up: datvt243/resume-vuejs-website#423.
 
 ## Changelog
 | Date | Change | Why | Node |
 |---|---|---|---|
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/job-applications-spec.md` | - |
+| 2026-11-07 | Q2 answer revised: #410 rules after research | operator revised after research, see `evidence/analyst/2026-11-07/job-applications-spec.md` (Round 2) | - |
