@@ -335,7 +335,10 @@ const _baseHelper = () => {
        * document regardless of its deletedAt state.
        */
       const baseQuery = opts.excludeDeleted ? { deletedAt: null } : {};
-      const _find = await MODEL.findOne(idQuerySafe.safeQuery(baseQuery, { _id })).exec();
+      const safeIdQuery = idQuerySafe.safeQuery(baseQuery, { _id });
+      // safeQuery drops a `$`/blank id — without this guard findOne would match the collection's first document.
+      if (!('_id' in safeIdQuery)) return { isExist: false as const, message, document: null };
+      const _find = await MODEL.findOne(safeIdQuery).exec();
       if (!_find) return { isExist: false as const, message, document: null };
 
       return { isExist: true as const, message: '', document: _find };
