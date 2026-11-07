@@ -29,9 +29,5 @@ The agent is hired help for a session; the hub is the body that remains.
 Mechanism detail: see `CLAUDE.md` (forbidden states, seal gate) and
 `doctrine/standards/` (edit-verification, recipes).
 
-## Current status (2026-08-22)
-0 nodes SEALED out of 11 on `dev-loop.prime-mermaid.md`. `doctrine/MEMORY.md`
-still has 1 `<<FILL>>` (lint/typecheck command — no `lint` script in
-`package.json`). Latest evidence: `fix-redis-init-blocks-dev-startup`
-REOPENED by verifier (2026-08-22) — implementer's manual-verification log
-had a truncated line.
+## Current status
+Not kept here (it goes stale). Run `/boot`, or read `haven/diagrams/dev-loop.prime-mermaid.md`.
