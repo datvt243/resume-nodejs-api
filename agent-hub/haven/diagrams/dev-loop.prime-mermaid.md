@@ -59,7 +59,6 @@ flowchart TD
 
 | Node | State | Notes |
 |---|---|---|
-| `add-project-type-experience-link` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/add-project-type-experience-link-seal.md`. |
 | `fix-project-link-optional` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/fix-project-link-optional-seal.md`. |
 | `fix-candidate-email-empty-query` | SEALED | 2026-11-07 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-07/fix-candidate-email-empty-query-seal-r2.md`. |
 | `fix-section-id-empty-query` | SEALED | 2026-11-07 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-07/fix-section-id-empty-query-seal.md`. |
@@ -100,3 +99,4 @@ node's PM status directly to "undo" an existing SEAL.
 | `login-password-any-length` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/login-password-any-length-seal-r2.md` |
 | `visit-skip-private` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/visit-skip-private-seal.md`. |
 | `soft-deleted-writes-404` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/soft-deleted-writes-404-seal.md`. |
+| `bulk-partial-message` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/bulk-partial-message-seal.md`. |
