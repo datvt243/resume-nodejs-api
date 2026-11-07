@@ -16,11 +16,13 @@ Store / fetch:
 2. `POST /api/v1/candidate/upload-cv`, multipart field `cv`, one file,
    ≤ 5MB, `application/pdf` mime and `.pdf` extension. Too large /
    wrong type / other upload error / no file → 400. Saved as
-   `public/uploads/cv/<candidateId>-cv.pdf`, overwriting any previous
-   one; `cvFile = { originalName, uploadedAt }` stored on the candidate.
-   200 with `{ originalName, uploadedAt }`.
+   `storage/cv/<candidateId>-cv.pdf` (outside `public/`), replacing any
+   previous one only once the new upload succeeded — a rejected upload
+   leaves the stored CV untouched; `cvFile = { originalName, uploadedAt }`
+   stored on the candidate. 200 with `{ originalName, uploadedAt }`.
 3. `GET /api/v1/candidate/cv-file` → the caller's file as a download
-   named with its original name (fallback `CV.pdf`); no upload yet → 404.
+   named with its original name (fallback `CV.pdf`); no upload yet, or a
+   `cvFile` record whose file is missing on disk → 404.
 
 Import (stateless, nothing is saved):
 4. `POST /api/v1/candidate/parse-cv-pdf`, multipart field `file`, same
@@ -68,3 +70,4 @@ Import (stateless, nothing is saved):
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-file-upload-import-spec.md` | - |
+| 2026-11-08 | Behavior #2: storage path, rejected re-upload keeps the old CV; #3: missing file → 404 | operator answers 2026-11-07 (#384 + its comment) | `cv-upload-temp-rename` |

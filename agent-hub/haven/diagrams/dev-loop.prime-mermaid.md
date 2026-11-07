@@ -93,10 +93,10 @@ flowchart TD
 
 Any regression must be a **new node** (LAI-13) — never edit an existing
 node's PM status directly to "undo" an existing SEAL.
-| `fix-trim-strict-rejects-spaces` | SEALED | 2026-11-01 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-01/fix-trim-strict-rejects-spaces-seal.md`. |
 | `cast-legacy-localized-strings` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/cast-legacy-localized-strings-seal-r2.md`. |
 | `candidate-email-self-only` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/candidate-email-self-only-seal-r2.md`. |
 | `public-profile-field-whitelist` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/public-profile-field-whitelist-seal.md` |
 | `private-cv-storage` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/private-cv-storage-seal-r2.md` |
 | `trust-proxy-hops` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/trust-proxy-hops-seal.md` |
 | `auth-credential-limit` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/auth-credential-limit-seal.md` |
+| `cv-upload-temp-rename` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/cv-upload-temp-rename-seal.md` |
