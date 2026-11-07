@@ -346,7 +346,7 @@ router.get('/visits/stats', asyncHandler(fnGetVisitStats));
  * /api/v1/candidate/{email}:
  *   get:
  *     tags: [Candidate]
- *     summary: Get candidate profile by email
+ *     summary: Get own candidate profile by email (another candidate's email → 404)
  *     security:
  *       - bearerAuth: []
  *     parameters:

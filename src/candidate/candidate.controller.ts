@@ -36,7 +36,8 @@ export const fnGetInformationById = async (req: Request, res: Response, next: Ne
 export const fnGetInformationByEmail = async (req: Request, res: Response, next: NextFunction) => {
   const { email = '' } = req.params;
   const doc = await handlerGetInformationByEmail(email);
-  if (!doc) return next(new NotFoundError(t('candidate.userNotFound', req.lang)));
+  // Self only: another candidate's email answers the same 404 as an unknown one, so existence isn't confirmed.
+  if (!doc || String(doc._id) !== req.user?._id) return next(new NotFoundError(t('candidate.userNotFound', req.lang)));
   return ok(res, doc);
 };
 

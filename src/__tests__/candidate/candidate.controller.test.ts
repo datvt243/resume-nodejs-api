@@ -191,3 +191,29 @@ describe('candidate lookup not found', () => {
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: StatusCodes.NOT_FOUND, errorCode: 'NOT_FOUND' }));
   });
 });
+
+describe('GET /:email is self only (issue #394)', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it("answers 404 for another candidate's email", async () => {
+    jest.spyOn(candidateService, 'handlerGetInformationByEmail').mockResolvedValue({ _id: 'other-id' } as any);
+    const res = mockRes();
+    const next = jest.fn();
+
+    await fnGetInformationByEmail({ params: { email: 'other@example.com' }, user: { _id: 'user-1' }, lang: 'en' } as any, res, next);
+
+    expect(res.status).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: StatusCodes.NOT_FOUND }));
+  });
+
+  it("answers 200 for the caller's own email", async () => {
+    jest.spyOn(candidateService, 'handlerGetInformationByEmail').mockResolvedValue({ _id: { toString: () => 'user-1' } } as any);
+    const res = mockRes();
+    const next = jest.fn();
+
+    await fnGetInformationByEmail({ params: { email: 'me@example.com' }, user: { _id: 'user-1' }, lang: 'en' } as any, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK);
+  });
+});

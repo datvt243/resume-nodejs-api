@@ -114,3 +114,5 @@
 2026-11-07T03:55:10Z role=verifier outcome=SEAL node=atomic-token-consume rerun=none hub_bytes_before=93048 hub_bytes_after=93046
 2026-11-07T04:01:44Z role=verifier outcome=SEAL node=logout-revokes-refresh rerun=none hub_bytes_before=93048 hub_bytes_after=93050
 2026-11-07T04:05:50Z role=verifier outcome=SEAL node=reset-revokes-sessions rerun=none hub_bytes_before=93048 hub_bytes_after=93050
+2026-11-07T21:40:44Z role=verifier outcome=REOPEN node=candidate-email-self-only rerun=none spawn=fresh hub_bytes_before=97638 hub_bytes_after=98464
+2026-11-07T21:42:44Z role=verifier outcome=SEAL node=candidate-email-self-only rerun=none spawn=resumed hub_bytes_before=97638 hub_bytes_after=96417

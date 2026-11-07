@@ -37,7 +37,7 @@ state-changing requests must also pass the double-submit CSRF check (see Securit
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/:email` | Get profile by email |
+| GET | `/:email` | Get own profile by email (self only — another candidate's email → 404, same as unknown) |
 | PUT | `/update` | Full update |
 | PATCH | `/update` | Partial update |
 | DELETE | `/` | Delete own account + all CV section data (self only, via `req.user._id`) |
