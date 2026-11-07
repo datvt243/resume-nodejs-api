@@ -56,12 +56,13 @@ assume test files (or their setup files) are covered.
 | Test runner | Jest 29.7 + ts-jest (`jest.config.ts`: roots `src/`, testRegex `__tests__` or `.test./.spec.`) |
 
 ## The default way to work
-`/boot` → `/worker implementer "<task>"` → `/worker verifier "<task>"`.
+`/boot` → (`feat`, or a fix with no feature doc: `/worker analyst "<task>"`) → `/worker implementer "<task>"` → `/worker verifier "<task>"`.
 Never skip step 1 on a cold session, never skip step 3.
 
 ## Workers
 | wid | Role | Actions | Seal actions |
 |---|---|---|---|
+| analyst | Business analyst | spec_feature | — |
 | implementer | Implementer | pick_next, implement | — |
 | verifier | Verifier | verify_seal | SEAL, REOPEN |
 

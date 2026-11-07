@@ -57,8 +57,15 @@ flowchart TD
 | `salary-desired-range` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/salary-desired-range-seal.md`. |
 | `add-project-type-experience-link` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/add-project-type-experience-link-seal.md`. |
 | `fix-project-link-optional` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/fix-project-link-optional-seal.md`. |
+| `fix-section-id-empty-query` | SEALED | 2026-11-07 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-07/fix-section-id-empty-query-seal.md`. |
 | `fix-candidate-password-leak` | PENDING | `src/candidate/candidate.service.ts` — `handlerGetInformationByEmail` has no `.select()` at all; `handlerGetInformationById` double-wraps `whitelistSelect([select])`, making the select a permanent no-op. Result: `GET /api/v1/candidate/:email` and `PUT/PATCH /candidate/update` return the raw bcrypt password hash in the response. |
 | `fix-refresh-token-expiry-unused` | PENDING | `TOKEN_EXP_IN` (`.env`, already exported in config) is never used at any `jwtSign()` call site (`auth.service.ts`, `auth.controller.ts`, `api/v1/auth/services/login.ts`) — access and refresh tokens always share the same default 1h expiry, so the refresh token is pointless. |
+| `reset-revokes-sessions` | SEALED | 2026-11-07 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-07/reset-revokes-sessions-seal.md`. |
+| `logout-revokes-refresh` | SEALED | 2026-11-07 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-07/logout-revokes-refresh-seal.md`. |
+| `atomic-token-consume` | SEALED | 2026-11-07 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-07/atomic-token-consume-seal.md`. |
+| `remove-get-login` | SEALED | 2026-11-07 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-07/remove-get-login-seal.md`. |
+| `restrict-query-token` | SEALED | 2026-11-07 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-07/restrict-query-token-seal-r2.md`. |
+| `fix-account-delete-cleanup` | SEALED | 2026-11-07 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-07/fix-account-delete-cleanup-seal.md`. |
 | `localize-education-school-major` | SEALED | 2026-11-02 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-02/localize-education-school-major-seal.md`. |
 | `add-familiar-skills` | SEALED | 2026-11-02 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-02/add-familiar-skills-seal.md`. |
 | `delete-all-visits` | SEALED | 2026-11-01 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-01/delete-all-visits-seal.md`. |
@@ -82,8 +89,6 @@ flowchart TD
 
 Any regression must be a **new node** (LAI-13) — never edit an existing
 node's PM status directly to "undo" an existing SEAL.
-| `readme-vi-rewrite` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/readme-vi-rewrite-seal.md`. |
-| `add-graceful-shutdown` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/add-graceful-shutdown-seal.md`. |
 | `enforce-https` | SEALED | 2026-10-24 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-24/enforce-https-seal.md`. |
 | `fix-create-returns-created-doc` | SEALED | 2026-10-25 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-25/fix-create-returns-created-doc-seal.md`. |
 | `fix-visit-accepts-slug` | SEALED | 2026-10-25 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-10-25/fix-visit-accepts-slug-seal.md`. |

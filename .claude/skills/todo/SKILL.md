@@ -1,6 +1,6 @@
 ---
 name: todo
-description: "Resolve/tạo GitHub issue + checkout branch riêng của issue đó, rồi gộp /worker implementer và /worker verifier thành 1 lệnh gõ cho một task — vẫn chạy 2 lượt tách biệt bên trong, tự lặp lại khi REOPEN. Dùng: /todo \"<task>\"|#<số-issue> [--ship]"
+description: "Resolve/tạo GitHub issue + checkout branch riêng của issue đó, rồi gộp /worker analyst (feature, hoặc bug chưa có feature doc), /worker implementer và /worker verifier thành 1 lệnh gõ cho một task — vẫn chạy 2 lượt tách biệt bên trong, tự lặp lại khi REOPEN. Dùng: /todo \"<task>\"|#<số-issue> [--ship]"
 argument-hint: "<task>|#<số-issue> [--ship]"
 ---
 
@@ -43,6 +43,20 @@ argument-hint: "<task>|#<số-issue> [--ship]"
    trong toàn chuỗi `/todo` vẫn là push của `/ship`).
 
 ## Quy trình
+0. **Pass 0 — analyst** (kit 2026-11-06): run `/worker analyst "<task>"`
+   (separate subagent) BEFORE pass 1 when:
+   - the issue is a feature (label `enhancement`/`feature`, else title
+     starts with add/implement/support; unclear → ask) — spec mode; skip when resuming and the issue's doc in
+     `agent-hub/doctrine/features/` already exists with no unanswered open
+     question;
+   - the issue is a bug (label `bug`, else title starts with fix/bug) and
+     `agent-hub/doctrine/features/INDEX.md` has no row for the area/issue —
+     backfill mode (`"document the feature touched by: <task>"`);
+   - anything else → skip.
+   `spec_ready`/`no_feature` → continue. `needs_input` → show its
+   questions to the operator verbatim, wait, re-run pass 0 with the
+   answers — never answer them yourself, never start pass 1 with a
+   question open. `blocked` → stop, report.
 1. **Lượt 1 — implementer**: chạy tương đương `/worker implementer "<task>"`,
    trong phiên chính. Dừng ở `status: sealed_pending_verifier` (hoặc
    `blocked` / `reopened_by_test` nếu test tại chỗ fail — xem

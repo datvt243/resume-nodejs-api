@@ -320,6 +320,21 @@ describe('auth.controller', () => {
       );
     });
 
+    it('also blacklists the refresh token sent with the request', async () => {
+      const req = mockRequest({}, { authorization: 'Bearer access_token' });
+      const res = mockResponse();
+
+      (helperAuth.extractTokenFromRequest as jest.Mock).mockImplementation((_req, fieldName = 'token') =>
+        fieldName === 'refreshToken' ? 'refresh_token' : 'access_token',
+      );
+      (tokenBlacklist.addToBlacklist as jest.Mock).mockResolvedValue(true);
+
+      await authLogout(req, res, mockNext);
+
+      expect(tokenBlacklist.addToBlacklist).toHaveBeenCalledWith('access_token');
+      expect(tokenBlacklist.addToBlacklist).toHaveBeenCalledWith('refresh_token');
+    });
+
     it('should fail if no token', async () => {
       const req = mockRequest();
       const res = mockResponse();

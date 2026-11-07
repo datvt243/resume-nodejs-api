@@ -69,32 +69,8 @@ router.post('/register', asyncHandler(authRegister));
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
- *   get:
- *     tags: [Auth]
- *     summary: Log in and receive access + refresh tokens (deprecated, use POST)
- *     deprecated: true
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/AuthLoginRequest'
- *     responses:
- *       200:
- *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthTokenResponse'
- *       401:
- *         description: Invalid credentials
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post('/login', asyncHandler(authLogin));
-router.get('/login', asyncHandler(authLogin));
 
 /**
  * @swagger
