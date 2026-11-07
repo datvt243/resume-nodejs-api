@@ -30,7 +30,7 @@ describe('v2 auth route wiring (issue #156)', () => {
     expect(registerLayer.route.methods.post).toBe(true);
     // The asyncHandler wrapper must call v1's authRegister itself — not a re-implementation that could independently regress.
     const req = {}, res = {}, next = jest.fn();
-    registerLayer.route.stack[0].handle(req, res, next);
+    registerLayer.route.stack[registerLayer.route.stack.length - 1].handle(req, res, next);
     expect(authRegister).toHaveBeenCalledWith(req, res, next);
   });
 });

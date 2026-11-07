@@ -18,7 +18,7 @@ All v1 routes: `/api/v1/...` — JWT required except auth. Auth accepts either a
 `Authorization: Bearer <token>` header or an httpOnly JWT cookie; cookie-only
 state-changing requests must also pass the double-submit CSRF check (see Security).
 
-## Auth `/api/v1/auth` (authLimiter: 150 req/15 min)
+## Auth `/api/v1/auth` (authLimiter: 10 req/15 min per IP on login/register/forgot/reset, v1 + v2 shared)
 
 | Method | Path | Description |
 |---|---|---|

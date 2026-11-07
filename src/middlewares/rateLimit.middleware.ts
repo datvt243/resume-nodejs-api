@@ -140,4 +140,7 @@ export const createRateLimiter = (opts: RateLimitOptions = {}): RequestHandler =
 
 const rateLimitMiddleware = createRateLimiter();
 
-export { memStore, rateLimitMiddleware };
+// Credential routes only (login/register/password reset, v1 + v2 share one bucket): stricter than the global limit, so it actually binds.
+const authLimiter = createRateLimiter({ max: 10, windowMs: 15 * 60 * 1000, keyPrefix: 'auth-rl' });
+
+export { memStore, rateLimitMiddleware, authLimiter };

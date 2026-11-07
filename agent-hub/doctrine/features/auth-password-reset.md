@@ -27,6 +27,9 @@ single-use reset link.
 5. The token is deleted the first time a request that passes validation
    presents it; a request rejected by validation (rule 3) does not
    consume it.
+6. `forgot-password` and `reset-password` share the auth limit with
+   register/login: 10 requests per 15 minutes per client IP; the 11th →
+   429 `RATE_LIMITED`.
 
 ## Acceptance criteria
 - `npx jest src/__tests__/auth/auth.service.test.ts` passes.
@@ -53,3 +56,4 @@ single-use reset link.
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/auth-password-reset-spec.md` | - |
 | 2026-11-07 | Behavior 4: reset also revokes every session | operator answer #393 | reset-revokes-sessions |
+| 2026-11-08 | Behavior 6: auth limit 10/15 min shared with register/login | operator answer #387 | auth-credential-limit |

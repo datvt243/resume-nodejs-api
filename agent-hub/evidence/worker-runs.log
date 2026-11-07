@@ -120,3 +120,4 @@
 2026-11-07T21:56:07Z role=verifier outcome=REOPEN node=private-cv-storage rerun=none spawn=fresh hub_bytes_before=96414 hub_bytes_after=97439
 2026-11-07T21:57:44Z role=verifier outcome=SEAL node=private-cv-storage rerun=none spawn=resumed hub_bytes_before=96414 hub_bytes_after=96406
 2026-11-07T22:20:15Z role=verifier outcome=SEAL node=trust-proxy-hops rerun=none spawn=fresh hub_bytes_before=96406 hub_bytes_after=96389
+2026-11-07T22:27:04Z role=verifier outcome=SEAL node=auth-credential-limit rerun=none spawn=fresh hub_bytes_before=96389 hub_bytes_after=96395

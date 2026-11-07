@@ -39,6 +39,10 @@ API tokens, and can confirm their email address.
 8. `/api/v2/auth/register` and `/api/v2/auth/login` are aliases: they
    call the same controller functions as v1 (only POST; v2 has no other
    auth routes).
+9. Register and login (v1 and v2, one shared bucket per client IP) allow
+   10 requests per 15 minutes; the 11th → 429 `RATE_LIMITED`. Other auth
+   routes (`/refresh`, `/logout`, `/logout-all`, `/verify-email`) only have
+   the global limit.
 
 ## Acceptance criteria
 - `npx jest src/__tests__/auth/auth.controller.test.ts` passes.
@@ -63,7 +67,7 @@ API tokens, and can confirm their email address.
 - Register success returns no tokens; the client must call login separately. Intended? → **Answer (operator 2026-11-07):** Intended
 - The email TLD whitelist (`com`/`net`/`vn`) rejects `.org`, `.io`, `.dev`, `.edu`… on register, login and forgot-password. Intended, or should any valid TLD pass? → **Answer (operator 2026-11-07):** Intended (keep)
 - Login re-applies the register password rules, so an account whose password predates the current rules (e.g. < 12 chars) gets 400 and can never log in. Intended? → **Answer (operator 2026-11-07):** Bug: login should only require a non-empty password — #390
-- The v2 auth router has no `authLimiter` (only v1 does); and since the global limiter (100/15 min) is stricter than `authLimiter` (150/15 min), the auth limiter never binds. Intended? → **Answer (operator 2026-11-07):** Bug — #387
+- The v2 auth router has no `authLimiter` (only v1 does); and since the global limiter (100/15 min) is stricter than `authLimiter` (150/15 min), the auth limiter never binds. Intended? → **Answer (operator 2026-11-07):** Bug — #387; limit (operator 2026-11-08): 10 / 15 min on login/register/forgot/reset, v1 + v2
 
 ## Changelog
 | Date | Change | Why | Node |
@@ -73,3 +77,4 @@ API tokens, and can confirm their email address.
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified; joi.config path corrected to `src/config/joi.config.ts` | analyst backfill re-check, see `evidence/analyst/2026-11-07/auth-register-login-spec.md` | - |
 | 2026-11-07 | Issues += #385 (also covers the non-atomic GET+DEL in `src/utils/emailVerification.ts`) | operator | - |
 | 2026-11-07 | Behavior 5: GET /auth/login removed (POST only) | operator answer #389 | remove-get-login |
+| 2026-11-08 | Behavior 9: auth limit 10/15 min on credential routes, v1 + v2 | operator answer #387 | auth-credential-limit |
