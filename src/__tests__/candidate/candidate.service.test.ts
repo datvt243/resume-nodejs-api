@@ -12,6 +12,7 @@
  */
 import fs from 'fs';
 import * as MODELS from '@/models';
+import { invalidateAllSessions } from '@/utils/sessionRevocation';
 import { handlerGetInformationByEmail, handlerGetInformationById, handlerDelete, handlerDeleteVisits } from '@/candidate/candidate.service';
 
 jest.mock('@/models', () => ({
@@ -27,6 +28,8 @@ jest.mock('@/models', () => ({
   Profile: { deleteMany: jest.fn() },
   Visit: { deleteMany: jest.fn() },
 }));
+
+jest.mock('@/utils/sessionRevocation', () => ({ invalidateAllSessions: jest.fn().mockResolvedValue(true) }));
 
 describe('candidate.service.ts password exclusion (issue #152)', () => {
   beforeEach(() => {
@@ -106,6 +109,7 @@ describe('candidate.service.ts handlerDelete (issue #158)', () => {
     (MODELS.Certificate.find as jest.Mock).mockResolvedValue([]);
     (MODELS.Award.find as jest.Mock).mockResolvedValue([]);
     (MODELS.Candidate.deleteOne as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue({}) });
+    (MODELS.Visit.deleteMany as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue({ deletedCount: 0 }) });
   });
 
   afterEach(() => {
@@ -122,6 +126,17 @@ describe('candidate.service.ts handlerDelete (issue #158)', () => {
     for (const key of CV_SECTION_MODEL_KEYS) {
       expect((MODELS as any)[key].deleteMany).not.toHaveBeenCalled();
     }
+    expect((MODELS as any).Visit.deleteMany).not.toHaveBeenCalled();
+    expect(invalidateAllSessions).not.toHaveBeenCalled();
+  });
+
+  it("hard-deletes the candidate's visits and revokes every session", async () => {
+    (MODELS.Candidate.findById as jest.Mock).mockResolvedValue({ _id: 'cand5' });
+
+    await handlerDelete('cand5');
+
+    expect((MODELS as any).Visit.deleteMany).toHaveBeenCalledWith({ candidateId: 'cand5' });
+    expect(invalidateAllSessions).toHaveBeenCalledWith('cand5');
   });
 
   it('cascades deleteMany({candidateId}) across every CV section model, then deletes the candidate document itself', async () => {

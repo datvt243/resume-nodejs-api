@@ -11,8 +11,9 @@ one session or every session, and reject stolen or reused tokens.
 
 ## Behavior
 1. Every protected route reads the token from, in order: `Authorization`
-   header (`Bearer <t>`, or the raw header value), body `token`, query
-   `token`, cookie `token`. None → 401 `NO_TOKEN`.
+   header (`Bearer <t>`, or the raw header value), body `token`, cookie
+   `token`. None → 401 `NO_TOKEN`. Query `token` is read (between body and
+   cookie) only on `GET /api/v1/download-pdf`; elsewhere it is ignored.
 2. A protected request is rejected with 401 when the token is
    blacklisted, expired (`TOKEN_EXPIRED`), invalid, has no `_id`, or was
    issued before the candidate's last logout-all.
@@ -68,3 +69,4 @@ one session or every session, and reject stolen or reused tokens.
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/auth-session-tokens-spec.md` | - |
+| 2026-11-07 | Behavior 1: query `token` only on `GET /download-pdf` | operator answer #392 | restrict-query-token |
