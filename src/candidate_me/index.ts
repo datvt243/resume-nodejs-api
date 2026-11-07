@@ -284,12 +284,11 @@ export const handlerRecordVisit = async (identifier: string, req: Request) => {
 };
 
 /**
- * The visitor's IP: the leftmost `X-Forwarded-For` entry (set by the site's
- * relay, then appended to by Render's proxy), else the socket address. Read
- * here only, not via a global `trust proxy`, so the rate-limit key keeps
- * using the unspoofable connecting address. A direct caller can forge this
- * header; accepted, since the visit endpoint is public and a whole visit is
- * forgeable anyway.
+ * The visitor's IP: the leftmost `X-Forwarded-For` entry, else `req.ip`.
+ * Deliberately not `req.ip` alone: the rate-limit key uses the trusted
+ * (rightmost, `TRUST_PROXY_HOPS`) entry, while visit geo wants the original
+ * client. A direct caller can forge this header; accepted, since the visit
+ * endpoint is public and a whole visit is forgeable anyway.
  */
 const visitorIp = (req: Request): string => {
   const xff = req.headers['x-forwarded-for'];
