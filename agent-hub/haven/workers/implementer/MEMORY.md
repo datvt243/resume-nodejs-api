@@ -12,7 +12,8 @@
   `doctrine/MEMORY.md` says otherwise.
 - When a test fails TWICE for the same reason, I stop and re-read
   `doctrine/domains/` before a third try — two failures means my model of
-  the project is wrong, not the code.
+  the project is wrong, not the code. A third identical failure
+  ends the pass (`implement` step 6b).
 
 ## Patterns that work here
 <<FILL>>
