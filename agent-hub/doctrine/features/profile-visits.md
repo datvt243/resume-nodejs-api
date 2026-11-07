@@ -12,7 +12,8 @@ can wipe it.
 
 ## Behavior
 1. `POST /api/me/:identifier/visit` (no auth): identifier = slug then
-   email; unknown → 404 (same as public profile). Body optional:
+   email; unknown or private (`isPublic: false`) → 404 with the same
+   message as the public profile, nothing stored. Body optional:
    `referrer` (stored as hostname only, `www.`/`m.` stripped; non-http(s),
    invalid or > 2048 chars → `null`), `profile` (stored only if it's a
    non-deleted profile of that candidate, else `null`). IP = the leftmost
@@ -61,3 +62,4 @@ can wipe it.
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-07 | Operator answers recorded; Issues set; stays draft — Behavior 1 misstates the X-Forwarded-For rule, see `evidence/analyst/2026-11-07/profile-visits-spec.md` | analyst backfill re-check | - |
 | 2026-11-07 | Behavior 1 IP wording corrected to the code; Status → verified | operator answer round 2, see `evidence/analyst/2026-11-07/profile-visits-spec.md` | - |
+| 2026-11-08 | Behavior 1: private profile → 404, no visit stored | operator answer #398 | visit-skip-private |
