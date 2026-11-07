@@ -9,6 +9,7 @@ import { bcryptGenerateSalt, bcryptCompareHash, jwtSign } from '@/utils';
 import { TOKEN_SECRET, TOKEN_REFRESH, TOKEN_EXP_IN, TOKEN_REFRESH_EXP_IN } from '@/config/process.config';
 import { t, DEFAULT_LANG } from '@/utils/i18n';
 import { createResetToken, consumeResetToken } from '@/utils/passwordReset';
+import { invalidateAllSessions } from '@/utils/sessionRevocation';
 import { createVerificationToken, consumeVerificationToken } from '@/utils/emailVerification';
 import { generateUniqueCandidateSlug } from '@/utils/slug';
 import { logger } from '@/logger';
@@ -158,6 +159,8 @@ export const handlerResetPassword = async (data: ResetPasswordInput, lang: strin
 
   const bcryptPwd = await bcryptGenerateSalt(password);
   await CandidateModel.updateOne({ _id: candidateId }, { password: bcryptPwd });
+  // A session stolen before the reset must not survive it, same as logout-all.
+  await invalidateAllSessions(candidateId);
 
   return { success: true, message: t('auth.resetPasswordSuccess', lang) };
 };

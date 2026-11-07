@@ -8,6 +8,7 @@ import * as bcrypt from '@/utils';
 import * as jwt from '@/utils';
 import { createResetToken, consumeResetToken } from '@/utils/passwordReset';
 import { createVerificationToken, consumeVerificationToken } from '@/utils/emailVerification';
+import { invalidateAllSessions } from '@/utils/sessionRevocation';
 
 // Mock modules
 jest.mock('@/models/candidate.model');
@@ -26,6 +27,7 @@ jest.mock('@/utils/emailVerification', () => ({
   createVerificationToken: jest.fn(),
   consumeVerificationToken: jest.fn(),
 }));
+jest.mock('@/utils/sessionRevocation', () => ({ invalidateAllSessions: jest.fn().mockResolvedValue(true) }));
 jest.mock('@/logger', () => ({
   logger: { info: jest.fn(), error: jest.fn() },
 }));
@@ -204,6 +206,7 @@ describe('auth.service', () => {
       expect(consumeResetToken).toHaveBeenCalledWith('raw-token');
       expect(bcrypt.bcryptGenerateSalt).toHaveBeenCalledWith('NewPass123!');
       expect(CandidateModel.updateOne).toHaveBeenCalledWith({ _id: 'user_id' }, { password: mockHash });
+      expect(invalidateAllSessions).toHaveBeenCalledWith('user_id');
       expect(result).toEqual({ success: true, message: 'Đặt lại mật khẩu thành công' });
     });
 
@@ -214,6 +217,7 @@ describe('auth.service', () => {
 
       expect(bcrypt.bcryptGenerateSalt).not.toHaveBeenCalled();
       expect(CandidateModel.updateOne).not.toHaveBeenCalled();
+      expect(invalidateAllSessions).not.toHaveBeenCalled();
       expect(result).toEqual({ success: false, message: 'Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn' });
     });
   });
