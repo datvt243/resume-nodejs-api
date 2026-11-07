@@ -1,5 +1,7 @@
 # Resume API — Backend
 
+Always respond in English.
+
 Node.js/TypeScript REST API for managing candidate CVs/resumes with auth, PDF export, Redis caching, and Winston logging.
 
 ## Stack
