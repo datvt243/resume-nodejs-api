@@ -8,13 +8,10 @@ import { asyncHandler } from '@/utils/asyncHandler';
 const router = express.Router();
 
 import { authRegister, authLogin, authLogout, authLogoutAll, authRefreshToken, authForgotPassword, authResetPassword, authVerifyEmail } from '@/auth/auth.controller';
-import { createRateLimiter } from '@/middlewares/rateLimit.middleware';
+import { authLimiter } from '@/middlewares/rateLimit.middleware';
 import { verifyToken } from '@/middlewares/verifyToken.middleware';
 import { verifyCsrf } from '@/middlewares/csrf.middleware';
 
-// Apply rate limit for auth routes (150 requests per 15 minutes)
-const authLimiter = createRateLimiter({ max: 150, windowMs: 15 * 60 * 1000, keyPrefix: 'auth-rl' });
-router.use(authLimiter);
 
 /**
  * @swagger
@@ -42,7 +39,7 @@ router.use(authLimiter);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/register', asyncHandler(authRegister));
+router.post('/register', authLimiter, asyncHandler(authRegister));
 
 /**
  * @swagger
@@ -70,7 +67,7 @@ router.post('/register', asyncHandler(authRegister));
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/login', asyncHandler(authLogin));
+router.post('/login', authLimiter, asyncHandler(authLogin));
 
 /**
  * @swagger
@@ -187,7 +184,7 @@ router.post('/refresh', verifyCsrf('refreshToken'), asyncHandler(authRefreshToke
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
  */
-router.post('/forgot-password', asyncHandler(authForgotPassword));
+router.post('/forgot-password', authLimiter, asyncHandler(authForgotPassword));
 
 /**
  * @swagger
@@ -223,7 +220,7 @@ router.post('/forgot-password', asyncHandler(authForgotPassword));
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/reset-password', asyncHandler(authResetPassword));
+router.post('/reset-password', authLimiter, asyncHandler(authResetPassword));
 
 /**
  * @swagger
