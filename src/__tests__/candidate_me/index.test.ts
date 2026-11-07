@@ -231,6 +231,38 @@ describe('candidate_me/index.ts (issue #135)', () => {
       expect(privateProfile).toEqual(unknown);
     });
 
+    it('GET /api/me/:email returns only the public whitelist of candidate fields', async () => {
+      const fullDoc = {
+        ...candidateDoc,
+        firstName: 'Dat',
+        lastName: 'Vo',
+        phone: '0900000000',
+        address: 'HCM',
+        slug: 'dat-vo',
+        socialMedia: { github: 'x' },
+        introduction: { vi: 'xin chao', en: 'hi' },
+        birthday: 1,
+        gender: true,
+        marital: false,
+        cvFile: { originalName: 'cv.pdf' },
+        cvFileName: 'my-cv',
+        emailVerified: true,
+        isPublic: true,
+      };
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue(fullDoc) });
+      const json = jest.fn();
+      const res: any = { status: jest.fn().mockReturnValue({ json }) };
+
+      await fnGetAboutMe({ params: { email: 'dat-vo' }, query: {}, lang: 'vi' } as any, res, jest.fn());
+
+      expect(Object.keys(json.mock.calls[0][0].data).sort()).toEqual(
+        [
+          'address', 'awards', 'certificates', 'educations', 'email', 'experiences', 'firstName',
+          'generalInformation', 'introduction', 'lastName', 'phone', 'projects', 'references', 'slug', 'socialMedia',
+        ],
+      );
+    });
+
     it('never queries Profile when no profile param is given (existing share-links unaffected)', async () => {
       await handlerGetAboutMe({ identifier: 'votan.it@gmail.com', lang: 'vi' });
 
