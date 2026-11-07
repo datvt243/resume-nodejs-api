@@ -26,8 +26,9 @@ structurally identical; checked 2026-11-06):
 4. `PUT /update` → body must contain `_id`; same schema. Unknown or
    soft-deleted `_id` → 404; entry of another candidate → 403; success →
    200 with the updated document.
-5. `DELETE /delete/:id` → soft delete (`deletedAt = now`). Unknown id →
-   404; other candidate's → 403; success → 200, `data: null`.
+5. `DELETE /delete/:id` → soft delete (`deletedAt = now`). Unknown or
+   already soft-deleted id → 404 (`deletedAt` untouched); other
+   candidate's → 403; success → 200, `data: null`.
 6. `POST /restore/:id` → `deletedAt = null`. Unknown id → 404; other
    candidate's → 403; entry not deleted → 404 (`restoreFailed`);
    success → 200, `data: null`.
@@ -45,7 +46,8 @@ Per-section differences:
 9. Image upload — `award`, `certificate`, `project` only:
    `POST /:id/images`, multipart field `images`, max 5 files, 5MB each,
    extension jpg/jpeg/png/webp/gif and `image/*` mime. Ownership is
-   checked before any file is written. Unknown id → 404; other
+   checked before any file is written. Unknown or soft-deleted id → 404
+   (nothing written); other
    candidate's → 403; no files → 400; too large/too many/wrong type →
    400. Success → 200, `data: { images }` (new URLs
    `/uploads/images/<id>-<ts>-<rand><ext>` appended to existing ones).
@@ -89,3 +91,4 @@ Per-section differences:
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-section-crud-spec.md` | - |
+| 2026-11-08 | Behavior 5 + 9: soft-deleted entry → 404 on delete and image upload (restore unchanged) | operator answer #403 | soft-deleted-writes-404 |
