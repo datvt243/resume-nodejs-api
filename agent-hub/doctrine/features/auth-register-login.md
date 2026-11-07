@@ -22,8 +22,8 @@ API tokens, and can confirm their email address.
 4. On register a single-use email-verification token (24h TTL, Redis or
    in-memory fallback) is created. No email is sent: the link
    `/verify-email?token=<token>` is only written to the server log.
-5. `POST /api/v1/auth/login` (also `GET /api/v1/auth/login`, same
-   handler, reading the body) with `{ email, password }`, validated with
+5. `POST /api/v1/auth/login` (POST only; `GET /api/v1/auth/login` → 404
+   like any unknown route) with `{ email, password }`, validated with
    the same `email` and `password` rules as register (TLD whitelist,
    12–128 chars, `passwordRegex`) → else 400. A well-formed unknown email
    and a well-formed wrong password both → 401 with the same message.
@@ -72,3 +72,4 @@ API tokens, and can confirm their email address.
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified; joi.config path corrected to `src/config/joi.config.ts` | analyst backfill re-check, see `evidence/analyst/2026-11-07/auth-register-login-spec.md` | - |
 | 2026-11-07 | Issues += #385 (also covers the non-atomic GET+DEL in `src/utils/emailVerification.ts`) | operator | - |
+| 2026-11-07 | Behavior 5: GET /auth/login removed (POST only) | operator answer #389 | remove-get-login |

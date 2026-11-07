@@ -23,7 +23,7 @@ state-changing requests must also pass the double-submit CSRF check (see Securit
 | Method | Path | Description |
 |---|---|---|
 | POST | `/register` | Create user, bcrypt hash password |
-| POST / GET | `/login` | Validate + return access + refresh tokens (GET deprecated) |
+| POST | `/login` | Validate + return access + refresh tokens |
 | POST | `/logout` | Blacklist current token (CSRF-checked) |
 | POST | `/logout-all` | Revoke every token issued to this candidate up to now |
 | POST | `/refresh` | Rotate tokens; blacklist old refresh token (CSRF-checked); reuse of a rotated token > 10s later revokes all sessions |
