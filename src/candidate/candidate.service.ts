@@ -12,6 +12,7 @@ import { t, DEFAULT_LANG } from '@/utils/i18n';
 import { CV_UPLOAD_DIR } from '@/middlewares/uploadCV.middleware';
 import { IMAGE_UPLOAD_DIR } from '@/middlewares/uploadImages.middleware';
 import { CrudDocument } from '@/services';
+import { invalidateAllSessions } from '@/utils/sessionRevocation';
 
 const MODEL = MODELS.Candidate;
 
@@ -144,7 +145,10 @@ export const handlerDelete = async (_id: string, lang: string = DEFAULT_LANG) =>
     .map((url) => path.basename(url));
 
   await Promise.all(CV_SECTION_MODELS.map((model) => model.deleteMany({ candidateId: _id })));
+  await MODELS.Visit.deleteMany({ candidateId: _id }).exec();
   await MODEL.deleteOne({ _id }).exec();
+  // Still-valid tokens of a deleted account must stop working, same as logout-all.
+  await invalidateAllSessions(_id);
 
   // Uploaded CV file lives on disk, not in Mongo — deleting only the DB
   // record would leave the actual PDF (real personal data) behind.

@@ -15,7 +15,7 @@ export type TokenSource = 'header' | 'body' | 'query' | 'cookie' | null;
  * explicit body/query value can't be forged onto the browser's behalf the
  * way an auto-attached cookie can.
  */
-export const extractTokenWithSource = (req: Request, fieldName = 'token'): { token: string | null; source: TokenSource } => {
+export const extractTokenWithSource = (req: Request, fieldName = 'token', allowQuery = true): { token: string | null; source: TokenSource } => {
   const authHeader = req.header('Authorization') || req.header('authorization') || '';
   if (authHeader) {
     const parts = authHeader.split(' ');
@@ -25,7 +25,7 @@ export const extractTokenWithSource = (req: Request, fieldName = 'token'): { tok
   }
 
   if (req.body && req.body[fieldName]) return { token: String(req.body[fieldName]), source: 'body' };
-  if (req.query && req.query[fieldName]) return { token: String(req.query[fieldName]), source: 'query' };
+  if (allowQuery && req.query && req.query[fieldName]) return { token: String(req.query[fieldName]), source: 'query' };
   if (req.cookies && req.cookies[fieldName]) return { token: req.cookies[fieldName], source: 'cookie' };
 
   return { token: null, source: null };
