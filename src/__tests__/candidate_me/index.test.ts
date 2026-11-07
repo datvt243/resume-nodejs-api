@@ -14,7 +14,7 @@
 
 import geoip from 'geoip-lite';
 import * as MODEL from '@/models';
-import { fnExportPDF, fnGetAboutMe, handlerGetAboutMe, handlerRecordVisit, normalizeReferrer } from '@/candidate_me';
+import { fnExportPDF, fnGetAboutMe, handlerGetAboutMe, handlerRecordVisit, normalizeReferrer, profileNotFound } from '@/candidate_me';
 import { fnAtsCheck } from '@/candidate_me/ats-check';
 import { errorsMiddleware } from '@/middlewares/errors.middleware';
 
@@ -80,6 +80,15 @@ describe('candidate_me/index.ts (issue #135)', () => {
 
       expect(jest.mocked(MODEL.Candidate).findOne).toHaveBeenNthCalledWith(2, { email: 'votan.it@gmail.com' });
       expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ candidateId: 'c1' }));
+    });
+
+    it('404s a private profile (isPublic: false) with the unknown-profile message, recording nothing', async () => {
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1', isPublic: false }) }) });
+
+      const unknown = { statusCode: 404, message: profileNotFound('en').message };
+      await expect(handlerRecordVisit('vo-tan-dat', { ip: '', socket: {}, headers: {}, lang: 'en' } as any)).rejects.toMatchObject(unknown);
+
+      expect(jest.mocked(MODEL.Visit).create).not.toHaveBeenCalled();
     });
 
     it('404s an unknown identifier after trying slug and email, recording nothing', async () => {

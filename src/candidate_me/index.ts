@@ -264,11 +264,11 @@ export const handlerRecordVisit = async (identifier: string, req: Request) => {
   // Slug first, then email, with the same fail-closed check as handlerGetAboutMe above — a rejected value must not fall through to an unfiltered findOne({}).
   const findBy = async (field: 'slug' | 'email') => {
     const safeQuery = candidateQuerySafe.safeQuery({}, { [field]: identifier });
-    return field in safeQuery ? MODEL.Candidate.findOne(safeQuery).select('_id').exec() : null;
+    return field in safeQuery ? MODEL.Candidate.findOne(safeQuery).select('_id isPublic').exec() : null;
   };
   const candidate = (await findBy('slug')) ?? (await findBy('email'));
-  // Same 404 as handlerGetAboutMe above for an unknown identifier.
-  if (!candidate) throw profileNotFound(req.lang);
+  // Same 404 as handlerGetAboutMe above for an unknown or private profile — nothing is recorded.
+  if (!candidate || candidate.isPublic === false) throw profileNotFound(req.lang);
 
   const ip = visitorIp(req);
   const geo = ip && ip !== 'unknown' ? geoip.lookup(ip) : null;
