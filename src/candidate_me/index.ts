@@ -33,6 +33,25 @@ const resolveLocalizedText = (value: unknown, lang: string): string => {
   return typeof resolved === 'string' ? resolved : '';
 };
 
+// Everything else on the candidate (birthday, gender, marital, cvFile, isPublic, …) stays owner-only.
+const PUBLIC_PROFILE_FIELDS = new Set([
+  'firstName',
+  'lastName',
+  'introduction',
+  'socialMedia',
+  'slug',
+  'email',
+  'phone',
+  'address',
+  'generalInformation',
+  'experiences',
+  'educations',
+  'references',
+  'projects',
+  'certificates',
+  'awards',
+]);
+
 export const fnGetAboutMe = async (req: Request, res: Response, next: NextFunction) => {
   const { email } = req.params;
   const lang = req.query['lang'] === 'en' ? 'en' : 'vi';
@@ -56,7 +75,8 @@ export const fnGetAboutMe = async (req: Request, res: Response, next: NextFuncti
      * data regardless of this flag.
      */
     if (_me.data?.isPublic === false) return next(profileNotFound(lang));
-    return formatReturn(res, _me);
+    const data = Object.fromEntries(Object.entries(_me.data as Record<string, unknown>).filter(([key]) => PUBLIC_PROFILE_FIELDS.has(key)));
+    return formatReturn(res, { ..._me, data });
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }
