@@ -42,7 +42,9 @@ Per-section differences:
    item validated and created independently. All fail → 400 with
    `details[].field = items.<i>.<field>` (or `items.<i>`). At least one
    created → 201, `data: { results: [{ index, success, ... }], summary:
-   { total, succeeded, failed } }`.
+   { total, succeeded, failed } }`; message `common.createSuccess` when
+   all succeeded, else `common.bulkPartialSuccess` ("Created X of Y
+   items" / "Đã thêm X/Y mục").
 9. Image upload — `award`, `certificate`, `project` only:
    `POST /:id/images`, multipart field `images`, max 5 files, 5MB each,
    extension jpg/jpeg/png/webp/gif and `image/*` mime. Ownership is
@@ -92,3 +94,4 @@ Per-section differences:
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-section-crud-spec.md` | - |
 | 2026-11-08 | Behavior 5 + 9: soft-deleted entry → 404 on delete and image upload (restore unchanged) | operator answer #403 | soft-deleted-writes-404 |
+| 2026-11-08 | Behavior 8: partial-success message "Created X of Y items" (vi + en) instead of `common.createFailed` | operator answer #404 | bulk-partial-message |

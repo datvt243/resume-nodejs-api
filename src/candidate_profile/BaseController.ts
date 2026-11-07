@@ -303,7 +303,10 @@ export const createCrudController = (props: {
       return formatReturn(res, {
         statusCode: StatusCodes.CREATED,
         success: true,
-        message: summary.failed === 0 ? t('common.createSuccess', lang) : t('common.createFailed', lang),
+        message:
+          summary.failed === 0
+            ? t('common.createSuccess', lang)
+            : t('common.bulkPartialSuccess', lang).replace('{{succeeded}}', String(succeeded)).replace('{{total}}', String(summary.total)),
         data: { results, summary },
       });
     } catch (err) {

@@ -143,6 +143,18 @@ describe('createCrudController -> fnBulkCreate (issue #161)', () => {
     expect(payload.data.summary).toEqual({ total: 2, succeeded: 1, failed: 1 });
     expect(payload.data.results[0]).toEqual(expect.objectContaining({ index: 0, success: true }));
     expect(payload.data.results[1]).toEqual(expect.objectContaining({ index: 1, success: false }));
+    expect(payload.message).toBe('Created 1 of 2 items');
+  });
+
+  it('words a partial success as "X of Y" in Vietnamese too, never as a create failure', async () => {
+    const handlerCreate = jest.fn().mockResolvedValue({ success: true, message: 'ok', data: { _id: 'created' } });
+    const { fnBulkCreate } = createCrudController({ schema, service: { handlerCreate, handlerUpdate: jest.fn() } });
+    const { req, res, next, json } = createBulkMocks({ items: [{ name: 'Valid Name' }, { name: 'x' }, { name: 'Other Name' }] });
+    req.lang = 'vi';
+
+    await fnBulkCreate(req, res, next);
+
+    expect(json.mock.calls[0][0].message).toBe('Đã thêm 2/3 mục');
   });
 
   it('reports summary.failed: 0 when every item succeeds', async () => {

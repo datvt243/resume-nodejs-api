@@ -54,6 +54,7 @@ export default {
     updateNotYours: 'Không thể cập nhật thông tin không phải của bạn',
     bulkNoItems: 'Không có dữ liệu nào được gửi lên',
     bulkTooManyItems: 'Gửi quá nhiều mục trong một lần (tối đa 100)',
+    bulkPartialSuccess: 'Đã thêm {{succeeded}}/{{total}} mục',
   },
   candidate: {
     userNotFound: 'Không tìm thấy người dùng',

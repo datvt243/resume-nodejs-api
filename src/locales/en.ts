@@ -54,6 +54,7 @@ export default {
     updateNotYours: 'You cannot update information that is not yours',
     bulkNoItems: 'No items provided',
     bulkTooManyItems: 'Too many items in one request (max 100)',
+    bulkPartialSuccess: 'Created {{succeeded}} of {{total}} items',
   },
   candidate: {
     userNotFound: 'User not found',
