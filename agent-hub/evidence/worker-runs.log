@@ -106,3 +106,11 @@
 2026-11-05T17:09:44Z role=verifier outcome=SEAL node=cv-filename-lang-suffix rerun=none hub_bytes_before=83637 hub_bytes_after=83647
 2026-11-07T03:04:49Z role=verifier outcome=REOPEN node=fix-candidate-email-empty-query rerun=none hub_bytes_before=93030 hub_bytes_after=93721
 2026-11-07T03:07:33Z role=verifier outcome=SEAL node=fix-candidate-email-empty-query rerun=none hub_bytes_before=93030 hub_bytes_after=93061
+2026-11-07T03:18:39Z role=verifier outcome=SEAL node=fix-section-id-empty-query rerun=none hub_bytes_before=93030 hub_bytes_after=93048
+2026-11-07T03:37:46Z role=verifier outcome=SEAL node=fix-account-delete-cleanup rerun=none hub_bytes_before=93048 hub_bytes_after=93058
+2026-11-07T03:42:49Z role=verifier outcome=REOPEN node=restrict-query-token rerun=none hub_bytes_before=93048 hub_bytes_after=93689
+2026-11-07T03:45:13Z role=verifier outcome=SEAL node=restrict-query-token rerun=none hub_bytes_before=93048 hub_bytes_after=93049
+2026-11-07T03:50:53Z role=verifier outcome=SEAL node=remove-get-login rerun=none hub_bytes_before=93048 hub_bytes_after=93038
+2026-11-07T03:55:10Z role=verifier outcome=SEAL node=atomic-token-consume rerun=none hub_bytes_before=93048 hub_bytes_after=93046
+2026-11-07T04:01:44Z role=verifier outcome=SEAL node=logout-revokes-refresh rerun=none hub_bytes_before=93048 hub_bytes_after=93050
+2026-11-07T04:05:50Z role=verifier outcome=SEAL node=reset-revokes-sessions rerun=none hub_bytes_before=93048 hub_bytes_after=93050

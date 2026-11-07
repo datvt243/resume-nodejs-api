@@ -20,7 +20,9 @@ single-use reset link.
 3. `POST /api/v1/auth/reset-password` with `{ token, password,
    repassword }`: same password rules as register (12–128 chars,
    `passwordRegex`, `repassword` must match) → else 400.
-4. Valid unused token → password replaced with a new bcrypt hash, 200.
+4. Valid unused token → password replaced with a new bcrypt hash, every
+   session of that candidate revoked (same as `POST /auth/logout-all`:
+   old access and refresh tokens → 401), 200.
    Unknown, expired or already-used token → 400.
 5. The token is deleted the first time a request that passes validation
    presents it; a request rejected by validation (rule 3) does not
@@ -50,3 +52,4 @@ single-use reset link.
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/auth-password-reset-spec.md` | - |
+| 2026-11-07 | Behavior 4: reset also revokes every session | operator answer #393 | reset-revokes-sessions |

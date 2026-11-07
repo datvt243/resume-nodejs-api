@@ -78,3 +78,20 @@ describe('baseRestoreDocument (issue #121)', () => {
     await expect(baseRestoreDocument({ model: asModel(model), _id: '1', name: '', userID: 'c1' })).rejects.toMatchObject({ statusCode: 404 });
   });
 });
+
+describe('delete/restore with an id QuerySafe drops (issue #381)', () => {
+  it.each([
+    ['baseDeleteDocument', 'a$b', baseDeleteDocument],
+    ['baseDeleteDocument', '   ', baseDeleteDocument],
+    ['baseRestoreDocument', 'a$b', baseRestoreDocument],
+    ['baseRestoreDocument', '   ', baseRestoreDocument],
+  ])('%s answers 404 for %p instead of acting on the first document', async (_name, _id, fn) => {
+    // The caller owns the "first document" findOne({}) would return — the worst case.
+    const model = createFakeModel({ _id: '1', candidateId: 'c1', deletedAt: Date.now() });
+
+    await expect(fn({ model: asModel(model), _id, name: '', userID: 'c1' })).rejects.toMatchObject({ statusCode: 404, errorCode: 'NOT_FOUND' });
+
+    expect(model.findOne).not.toHaveBeenCalled();
+    expect(model.updateOne).not.toHaveBeenCalled();
+  });
+});

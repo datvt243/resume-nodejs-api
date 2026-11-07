@@ -27,8 +27,9 @@
 The row above previously said `n/a` — no `lint` script in `package.json`,
 "re-checked 2026-09-18". That's stale: `package.json` has a real `"lint":
 "eslint ."` script (confirmed present, root `CLAUDE.md`'s own Commands
-table already lists it — the staleness was only in this file). Current
-baseline on `staging`: 360 ESLint problems, all pre-existing (tracked by
+table already lists it — the staleness was only in this file).
+[superseded 2026-11-07: see the Lint row above — baseline 274 @ v2.2.4]
+Baseline on `staging` then: 360 ESLint problems, all pre-existing (tracked by
 `fix-remaining-any-unsafe-missed-files`/#204 and the still-open
 `chore(lint): fix no-misused-promises false positives`/#205) — running
 `npm run lint` is real, fast, and worth doing on any diff touching
@@ -73,7 +74,8 @@ Never skip step 1 on a cold session, never skip step 3.
 - No LLM API key anywhere in the hub — Claude Code IS the runtime.
 - `haven/` is memory, not code.
 - `evidence/` is committed; "bad" notes are kept, not deleted.
-- Monotonic ratchet: PENDING → IN_PROGRESS → SEALED, never demoted.
+- Monotonic ratchet: PENDING → IN_PROGRESS → SEALED, never backward;
+  `BLOCKED_<reason>` ↔ IN_PROGRESS. REOPEN is a verdict, not a state.
 - Verifier owns PM status; implementer never sets it.
 - `dist/` is build output, always gitignored, never hand-edited.
 

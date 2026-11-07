@@ -1,7 +1,8 @@
 ---
 name: todo
-description: "Resolve/tạo GitHub issue + checkout branch riêng của issue đó, rồi gộp /worker analyst (feature, hoặc bug chưa có feature doc), /worker implementer và /worker verifier thành 1 lệnh gõ cho một task — vẫn chạy 2 lượt tách biệt bên trong, tự lặp lại khi REOPEN. Dùng: /todo \"<task>\"|#<số-issue> [--ship]"
+description: "Resolve/tạo GitHub issue + checkout branch riêng của issue đó, rồi gộp /worker analyst (feature, hoặc bug chưa có feature doc), /worker implementer và /worker verifier thành 1 lệnh gõ cho một task — vẫn chạy 2 lượt tách biệt bên trong, tự lặp lại khi REOPEN. Dùng: /todo \"[task]\"|#[số-issue] [--ship]"
 argument-hint: "<task>|#<số-issue> [--ship]"
+disable-model-invocation: true
 ---
 
 # /todo "<task>"|#<số-issue> [--ship]
@@ -70,12 +71,24 @@ argument-hint: "<task>|#<số-issue> [--ship]"
    lượt suy luận thật sự tách biệt (subagent không thấy hội thoại lượt 1),
    không phải roleplay trong cùng context — `NeverVerifyOwnWork` được đảm
    bảo bằng cơ chế, không phải bằng lời hứa. Subagent tự viết verdict vào
-   `evidence/verifier/`.
+   `evidence/verifier/`. (kit 2026-11-07) Keep the verifier's agent id
+   from the Agent tool result — step 3 reuses it.
 3. **Verdict = REOPEN** → tự động quay lại Lượt 1 với đúng lý do REOPEN
    trích từ evidence note của subagent verifier. Lặp tối đa **3 lần**. Chạm
    giới hạn → dừng, báo operator tự quyết định, không tự lặp thêm.
+   (kit 2026-11-07) Lượt 2 của vòng REOPEN: resume the SAME verifier with
+   `SendMessage` to its agent id — "round <N>: re-read `<note path>` from
+   disk, re-run `verify_seal` steps 2-12, write a new verdict note + log
+   line" — instead of a fresh spawn. It never saw the implementer's
+   reasoning, so isolation holds; it skips the bundle reload. Resume fails
+   (no id, agent gone, error) → fresh spawn as in step 2 — never verify
+   inline. Implementer `failed` with `## Loop guard` → stop, no REOPEN retry.
 4. **Verdict = SEAL** → báo kết quả (node, evidence, issue + branch ở Bước
-   0).
+   0) plus one spawn line read back from
+   `grep "role=verifier.*node=<slug> " evidence/worker-runs.log`:
+   `spawns: verifier <N> (<F> fresh, <R> resumed), REOPEN <k>`. A REOPEN
+   round logged `fresh` means step 3's resume fell back — say why. Same
+   line on a retry-limit stop.
    - **Không có `--ship`** (mặc định): dừng ở đây. KHÔNG tự
      `commit`/`push` — seal gate trong `CLAUDE.md` vẫn áp dụng cho mọi
      hành động outward-facing trên `src/`, kể cả khi gọi qua `/todo`.

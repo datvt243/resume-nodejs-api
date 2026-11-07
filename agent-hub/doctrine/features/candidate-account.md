@@ -31,7 +31,9 @@ public visibility, vanity slug, CV file name) and can delete it.
 6. `DELETE /api/v1/candidate/` hard-deletes the caller's account and all
    of their general information, education, experience, reference,
    project, certificate, award, application and profile documents, the
-   uploaded CV file on disk, and every uploaded section image on disk.
+   uploaded CV file on disk, every uploaded section image on disk, and
+   every `Visit` of the candidate; then revokes every session (same as
+   `POST /auth/logout-all`), so old access/refresh tokens → 401.
    → 200, `data: null`.
 7. Caller's id not found (e.g. account already deleted) on update/delete
    → 400 `common.idNotFound`.
@@ -63,3 +65,4 @@ public visibility, vanity slug, CV file name) and can delete it.
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator answers recorded; Issues set; stays draft — Behavior 3/4 omit the required body `_id`, see `evidence/analyst/2026-11-07/candidate-account-spec.md` | analyst backfill re-check | - |
 | 2026-11-07 | Behavior 3/4: required body `_id` added; Status → verified | operator answer round 2, see `evidence/analyst/2026-11-07/candidate-account-spec.md` | - |
+| 2026-11-07 | Behavior 6: delete also removes visits and revokes all sessions | operator answer #395 | fix-account-delete-cleanup |
