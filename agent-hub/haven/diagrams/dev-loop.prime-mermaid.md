@@ -59,7 +59,6 @@ flowchart TD
 
 | Node | State | Notes |
 |---|---|---|
-| `cv-filename-lang-suffix` | SEALED | 2026-11-06 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-06/cv-filename-lang-suffix-seal.md`. |
 | `fix-visit-real-client-ip` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/fix-visit-real-client-ip-seal.md`. |
 | `add-cv-file-name` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/add-cv-file-name-seal-r2.md`. |
 | `salary-desired-range` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/salary-desired-range-seal.md`. |
@@ -100,3 +99,4 @@ node's PM status directly to "undo" an existing SEAL.
 | `cast-legacy-localized-strings` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/cast-legacy-localized-strings-seal-r2.md`. |
 | `candidate-email-self-only` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/candidate-email-self-only-seal-r2.md`. |
 | `public-profile-field-whitelist` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/public-profile-field-whitelist-seal.md` |
+| `private-cv-storage` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/private-cv-storage-seal-r2.md` |

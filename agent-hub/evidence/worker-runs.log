@@ -117,3 +117,5 @@
 2026-11-07T21:40:44Z role=verifier outcome=REOPEN node=candidate-email-self-only rerun=none spawn=fresh hub_bytes_before=97638 hub_bytes_after=98464
 2026-11-07T21:42:44Z role=verifier outcome=SEAL node=candidate-email-self-only rerun=none spawn=resumed hub_bytes_before=97638 hub_bytes_after=96417
 2026-11-07T21:49:36Z role=verifier outcome=SEAL node=public-profile-field-whitelist rerun=none spawn=fresh hub_bytes_before=96417 hub_bytes_after=96414
+2026-11-07T21:56:07Z role=verifier outcome=REOPEN node=private-cv-storage rerun=none spawn=fresh hub_bytes_before=96414 hub_bytes_after=97439
+2026-11-07T21:57:44Z role=verifier outcome=SEAL node=private-cv-storage rerun=none spawn=resumed hub_bytes_before=96414 hub_bytes_after=96406

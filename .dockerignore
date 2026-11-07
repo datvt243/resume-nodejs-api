@@ -20,6 +20,7 @@ src/public/pdf/*
 !src/public/pdf/.gitkeep
 src/public/uploads/cv/*
 !src/public/uploads/cv/.gitkeep
+src/storage/cv/*
 src/public/uploads/images/*
 !src/public/uploads/images/.gitkeep
 .vscode
