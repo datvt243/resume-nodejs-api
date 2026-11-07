@@ -11,8 +11,9 @@ public visibility, vanity slug, CV file name) and can delete it.
 
 ## Behavior
 1. All routes require a valid access token (see `auth-session-tokens`).
-2. `GET /api/v1/candidate/:email` → 200 with the candidate document for
-   that email (password excluded); unknown email → 404.
+2. `GET /api/v1/candidate/:email` → 200 with the caller's own candidate
+   document (password excluded) when `:email` is the caller's email; unknown
+   email or another candidate's email → the same 404 (self only, #394).
 3. `PUT /api/v1/candidate/update` (full update, `schemaCandidate`):
    `firstName` (≤ 15), `lastName` (≤ 35), `phone` (`phoneRegex`),
    `marital`, `gender` (booleans), `birthday` (number), `address` (≤ 255)
@@ -66,3 +67,4 @@ public visibility, vanity slug, CV file name) and can delete it.
 | 2026-11-07 | Operator answers recorded; Issues set; stays draft — Behavior 3/4 omit the required body `_id`, see `evidence/analyst/2026-11-07/candidate-account-spec.md` | analyst backfill re-check | - |
 | 2026-11-07 | Behavior 3/4: required body `_id` added; Status → verified | operator answer round 2, see `evidence/analyst/2026-11-07/candidate-account-spec.md` | - |
 | 2026-11-07 | Behavior 6: delete also removes visits and revokes all sessions | operator answer #395 | fix-account-delete-cleanup |
+| 2026-11-08 | Behavior 2: self only — another candidate's email → 404 | operator answer #394 | candidate-email-self-only |
