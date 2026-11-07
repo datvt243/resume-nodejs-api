@@ -122,3 +122,5 @@
 2026-11-07T22:20:15Z role=verifier outcome=SEAL node=trust-proxy-hops rerun=none spawn=fresh hub_bytes_before=96406 hub_bytes_after=96389
 2026-11-07T22:27:04Z role=verifier outcome=SEAL node=auth-credential-limit rerun=none spawn=fresh hub_bytes_before=96389 hub_bytes_after=96395
 2026-11-07T22:35:12Z role=verifier outcome=SEAL node=cv-upload-temp-rename rerun=none spawn=fresh hub_bytes_before=96395 hub_bytes_after=96376
+2026-11-07T22:39:42Z role=verifier outcome=REOPEN node=login-password-any-length rerun=none spawn=fresh hub_bytes_before=96376 hub_bytes_after=97153
+2026-11-07T22:41:07Z role=verifier outcome=SEAL node=login-password-any-length rerun=none spawn=resumed hub_bytes_before=96376 hub_bytes_after=96366

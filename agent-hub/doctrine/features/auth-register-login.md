@@ -24,9 +24,11 @@ API tokens, and can confirm their email address.
    `/verify-email?token=<token>` is only written to the server log.
 5. `POST /api/v1/auth/login` (POST only; `GET /api/v1/auth/login` → 404
    like any unknown route) with `{ email, password }`, validated with
-   the same `email` and `password` rules as register (TLD whitelist,
-   12–128 chars, `passwordRegex`) → else 400. A well-formed unknown email
-   and a well-formed wrong password both → 401 with the same message.
+   the same `email` rule as register (TLD whitelist) and a password that
+   is only a non-empty string ≤ 128 chars — no length minimum or
+   `passwordRegex`, so an account whose password predates the current
+   rules can still log in → else 400. A well-formed unknown email and a
+   wrong password both → 401 with the same message.
 6. Login success → 200, `data: { user: { email, first_name, last_name,
    email_verified }, token, tokenRefresh }`, and sets httpOnly cookies
    `token` + `refreshToken` plus a readable `csrfToken` cookie (all
@@ -49,7 +51,8 @@ API tokens, and can confirm their email address.
 - `npx jest src/__tests__/auth/auth.service.test.ts` passes.
 - `npx jest src/__tests__/auth/v2AuthRoute.test.ts` passes (v2 = same handlers as v1).
 - Register twice with the same email → second response is HTTP 409.
-- Login with a wrong (but rule-conforming) password and with an unknown email → both HTTP 401, identical `error.message`.
+- `npx jest src/__tests__/auth/auth.validate.test.ts` passes (login accepts a short legacy password; register still rejects it).
+- Login with a wrong password and with an unknown email → both HTTP 401, identical `error.message`.
 
 ## Edge cases
 - `repassword` missing or different → 400.
@@ -78,3 +81,4 @@ API tokens, and can confirm their email address.
 | 2026-11-07 | Issues += #385 (also covers the non-atomic GET+DEL in `src/utils/emailVerification.ts`) | operator | - |
 | 2026-11-07 | Behavior 5: GET /auth/login removed (POST only) | operator answer #389 | remove-get-login |
 | 2026-11-08 | Behavior 9: auth limit 10/15 min on credential routes, v1 + v2 | operator answer #387 | auth-credential-limit |
+| 2026-11-08 | Behavior 5: login password = non-empty string ≤ 128, strength rules on register/reset only | operator answer #390 | login-password-any-length |

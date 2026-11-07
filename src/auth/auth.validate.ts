@@ -15,9 +15,10 @@ export const schemaAuthRegister = Joi.object({
   repassword: Joi.any().valid(Joi.ref('password')).required(),
 }).with('password', 'repassword');
 
+// Strength rules apply on register/reset only: an account created under older, looser rules must still be able to log in.
 export const schemaAuthLogin = Joi.object({
   email,
-  password,
+  password: Joi.string().max(PASSWORD_MAX_LENGTH).label('Password').required(),
 });
 
 export const schemaForgotPassword = Joi.object({
