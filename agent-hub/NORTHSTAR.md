@@ -40,8 +40,8 @@ Missing (3) or (5) → forbidden state `EDIT_UNVERIFIED`.
 - The 3 known traps in `doctrine/domains/PROJECT.md` (hardcoded Chrome
   executable path, CORS `origin: '*'`, missing body-size limit) have SEALED
   nodes with evidence — no longer just sitting in `TODO.md`.
-- At least 5 recipes in `haven/workers/implementer/recipes/` replayed ≥ 2
-  times (implementer `MEMORY.md` "Times replayed" column > 0).
+- REOPEN rate trending down in `/hub-health`'s verifier line (the old
+  "Times replayed" metric was dropped 2026-11-07 — nothing ever counted it).
 - 0 forbidden-state hits across the last 20 evidence notes.
 - `doctrine/MEMORY.md` has no `<<FILL>>` left (lint/typecheck command
   filled in for real).
