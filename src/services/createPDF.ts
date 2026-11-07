@@ -5,8 +5,6 @@
 
 import puppeteer, { Browser } from 'puppeteer';
 
-import path from 'path';
-import fs from 'fs';
 import { Response } from 'express';
 import { t, type SupportedLang } from '@/utils/i18n';
 import { buildAtsContent, cvFilename } from '@/services/createPDF.ats';
@@ -25,29 +23,12 @@ import {
   ProjectData,
 } from '@/types/candidate.type';
 
-/**
- * Anchored to __dirname, not a bare relative literal — resolves to
- * `src/public/pdf/` when running from source (ts-node, __dirname is
- * `src/services`) and `dist/public/pdf/` when running compiled
- * (__dirname is `dist/services`), matching exactly what
- * `express.static(path.join(__dirname, 'public'))` serves in
- * `src/server.ts` (fix-hardcoded-src-public-write-paths,
- * doctrine/domains/PROJECT.md — the old hardcoded `src/public/pdf/`
- * ENOENT'd in a minimal production Docker image that has no `src/` at
- * all, and even outside Docker never matched what's actually served in
- * a compiled deploy).
- */
-const PDF_OUTPUT_DIR = path.join(__dirname, '..', 'public', 'pdf');
-
 /** `classic` is the pre-existing visual template; `modern` is an additional visual theme (same content, different styling) — see `getHTMLLayout`'s `getStyles`. */
 export type PdfTheme = 'classic' | 'modern';
 
 export const createCV = async (data: AggregatedCandidateData, res: Response, options: { theme?: PdfTheme; lang?: SupportedLang } = {}) => {
   let browser: Browser | undefined;
   try {
-    if (!fs.existsSync(PDF_OUTPUT_DIR)) fs.mkdirSync(PDF_OUTPUT_DIR, { recursive: true });
-    const URL = `${PDF_OUTPUT_DIR}${path.sep}`;
-
     /**
      * Optional override for CI/Docker where a specific Chrome/Chromium must be pinned.
      * Unset: puppeteer resolves its own bundled Chromium automatically.
@@ -64,15 +45,15 @@ export const createCV = async (data: AggregatedCandidateData, res: Response, opt
     browser = await puppeteer.launch(otp);
     const page = await browser.newPage();
 
-    const { email, html: contentHTML } = pageRender(data, options.theme ?? 'classic');
+    const { html: contentHTML } = pageRender(data, options.theme ?? 'classic');
 
     await page.setContent(contentHTML, {
       waitUntil: 'domcontentloaded',
     });
 
     const mm = '5mm';
+    // Buffer only, never written under public/ — express.static would serve it without auth.
     const pdfBuffer = await page.pdf({
-      path: `${URL}${email}.pdf`,
       format: 'A4',
       margin: {
         top: mm,
@@ -92,7 +73,7 @@ export const createCV = async (data: AggregatedCandidateData, res: Response, opt
 };
 
 /**
- * Same classic-template render as `createCV`, minus the disk write and
+ * Same classic-template render as `createCV`, minus the
  * HTTP response — used only by the ATS self-check endpoint
  * (`candidate_me/ats-check.ts`, `template=classic`) to diagnose the
  * classic template's own text-extraction quality. Does not change what

@@ -48,15 +48,12 @@ ENV NODE_ENV=production
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY package.json ./
-# No mkdir -p workaround needed here anymore: src/services/createPDF.ts,
-# uploadCV.middleware.ts, and uploadImages.middleware.ts now resolve
-# their write paths off __dirname (fixed — see
-# fix-hardcoded-src-public-write-paths trap history in
-# agent-hub/doctrine/domains/PROJECT.md), so they correctly target
-# dist/public/... in this image, all 3 self-create their directory if
-# missing, and `npm run copy` already populates dist/public/{pdf,
-# uploads/cv,uploads/images}/ (with each dir's .gitkeep) from the build
-# stage's COPY --from=build /app/dist above.
+# No mkdir -p workaround needed here anymore: uploadCV.middleware.ts
+# (dist/storage/cv/, outside public/) and uploadImages.middleware.ts
+# (dist/public/uploads/images/) resolve their write paths off __dirname
+# (see fix-hardcoded-src-public-write-paths trap history in
+# agent-hub/doctrine/domains/PROJECT.md) and self-create their directory
+# if missing. PDF exports are never written to disk.
 EXPOSE 3008
 # Probes process.env.LOCAL_PORT (falling back to 3008) — src/server.ts
 # now respects LOCAL_PORT in production too (fixed, see the
