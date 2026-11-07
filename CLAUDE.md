@@ -56,6 +56,8 @@ MONGO_MIN_POOL_SIZE=2        # optional; MongoDB connection pool min size
 CORS_ORIGIN=...              # comma-separated allow-list; required for the httpOnly cookie auth flow
                               # (credentials: true can't combine with a wildcard origin)
 TOKEN_REFRESH_EXP_IN=7d      # optional; refresh token lifetime (default 7d)
+TRUST_PROXY_HOPS=1           # optional; proxy hops in front of the app (1 on Render) so req.ip / rate limit
+                              # key on the real client; unset = trust none (no proxy)
 ```
 
 ## Conventions

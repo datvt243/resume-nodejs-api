@@ -18,7 +18,7 @@ import session from 'express-session';
 import swaggerUi from 'swagger-ui-express';
 
 import { errorsMiddleware, notFoundHandler, rateLimitMiddleware, startMemStoreCleanup, requestLogger, languageMiddleware, httpsRedirect } from '@/middlewares';
-import { sessionConfig, corsConfig, helmetConfig, swaggerSpec, REQUEST_BODY_LIMIT } from '@/config';
+import { sessionConfig, corsConfig, helmetConfig, swaggerSpec, REQUEST_BODY_LIMIT, trustProxySetting } from '@/config';
 import { logger } from '@/logger';
 import router from '@/routers';
 import { initRedis } from '@/services/redis';
@@ -34,6 +34,10 @@ process.on('unhandledRejection', (reason) => {
 
 const runServer = async ({ portNumber }: { portNumber: number }) => {
   const app = express();
+
+  // req.ip (rate-limit key) must be the real client, not Render's proxy.
+  const trustProxyHops = trustProxySetting();
+  if (trustProxyHops) app.set('trust proxy', trustProxyHops);
 
   app.use(requestLogger);
   app.use(httpsRedirect);

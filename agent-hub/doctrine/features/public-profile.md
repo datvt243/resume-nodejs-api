@@ -10,7 +10,8 @@ Anyone, without signing in, can find a candidate, view their CV online,
 and download it as PDF, unless the candidate made their profile private.
 
 ## Behavior
-1. No authentication on any route here; the global rate limit applies.
+1. No authentication on any route here; the global rate limit applies,
+   keyed per client IP (`TRUST_PROXY_HOPS` proxy hops trusted; 1 on Render).
 2. Identifier `:email` / `:identifier` = vanity slug, checked first, then
    registration email (for old share links).
 3. `GET /api/me/:identifier?lang=&profile=` → 200 with only the public
@@ -63,7 +64,7 @@ and download it as PDF, unless the candidate made their profile private.
 - Search reveals that a candidate matches a keyword even when the match is in data their `?profile=` views hide. Intended? → **Answer (operator 2026-11-07):** Change: search must only match entries that belong to at least one of the candidate's profiles — #397
 - Profiles are public by default (`isPublic` defaults to true). Intended? → **Answer (operator 2026-11-07):** Intended
 - The public PDF cache is per process (not shared across instances) and keyed on the full data. OK? → **Answer (operator 2026-11-07):** Intended (single instance today)
-- The global rate limiter keys on `req.ip`, and `trust proxy` is never set, so behind Render's proxy every visitor probably shares one 100-requests/15-min bucket. Live 2026-11-06: `x-ratelimit-remaining` fell by 15 more than this reviewer's own requests across about 8 requests. Set `trust proxy` (with the right hop count)? → **Answer (operator 2026-11-07):** Bug — #386
+- The global rate limiter keys on `req.ip`, and `trust proxy` is never set, so behind Render's proxy every visitor probably shares one 100-requests/15-min bucket. Live 2026-11-06: `x-ratelimit-remaining` fell by 15 more than this reviewer's own requests across about 8 requests. Set `trust proxy` (with the right hop count)? → **Answer (operator 2026-11-07):** Bug — #386; hop count (operator 2026-11-08): browser calls the Render URL directly, no relay → 1
 
 ## Changelog
 | Date | Change | Why | Node |
@@ -72,3 +73,4 @@ and download it as PDF, unless the candidate made their profile private.
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/public-profile-spec.md` | - |
 | 2026-11-08 | Behavior 3: explicit public whitelist of candidate fields | operator answer #382 (fields: email, phone, address) | public-profile-field-whitelist |
+| 2026-11-08 | Behavior 1: rate limit keyed per real client IP via `TRUST_PROXY_HOPS` | operator answer #386 (browser → Render directly, 1 hop) | trust-proxy-hops |
