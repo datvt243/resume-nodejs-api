@@ -16,8 +16,8 @@ import { extractTokenWithSource } from '@/utils/helper-auth';
 import { t } from '@/utils/i18n';
 import { requiresCsrfCheck, isCsrfTokenValid } from '@/utils/csrf';
 
-export const verifyToken = async (req: Request, _res: Response, next: NextFunction) => {
-  const { token, source } = extractTokenWithSource(req);
+const authenticate = async (req: Request, next: NextFunction, allowQuery: boolean) => {
+  const { token, source } = extractTokenWithSource(req, 'token', allowQuery);
 
   if (!token) {
     return next(new AuthenticationError(t('auth.noToken', req.lang), ErrorCode.NO_TOKEN));
@@ -86,7 +86,7 @@ export const verifyToken = async (req: Request, _res: Response, next: NextFuncti
   }
 };
 
-export const verifyTokenByQuery = (req: Request, res: Response, next: NextFunction) => {
-  // keep for compatibility; extractToken already supports query param
-  return verifyToken(req, res, next);
-};
+export const verifyToken = (req: Request, _res: Response, next: NextFunction) => authenticate(req, next, false);
+
+// Only for links opened outside the SPA (`GET /download-pdf`): a token in a URL leaks via logs, history and referrers.
+export const verifyTokenByQuery = (req: Request, _res: Response, next: NextFunction) => authenticate(req, next, true);
