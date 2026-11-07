@@ -1,7 +1,8 @@
 ---
 name: todo
-description: "Resolve/tạo GitHub issue + checkout branch riêng của issue đó, rồi gộp /worker analyst (feature, hoặc bug chưa có feature doc), /worker implementer và /worker verifier thành 1 lệnh gõ cho một task — vẫn chạy 2 lượt tách biệt bên trong, tự lặp lại khi REOPEN. Dùng: /todo \"<task>\"|#<số-issue> [--ship]"
+description: "Resolve/tạo GitHub issue + checkout branch riêng của issue đó, rồi gộp /worker analyst (feature, hoặc bug chưa có feature doc), /worker implementer và /worker verifier thành 1 lệnh gõ cho một task — vẫn chạy 2 lượt tách biệt bên trong, tự lặp lại khi REOPEN. Dùng: /todo \"[task]\"|#[số-issue] [--ship]"
 argument-hint: "<task>|#<số-issue> [--ship]"
+disable-model-invocation: true
 ---
 
 # /todo "<task>"|#<số-issue> [--ship]
