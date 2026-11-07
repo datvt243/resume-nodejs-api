@@ -32,8 +32,10 @@ one session or every session, and reject stolen or reused tokens.
    already predates the last revocation. The caller sees the same 401 as
    any revoked token.
 7. `POST /auth/logout` (CSRF-checked when token from cookie): no token →
-   400; else the access token is blacklisted until its own expiry, auth
-   cookies are cleared, 200.
+   400; else the access token is blacklisted until its own expiry, the
+   refresh token sent with the request (header/body/query/cookie
+   `refreshToken`, if any) is blacklisted too — a later refresh with it →
+   401 `TOKEN_REVOKED` — auth cookies are cleared, 200.
 8. `POST /auth/logout-all` (requires a valid access token): marks every
    token issued for this candidate before now as revoked (30-day marker),
    clears the caller's cookies, 200.
@@ -68,3 +70,4 @@ one session or every session, and reject stolen or reused tokens.
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/auth-session-tokens-spec.md` | - |
+| 2026-11-07 | Behavior 7: logout also blacklists the refresh token | operator answer #391 | logout-revokes-refresh |
