@@ -1,12 +1,14 @@
 /**
  * Multer config for the candidate CV file upload. Stores to disk under
  * `src/storage/cv/`, one file per candidate — the destination
- * filename is always `<candidateId>-cv.pdf`, so a re-upload simply
- * overwrites the previous file with no separate cleanup step needed.
+ * filename is always `<candidateId>-cv.pdf`. Multer writes to a temp name
+ * first and the file is renamed over the previous one only once the upload
+ * succeeded, so a rejected re-upload never destroys the stored CV.
  *
  * @author Đạt Võ <votan.it@gmail.com>
  * @see https://github.com/datvt243
  */
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
@@ -57,7 +59,7 @@ const storage = multer.diskStorage({
      * already trusts as the ownership key.
      */
     const candidateId = req.user?._id;
-    cb(null, `${candidateId}-cv.pdf`);
+    cb(null, `${candidateId}-${crypto.randomUUID()}.tmp`);
   },
 });
 
@@ -91,7 +93,16 @@ export const uploadCVMiddleware = (req: Request, res: Response, next: NextFuncti
    * every other candidate handler (fnUpdate/fnDelete) already makes.
    */
   upload(req, res, (err: unknown) => {
-    if (!err) return next();
+    if (!err) {
+      if (!req.file) return next();
+      try {
+        fs.renameSync(req.file.path, path.join(CV_UPLOAD_DIR, `${req.user?._id}-cv.pdf`));
+        return next();
+      } catch {
+        // Falls through to the generic upload-failed 400 below.
+        fs.rmSync(req.file.path, { force: true });
+      }
+    }
 
     if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
       return formatReturn(res, {

@@ -7,7 +7,7 @@
  */
 
 import { StatusCodes } from 'http-status-codes';
-import { fnGetInformationByEmail, fnGetInformationById, fnParseLinkedInExport, fnParseCvPdf, fnUpdate, fnUpdateFields } from '@/candidate/candidate.controller';
+import { fnDownloadCV, fnGetInformationByEmail, fnGetInformationById, fnParseLinkedInExport, fnParseCvPdf, fnUpdate, fnUpdateFields } from '@/candidate/candidate.controller';
 import * as candidateService from '@/candidate/candidate.service';
 import * as parseService from '@/candidate/parseLinkedInExport.service';
 import * as parseCvPdfService from '@/candidate/parseCvPdf.service';
@@ -215,5 +215,19 @@ describe('GET /:email is self only (issue #394)', () => {
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(StatusCodes.OK);
+  });
+});
+
+describe('GET /cv-file when the stored file is missing on disk', () => {
+  it('answers 404 like "no upload yet" instead of calling res.download', async () => {
+    jest.spyOn(candidateService, 'handlerGetCVFile').mockResolvedValue({ originalName: 'cv.pdf', uploadedAt: new Date() } as any);
+    const req: any = { user: { _id: 'no-such-candidate-file' }, lang: 'en' };
+    const res = mockRes();
+    res.download = jest.fn();
+
+    await fnDownloadCV(req, res, jest.fn());
+
+    expect(res.download).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.NOT_FOUND);
   });
 });
