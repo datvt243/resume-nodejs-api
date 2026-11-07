@@ -49,7 +49,10 @@ argument-hint: <analyst|implementer|verifier> "<task>"
      giác. Phòng vệ thật là dấu vết citeable: `recipes/verify_seal.md`
      bước 1b bắt verifier ghi bằng chứng spawn riêng vào dòng
      `## Isolation proof` của verdict note, để 1 audit sau này phát hiện
-     được nếu bước tách context bị bỏ qua.
+     được nếu bước tách context bị bỏ qua. (kit 2026-11-07) Only
+     exception to a fresh spawn: `/todo`'s REOPEN rounds resume the same
+     verifier subagent (`todo` step 3) — still never the implementer's
+     context.
 3. **Follow recipe** — chọn recipe khớp `quick_actions` của worker:
    - `implementer`: `pick_next` rồi `implement` (xem
      `recipes/pick_next.md`, `recipes/implement.md`).
