@@ -64,9 +64,8 @@ export const consumeResetToken = async (token: string): Promise<string | null> =
     if (isRedisAvailable()) {
       const redis = getRedisClient();
       if (redis) {
-        const candidateId = await redis.get(`password-reset:${token}`);
-        if (candidateId !== null) await redis.del(`password-reset:${token}`);
-        return candidateId;
+        // One atomic GETDEL: a separate GET then DEL lets two concurrent requests both read the token.
+        return await redis.getDel(`password-reset:${token}`);
       }
     }
 

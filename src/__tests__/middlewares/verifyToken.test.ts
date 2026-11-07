@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { verifyToken } from '@/middlewares/verifyToken.middleware';
+import { verifyToken, verifyTokenByQuery } from '@/middlewares/verifyToken.middleware';
 import * as jwtUtils from '@/utils/jwt';
 import * as tokenBlacklist from '@/utils/tokenBlacklist';
 import * as sessionRevocation from '@/utils/sessionRevocation';
@@ -194,6 +194,31 @@ describe('verifyToken middleware', () => {
       expect(next).toHaveBeenCalled();
       expect(next).not.toHaveBeenCalledWith(expect.any(AuthorizationError));
       expect((req as any).user).toEqual({ _id: 'abc123' });
+    });
+  });
+
+  describe('query ?token=', () => {
+    it('ignores a query token on a normal protected route (401 NO_TOKEN)', async () => {
+      const { req, res, next } = createMocks(undefined, { token: 'valid' });
+      await verifyToken(req, res, next);
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 401, errorCode: 'NO_TOKEN' }));
+      expect(mockedJwtVerify).not.toHaveBeenCalled();
+    });
+
+    it('falls through to the cookie when a query token is ignored', async () => {
+      mockedIsBlacklisted.mockResolvedValue(false);
+      mockedJwtVerify.mockReturnValue({ _id: 'abc123' });
+      const { req, res, next } = createMocks(undefined, { token: 'from-query' }, { method: 'GET', cookies: { token: 'from-cookie' } });
+      await verifyToken(req, res, next);
+      expect(mockedJwtVerify).toHaveBeenCalledWith('from-cookie', expect.anything());
+    });
+
+    it('accepts a query token on verifyTokenByQuery (download-pdf)', async () => {
+      mockedIsBlacklisted.mockResolvedValue(false);
+      mockedJwtVerify.mockReturnValue({ _id: 'abc123' });
+      const { req, res, next } = createMocks(undefined, { token: 'valid' });
+      await verifyTokenByQuery(req, res, next);
+      expect(req.user).toEqual({ _id: 'abc123' });
     });
   });
 });

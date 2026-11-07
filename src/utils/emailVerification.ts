@@ -64,9 +64,8 @@ export const consumeVerificationToken = async (token: string): Promise<string | 
     if (isRedisAvailable()) {
       const redis = getRedisClient();
       if (redis) {
-        const candidateId = await redis.get(`email-verify:${token}`);
-        if (candidateId !== null) await redis.del(`email-verify:${token}`);
-        return candidateId;
+        // One atomic GETDEL: a separate GET then DEL lets two concurrent requests both read the token.
+        return await redis.getDel(`email-verify:${token}`);
       }
     }
 
