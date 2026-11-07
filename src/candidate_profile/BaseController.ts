@@ -156,7 +156,8 @@ export const baseUploadImages = async (req: Request, res: Response, next: NextFu
      * cross-check the real owner against the authenticated req.user._id.
      */
     const document = await MODEL.findById(id);
-    if (!document) return formatReturn(res, { statusCode: StatusCodes.NOT_FOUND, success: false, message: t('common.notFoundId', req.lang) });
+    // A soft-deleted entry is gone for every write, same as update/delete.
+    if (!document || document.deletedAt) return formatReturn(res, { statusCode: StatusCodes.NOT_FOUND, success: false, message: t('common.notFoundId', req.lang) });
     if (!document.candidateId || document.candidateId.toString() !== candidateId) {
       return formatReturn(res, { statusCode: StatusCodes.FORBIDDEN, success: false, message: t('common.updateNotYours', req.lang) });
     }

@@ -4,7 +4,9 @@
  * createCrudController's fnBulkCreate (issue #161).
  */
 import Joi from 'joi';
-import { baseGetAll, createCrudController } from '@/candidate_profile/BaseController';
+import { baseGetAll, baseUploadImages, createCrudController } from '@/candidate_profile/BaseController';
+import * as MODELS from '@/models';
+import * as uploadImages from '@/middlewares/uploadImages.middleware';
 import * as services from '@/services';
 import { BadRequestError } from '@/errors';
 import { errorsMiddleware } from '@/middlewares/errors.middleware';
@@ -230,5 +232,20 @@ describe('createCrudController status codes', () => {
     expect(results[0]).toMatchObject({ index: 0, success: false });
     expect(results[0].message).not.toContain('connection reset');
     expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe('baseUploadImages on a soft-deleted entry', () => {
+  it('answers 404 before parsing or storing any file', async () => {
+    jest.spyOn(MODELS.Award, 'findById').mockResolvedValue({ _id: 'a1', candidateId: 'c1', deletedAt: 1000 });
+    const uploadSpy = jest.spyOn(uploadImages, 'uploadImagesMiddleware');
+    const json = jest.fn();
+    const res: any = { status: jest.fn().mockReturnValue({ json }), json };
+    const req: any = { params: { id: 'a1', collection: 'awards' }, user: { _id: 'c1' }, lang: 'en' };
+
+    await baseUploadImages(req, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(uploadSpy).not.toHaveBeenCalled();
   });
 });

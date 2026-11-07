@@ -125,3 +125,4 @@
 2026-11-07T22:39:42Z role=verifier outcome=REOPEN node=login-password-any-length rerun=none spawn=fresh hub_bytes_before=96376 hub_bytes_after=97153
 2026-11-07T22:41:07Z role=verifier outcome=SEAL node=login-password-any-length rerun=none spawn=resumed hub_bytes_before=96376 hub_bytes_after=96366
 2026-11-07T22:45:52Z role=verifier outcome=SEAL node=visit-skip-private rerun=none spawn=fresh hub_bytes_before=96366 hub_bytes_after=96362
+2026-11-07T22:51:15Z role=verifier outcome=SEAL node=soft-deleted-writes-404 rerun=none spawn=fresh hub_bytes_before=96362 hub_bytes_after=96370
