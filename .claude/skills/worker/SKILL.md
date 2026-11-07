@@ -1,6 +1,6 @@
 ---
 name: worker
-description: "Trở thành một worker của agent-hub (analyst, implementer hoặc verifier) và thực hiện một task theo đúng recipe của worker đó. Dùng: /worker <analyst|implementer|verifier> \"<task>\""
+description: "Trở thành một worker của agent-hub (analyst, implementer hoặc verifier) và thực hiện một task theo đúng recipe của worker đó. Dùng: /worker [analyst|implementer|verifier] \"[task]\""
 argument-hint: <analyst|implementer|verifier> "<task>"
 ---
 
