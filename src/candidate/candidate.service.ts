@@ -62,6 +62,8 @@ export const handlerGetInformationById = async (id: string, props: { select: str
 
 export const handlerGetInformationByEmail = async (email: string) => {
   const safeEmailQuery = candidateQuerySafe.safeQuery({}, { email });
+  // safeQuery drops a `$`/blank email — without this guard findOne({}) returns an arbitrary candidate.
+  if (!('email' in safeEmailQuery)) return null;
   const find = await MODEL.findOne(safeEmailQuery).select('-password').exec();
   return find;
 };
