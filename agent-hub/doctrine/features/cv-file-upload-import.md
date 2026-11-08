@@ -36,20 +36,20 @@ Import (stateless, nothing is saved):
    `linkedinImport.invalidZip`. 200 with `{ educations, experiences }`
    from `Education.csv` / `Positions.csv` (headers case-insensitive);
    `isCurrent = true` only when the CSV end date is blank or "Present";
-   an end date that is present but unparseable → `endDate: null`,
+   an end date that is present but unparseable → no `endDate`,
    `isCurrent: false`.
-6. Parsed entries use the create forms' field names (`school`,
-   `major`, `company`, `position`, `startDate`, `endDate`, `isCurrent`,
-   `description`), but `school`, `major` and `description` are plain
-   strings, while the education/experience create schemas need them as
-   localized `{ vi, en }` objects (`localizedName`, `description` in
-   `config/joi.config.ts`). The client must wrap them before sending to
-   `/education/bulk` / `/experience/bulk`, or those items get 400.
+6. Parsed entries are in the `/education/bulk` / `/experience/bulk`
+   item shape and post there unchanged: `_id: null`; `school`, `major`
+   and `description` as `{ vi, en }` with the same text in both (the
+   source language is unknown); `company`/`position` plain strings;
+   `startDate` number or `null`; `endDate` omitted when unknown or
+   ongoing (the schema rejects `null`); `isCurrent` boolean.
 
 ## Acceptance criteria
 - `npx jest src/__tests__/candidate/parseCvPdf.service.test.ts src/__tests__/candidate/parseLinkedInExport.service.test.ts src/__tests__/middlewares/uploadCvPdfParse.test.ts src/__tests__/candidate/candidate.controller.test.ts` passes.
 - Upload a 6MB PDF to `/upload-cv` → HTTP 400.
 - `GET /candidate/cv-file` before any upload → HTTP 404.
+- `npx jest src/__tests__/candidate/parsedEntriesBulkSchema.test.ts` passes (parsed entries validate against the bulk schemas unchanged).
 
 ## Edge cases
 - Scanned (image-only) PDF → 200 with empty lists and empty `extractedText` (no OCR).
@@ -74,3 +74,4 @@ Import (stateless, nothing is saved):
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-file-upload-import-spec.md` | - |
 | 2026-11-08 | Behavior #2: storage path, rejected re-upload keeps the old CV; #3: missing file → 404 | operator answers 2026-11-07 (#384 + its comment) | `cv-upload-temp-rename` |
 | 2026-11-08 | Behavior #5: unparseable LinkedIn end date → endDate null, isCurrent false | operator answer 2026-11-07 (#401) | linkedin-unparseable-end-date |
+| 2026-11-08 | Behavior #6: parsers return the bulk item shape (`_id: null`, `{ vi, en }` both filled, no null `endDate`) | operator answer #388 + AskUserQuestion 2026-11-08 ("Parser emits full shape", "Both vi and en") | parsed-entries-bulk-shape |

@@ -43,7 +43,7 @@ state-changing requests must also pass the double-submit CSRF check (see Securit
 | DELETE | `/` | Delete own account + all CV section data (self only, via `req.user._id`) |
 | POST | `/upload-cv` | Upload own PDF résumé (multer, max 5MB) |
 | GET | `/cv-file` | Download own uploaded résumé |
-| POST | `/parse-linkedin-export` | Parse a LinkedIn "Data export" ZIP → Education/Experience entries; stateless, nothing persisted |
+| POST | `/parse-linkedin-export` | Parse a LinkedIn "Data export" ZIP → Education/Experience entries in the `/bulk` item shape (`_id: null`, `{ vi, en }` text with the same value in both, no `endDate` when unknown/ongoing), postable unchanged; stateless, nothing persisted |
 | POST | `/parse-cv-pdf` | Parse an existing PDF CV (max 5MB, memory only) → same Education/Experience shape + `extractedText`; best-effort heading/date-range heuristic (vi + en), stateless, nothing persisted |
 | GET | `/visits` | Own public-profile visit count + list |
 | DELETE | `/visits` | Hard-delete all own visits (no restore); returns `data: { deletedCount }` |

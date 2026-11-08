@@ -36,28 +36,33 @@ describe('parseLinkedInExportZip (issue #141)', () => {
     const { educations, experiences } = parseLinkedInExportZip(zip);
 
     expect(educations).toHaveLength(2);
+    // The bulk-create shape: `_id: null`, text in both languages.
     expect(educations[0]).toEqual({
-      school: 'Some University',
-      major: 'Computer Science',
+      _id: null,
+      school: { vi: 'Some University', en: 'Some University' },
+      major: { vi: 'Computer Science', en: 'Computer Science' },
       startDate: Date.parse('Sep 2016'),
       endDate: Date.parse('Jun 2020'),
       isCurrent: false,
-      description: 'Deans list',
+      description: { vi: 'Deans list', en: 'Deans list' },
     });
-    // No End Date -> isCurrent true, endDate null.
-    expect(educations[1]).toMatchObject({ school: 'Night School', endDate: null, isCurrent: true });
+    // No End Date -> isCurrent true, no endDate key at all.
+    expect(educations[1]).toMatchObject({ school: { vi: 'Night School', en: 'Night School' }, isCurrent: true });
+    expect(educations[1]).not.toHaveProperty('endDate');
 
     expect(experiences).toHaveLength(2);
     expect(experiences[0]).toEqual({
+      _id: null,
       company: 'Acme Corp',
       position: 'Backend Engineer',
       startDate: Date.parse('Sep 2020'),
       endDate: Date.parse('Jun 2023'),
       isCurrent: false,
-      description: 'Built things',
+      description: { vi: 'Built things', en: 'Built things' },
     });
     // "Present" -> treated the same as an empty end date.
-    expect(experiences[1]).toMatchObject({ company: 'Current Co', endDate: null, isCurrent: true });
+    expect(experiences[1]).toMatchObject({ company: 'Current Co', isCurrent: true });
+    expect(experiences[1]).not.toHaveProperty('endDate');
   });
 
   it('finds the CSVs even when nested inside a folder in the zip (real LinkedIn export shape)', () => {
@@ -72,7 +77,7 @@ describe('parseLinkedInExportZip (issue #141)', () => {
     expect(experiences).toHaveLength(2);
   });
 
-  it('an end date that is present but unparseable is a finished entry: endDate null, isCurrent false', () => {
+  it('an end date that is present but unparseable is a finished entry: no endDate, isCurrent false', () => {
     const zip = buildZip({
       'Education.csv': ['School Name,Start Date,End Date,Field Of Study', '"Odd Uni","2015","sometime","Art"'].join('\n'),
       'Positions.csv': ['Company Name,Title,Started On,Finished On', '"Odd Co","Dev","2018","not a date"'].join('\n'),
@@ -80,8 +85,10 @@ describe('parseLinkedInExportZip (issue #141)', () => {
 
     const { educations, experiences } = parseLinkedInExportZip(zip);
 
-    expect(educations[0]).toMatchObject({ school: 'Odd Uni', endDate: null, isCurrent: false });
-    expect(experiences[0]).toMatchObject({ company: 'Odd Co', endDate: null, isCurrent: false });
+    expect(educations[0]).toMatchObject({ school: { vi: 'Odd Uni', en: 'Odd Uni' }, isCurrent: false });
+    expect(experiences[0]).toMatchObject({ company: 'Odd Co', isCurrent: false });
+    expect(educations[0]).not.toHaveProperty('endDate');
+    expect(experiences[0]).not.toHaveProperty('endDate');
   });
 
   it('matches headers case-insensitively', () => {
@@ -93,7 +100,15 @@ describe('parseLinkedInExportZip (issue #141)', () => {
     const { educations } = parseLinkedInExportZip(zip);
 
     expect(educations).toEqual([
-      { school: 'Lowercase Uni', major: 'Math', startDate: Date.parse('2019'), endDate: Date.parse('2023'), isCurrent: false, description: '' },
+      {
+        _id: null,
+        school: { vi: 'Lowercase Uni', en: 'Lowercase Uni' },
+        major: { vi: 'Math', en: 'Math' },
+        startDate: Date.parse('2019'),
+        endDate: Date.parse('2023'),
+        isCurrent: false,
+        description: { vi: '', en: '' },
+      },
     ]);
   });
 
