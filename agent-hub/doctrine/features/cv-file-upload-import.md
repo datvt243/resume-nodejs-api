@@ -35,7 +35,9 @@ Import (stateless, nothing is saved):
    `file`, `.zip` with zip/octet-stream mime, ≤ 20MB. Not a zip → 400
    `linkedinImport.invalidZip`. 200 with `{ educations, experiences }`
    from `Education.csv` / `Positions.csv` (headers case-insensitive);
-   `isCurrent = true` when there is no end date.
+   `isCurrent = true` only when the CSV end date is blank or "Present";
+   an end date that is present but unparseable → `endDate: null`,
+   `isCurrent: false`.
 6. Parsed entries use the create forms' field names (`school`,
    `major`, `company`, `position`, `startDate`, `endDate`, `isCurrent`,
    `description`), but `school`, `major` and `description` are plain
@@ -71,3 +73,4 @@ Import (stateless, nothing is saved):
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-file-upload-import-spec.md` | - |
 | 2026-11-08 | Behavior #2: storage path, rejected re-upload keeps the old CV; #3: missing file → 404 | operator answers 2026-11-07 (#384 + its comment) | `cv-upload-temp-rename` |
+| 2026-11-08 | Behavior #5: unparseable LinkedIn end date → endDate null, isCurrent false | operator answer 2026-11-07 (#401) | linkedin-unparseable-end-date |

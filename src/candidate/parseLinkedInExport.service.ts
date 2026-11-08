@@ -60,6 +60,9 @@ const parseLinkedInDate = (raw: string): number | null => {
   return Number.isNaN(withDay) ? null : withDay;
 };
 
+// Ongoing = the CSV cell is blank or says "Present"; a present-but-unparseable date is a finished entry with an unknown end.
+const isOngoing = (raw: string): boolean => !raw.trim() || /present/i.test(raw);
+
 const findEntry = (entries: AdmZip.IZipEntry[], filename: string) =>
   entries.find((entry) => !entry.isDirectory && path.basename(entry.entryName).toLowerCase() === filename);
 
@@ -88,13 +91,14 @@ export const parseLinkedInExportZip = (buffer: Buffer): { educations: ParsedEduc
   const educations = readCsvRows(entries, EDUCATION_FILENAME)
     .map((row) => {
       const startDate = parseLinkedInDate(pickField(row, ['Start Date']));
-      const endDate = parseLinkedInDate(pickField(row, ['End Date']));
+      const rawEndDate = pickField(row, ['End Date']);
+      const endDate = parseLinkedInDate(rawEndDate);
       const education: ParsedEducation = {
         school: pickField(row, ['School Name']),
         major: pickField(row, ['Field Of Study']) || pickField(row, ['Degree Name']),
         startDate,
         endDate,
-        isCurrent: !endDate,
+        isCurrent: isOngoing(rawEndDate),
         description: pickField(row, ['Notes']),
       };
       return education;
@@ -104,13 +108,14 @@ export const parseLinkedInExportZip = (buffer: Buffer): { educations: ParsedEduc
   const experiences = readCsvRows(entries, POSITIONS_FILENAME)
     .map((row) => {
       const startDate = parseLinkedInDate(pickField(row, ['Started On']));
-      const endDate = parseLinkedInDate(pickField(row, ['Finished On']));
+      const rawEndDate = pickField(row, ['Finished On']);
+      const endDate = parseLinkedInDate(rawEndDate);
       const experience: ParsedExperience = {
         company: pickField(row, ['Company Name']),
         position: pickField(row, ['Title']),
         startDate,
         endDate,
-        isCurrent: !endDate,
+        isCurrent: isOngoing(rawEndDate),
         description: pickField(row, ['Description']),
       };
       return experience;

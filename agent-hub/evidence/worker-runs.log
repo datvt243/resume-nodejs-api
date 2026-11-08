@@ -129,3 +129,4 @@
 2026-11-07T22:55:54Z role=verifier outcome=SEAL node=bulk-partial-message rerun=none spawn=fresh hub_bytes_before=96370 hub_bytes_after=96346
 2026-11-08T12:41:03Z role=verifier outcome=SEAL node=ats-classic-not-applicable rerun=none spawn=fresh hub_bytes_before=96346 hub_bytes_after=96348
 2026-11-08T12:46:16Z role=verifier outcome=SEAL node=ats-check-messages-i18n rerun=none spawn=fresh hub_bytes_before=96348 hub_bytes_after=96329
+2026-11-08T12:50:39Z role=verifier outcome=SEAL node=linkedin-unparseable-end-date rerun=none spawn=fresh hub_bytes_before=96329 hub_bytes_after=96335
