@@ -72,6 +72,18 @@ describe('parseLinkedInExportZip (issue #141)', () => {
     expect(experiences).toHaveLength(2);
   });
 
+  it('an end date that is present but unparseable is a finished entry: endDate null, isCurrent false', () => {
+    const zip = buildZip({
+      'Education.csv': ['School Name,Start Date,End Date,Field Of Study', '"Odd Uni","2015","sometime","Art"'].join('\n'),
+      'Positions.csv': ['Company Name,Title,Started On,Finished On', '"Odd Co","Dev","2018","not a date"'].join('\n'),
+    });
+
+    const { educations, experiences } = parseLinkedInExportZip(zip);
+
+    expect(educations[0]).toMatchObject({ school: 'Odd Uni', endDate: null, isCurrent: false });
+    expect(experiences[0]).toMatchObject({ company: 'Odd Co', endDate: null, isCurrent: false });
+  });
+
   it('matches headers case-insensitively', () => {
     const csv = ['school name,start date,end date,notes,degree name,activities,field of study', '"Lowercase Uni","2019","2023","","","","Math"'].join(
       '\n',
