@@ -19,9 +19,13 @@ export interface AtsCheckResult {
   passed: boolean;
   severity: AtsCheckSeverity;
   message: string;
+  /** `false` when the check can't be judged for this template; it is then left out of the score. */
+  applicable?: false;
 }
 
 export interface AtsCheckInput {
+  /** `classic` renders no PDF metadata and no section-heading list, so those two checks don't apply. */
+  template?: 'ats' | 'classic' | undefined;
   text: string;
   pages: number;
   lang: SupportedLang;
@@ -59,6 +63,14 @@ const FORBIDDEN_FIELD_PHRASES = [
   'giới tính',
   'tình trạng hôn nhân',
 ];
+
+const notApplicable = (id: string, input: AtsCheckInput): AtsCheckResult => ({
+  id,
+  passed: true,
+  severity: 'error',
+  message: t('atsCheck.notApplicableClassic', input.lang),
+  applicable: false,
+});
 
 const getNonEmptyLines = (text: string): string[] =>
   text
@@ -134,6 +146,7 @@ export const checkContactInBody = (input: AtsCheckInput): AtsCheckResult => {
 };
 
 export const checkStandardHeadings = (input: AtsCheckInput): AtsCheckResult => {
+  if (input.template === 'classic') return notApplicable('standard-headings', input);
   const standardHeadings = new Set(STANDARD_HEADING_KEYS.map((key) => t(key, input.lang)));
   const nonStandard = input.sectionHeadings.filter((heading) => !standardHeadings.has(heading));
   return {
@@ -195,6 +208,7 @@ export const checkPageCount = (input: AtsCheckInput): AtsCheckResult => {
 };
 
 export const checkMetadata = (input: AtsCheckInput): AtsCheckResult => {
+  if (input.template === 'classic') return notApplicable('metadata', input);
   const passed = !!input.metadataTitle && !!input.metadataAuthor;
   return {
     id: 'metadata',
@@ -226,13 +240,13 @@ export const runAtsChecks = (input: AtsCheckInput): AtsCheckResult[] => [
 const SEVERITY_WEIGHT: Record<AtsCheckSeverity, number> = { error: 2, warning: 1 };
 
 export const scoreChecks = (checks: AtsCheckResult[]): number => {
-  if (checks.length === 0) return 100;
   let earned = 0;
   let total = 0;
   for (const check of checks) {
+    if (check.applicable === false) continue;
     const weight = SEVERITY_WEIGHT[check.severity];
     total += weight;
     if (check.passed) earned += weight;
   }
-  return Math.round((earned / total) * 100);
+  return total === 0 ? 100 : Math.round((earned / total) * 100);
 };

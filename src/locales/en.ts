@@ -112,6 +112,9 @@ export default {
     invalidFileType: 'Only image files are accepted (jpg, png, webp, gif)',
     uploadFailed: 'Image upload failed',
   },
+  atsCheck: {
+    notApplicableClassic: 'Not applicable to the classic template (it sets no PDF metadata and no standard section headings).',
+  },
   cv: {
     summary: 'Summary',
     skills: 'Skills',
