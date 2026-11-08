@@ -10,6 +10,7 @@ import {
   checkPageCount,
   checkMetadata,
   scoreChecks,
+  runAtsChecks,
   type AtsCheckInput,
 } from '@/services/atsChecks';
 
@@ -170,5 +171,30 @@ describe('scoreChecks', () => {
   it('scores 0 when everything fails', () => {
     const checks = [{ id: 'a', passed: false, severity: 'error' as const, message: '' }];
     expect(scoreChecks(checks)).toBe(0);
+  });
+});
+
+describe('template=classic', () => {
+  const classic: AtsCheckInput = { ...baseInput, template: 'classic', sectionHeadings: [], metadataTitle: undefined, metadataAuthor: undefined };
+
+  it('reports standard-headings and metadata as not applicable, with a localized message', () => {
+    for (const check of [checkStandardHeadings(classic), checkMetadata(classic)]) {
+      expect(check).toEqual(expect.objectContaining({ applicable: false, message: 'Not applicable to the classic template (it sets no PDF metadata and no standard section headings).' }));
+    }
+    expect(checkMetadata({ ...classic, lang: 'vi' }).message).toMatch(/^Không áp dụng cho mẫu classic/);
+  });
+
+  it('still judges both checks for the ats template', () => {
+    expect(checkMetadata({ ...classic, template: 'ats' })).toEqual(expect.objectContaining({ passed: false }));
+    expect(checkMetadata({ ...classic, template: 'ats' }).applicable).toBeUndefined();
+  });
+
+  it('leaves not-applicable checks out of the score', () => {
+    const checks = runAtsChecks(classic);
+    expect(checks).toHaveLength(10);
+    const applicable = checks.filter((c) => c.applicable !== false);
+    expect(applicable).toHaveLength(8);
+    expect(scoreChecks(checks)).toBe(scoreChecks(applicable));
+    expect(scoreChecks(checks)).toBe(100); // missing classic metadata no longer costs points
   });
 });

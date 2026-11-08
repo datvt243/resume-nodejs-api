@@ -112,6 +112,9 @@ export default {
     invalidFileType: 'Chỉ chấp nhận file ảnh (jpg, png, webp, gif)',
     uploadFailed: 'Tải ảnh lên thất bại',
   },
+  atsCheck: {
+    notApplicableClassic: 'Không áp dụng cho mẫu classic (mẫu này không có metadata PDF và tiêu đề mục chuẩn).',
+  },
   cv: {
     summary: 'Tóm tắt',
     skills: 'Kỹ năng',

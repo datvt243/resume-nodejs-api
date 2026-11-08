@@ -58,7 +58,7 @@ import { fnAtsCheck } from '@/candidate_me/ats-check';
  *                     data:
  *                       type: object
  *                       properties:
- *                         score: { type: number, description: 'Weighted pass rate, 0-100' }
+ *                         score: { type: number, description: 'Weighted pass rate, 0-100, over applicable checks only' }
  *                         pages: { type: number }
  *                         checks:
  *                           type: array
@@ -69,6 +69,7 @@ import { fnAtsCheck } from '@/candidate_me/ats-check';
  *                               passed: { type: boolean }
  *                               severity: { type: string, enum: [error, warning] }
  *                               message: { type: string }
+ *                               applicable: { type: boolean, enum: [false], description: 'Present only when the check does not apply to this template (classic: standard-headings, metadata); not counted in score' }
  *                         extractedText: { type: string }
  *                         keywordMatch:
  *                           type: object
