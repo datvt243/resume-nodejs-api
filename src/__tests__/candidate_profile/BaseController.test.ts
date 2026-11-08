@@ -4,7 +4,9 @@
  * createCrudController's fnBulkCreate (issue #161).
  */
 import Joi from 'joi';
-import { baseGetAll, createCrudController } from '@/candidate_profile/BaseController';
+import { baseGetAll, baseUploadImages, createCrudController } from '@/candidate_profile/BaseController';
+import * as MODELS from '@/models';
+import * as uploadImages from '@/middlewares/uploadImages.middleware';
 import * as services from '@/services';
 import { BadRequestError } from '@/errors';
 import { errorsMiddleware } from '@/middlewares/errors.middleware';
@@ -141,6 +143,18 @@ describe('createCrudController -> fnBulkCreate (issue #161)', () => {
     expect(payload.data.summary).toEqual({ total: 2, succeeded: 1, failed: 1 });
     expect(payload.data.results[0]).toEqual(expect.objectContaining({ index: 0, success: true }));
     expect(payload.data.results[1]).toEqual(expect.objectContaining({ index: 1, success: false }));
+    expect(payload.message).toBe('Created 1 of 2 items');
+  });
+
+  it('words a partial success as "X of Y" in Vietnamese too, never as a create failure', async () => {
+    const handlerCreate = jest.fn().mockResolvedValue({ success: true, message: 'ok', data: { _id: 'created' } });
+    const { fnBulkCreate } = createCrudController({ schema, service: { handlerCreate, handlerUpdate: jest.fn() } });
+    const { req, res, next, json } = createBulkMocks({ items: [{ name: 'Valid Name' }, { name: 'x' }, { name: 'Other Name' }] });
+    req.lang = 'vi';
+
+    await fnBulkCreate(req, res, next);
+
+    expect(json.mock.calls[0][0].message).toBe('Đã thêm 2/3 mục');
   });
 
   it('reports summary.failed: 0 when every item succeeds', async () => {
@@ -230,5 +244,20 @@ describe('createCrudController status codes', () => {
     expect(results[0]).toMatchObject({ index: 0, success: false });
     expect(results[0].message).not.toContain('connection reset');
     expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe('baseUploadImages on a soft-deleted entry', () => {
+  it('answers 404 before parsing or storing any file', async () => {
+    jest.spyOn(MODELS.Award, 'findById').mockResolvedValue({ _id: 'a1', candidateId: 'c1', deletedAt: 1000 });
+    const uploadSpy = jest.spyOn(uploadImages, 'uploadImagesMiddleware');
+    const json = jest.fn();
+    const res: any = { status: jest.fn().mockReturnValue({ json }), json };
+    const req: any = { params: { id: 'a1', collection: 'awards' }, user: { _id: 'c1' }, lang: 'en' };
+
+    await baseUploadImages(req, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(uploadSpy).not.toHaveBeenCalled();
   });
 });

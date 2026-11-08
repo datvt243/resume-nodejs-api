@@ -133,12 +133,20 @@ describeOrSkip('ATS PDF integration (real Puppeteer + pdf-parse)', () => {
 
     expect(result.extractedText).toContain('State University');
     expect(result.experiences.map(({ company, position, startDate, endDate, isCurrent }) => ({ company, position, startDate, endDate, isCurrent }))).toEqual([
-      { company: 'New Co', position: 'Senior Backend Engineer', startDate: new Date(2021, 8, 1).getTime(), endDate: null, isCurrent: true },
+      { company: 'New Co', position: 'Senior Backend Engineer', startDate: new Date(2021, 8, 1).getTime(), endDate: undefined, isCurrent: true },
       { company: 'Old Co', position: 'Backend Developer', startDate: new Date(2019, 0, 1).getTime(), endDate: new Date(2021, 5, 1).getTime(), isCurrent: false },
     ]);
-    expect(result.experiences[1]?.description).toContain('Built REST APIs serving 1M+ requests/day.');
+    expect(result.experiences[1]?.description.vi).toContain('Built REST APIs serving 1M+ requests/day.');
     expect(result.educations).toEqual([
-      { school: 'State University', major: 'Computer Science', startDate: new Date(2015, 0, 1).getTime(), endDate: new Date(2019, 0, 1).getTime(), isCurrent: false, description: '' },
+      {
+        _id: null,
+        school: { vi: 'State University', en: 'State University' },
+        major: { vi: 'Computer Science', en: 'Computer Science' },
+        startDate: new Date(2015, 0, 1).getTime(),
+        endDate: new Date(2019, 0, 1).getTime(),
+        isCurrent: false,
+        description: { vi: '', en: '' },
+      },
     ]);
   });
 });

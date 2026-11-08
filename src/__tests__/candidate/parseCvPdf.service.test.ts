@@ -9,6 +9,16 @@ import { parseCvText, parseCvPdf } from '@/candidate/parseCvPdf.service';
 
 const monthStart = (year: number, month: number) => new Date(year, month - 1, 1).getTime();
 
+// Expected entries are written as plain text; the parser returns the bulk-create shape (see parseLinkedInExport.service.test.ts).
+const both = (text: string) => ({ vi: text, en: text });
+const postable = ({ endDate, school, major, description, ...rest }: Record<string, any>) => ({
+  _id: null,
+  ...rest,
+  ...(endDate === null ? {} : { endDate }),
+  ...(school === undefined ? {} : { school: both(school), major: both(major) }),
+  description: both(description),
+});
+
 describe('parseCvText — section + date-range heuristics', () => {
   it('parses an English CV laid out as title line, date line, description (ATS template layout)', () => {
     const text = [
@@ -37,19 +47,19 @@ describe('parseCvText — section + date-range heuristics', () => {
     const { experiences, educations } = parseCvText(text);
 
     expect(experiences).toEqual([
-      { company: 'New Co', position: 'Senior Backend Engineer', startDate: monthStart(2021, 9), endDate: null, isCurrent: true, description: 'Led the API team' },
-      {
+      postable({ company: 'New Co', position: 'Senior Backend Engineer', startDate: monthStart(2021, 9), endDate: null, isCurrent: true, description: 'Led the API team' }),
+      postable({
         company: 'Old Co',
         position: 'Backend Developer',
         startDate: monthStart(2019, 1),
         endDate: monthStart(2021, 6),
         isCurrent: false,
         description: 'Built REST APIs.\nStack: Node.js',
-      },
+      }),
     ]);
     // The PROJECTS section's date range must not leak into experiences or educations.
     expect(educations).toEqual([
-      { school: 'State University', major: 'Computer Science', startDate: monthStart(2015, 1), endDate: monthStart(2019, 1), isCurrent: false, description: '' },
+      postable({ school: 'State University', major: 'Computer Science', startDate: monthStart(2015, 1), endDate: monthStart(2019, 1), isCurrent: false, description: '' }),
     ]);
   });
 
@@ -71,11 +81,11 @@ describe('parseCvText — section + date-range heuristics', () => {
     const { experiences, educations } = parseCvText(text);
 
     expect(experiences).toEqual([
-      { company: 'Công ty ABC', position: 'Lập trình viên', startDate: monthStart(2020, 3), endDate: null, isCurrent: true, description: 'Phát triển API' },
-      { company: 'Công ty XYZ', position: 'Thực tập sinh', startDate: monthStart(2018, 1), endDate: monthStart(2019, 1), isCurrent: false, description: '' },
+      postable({ company: 'Công ty ABC', position: 'Lập trình viên', startDate: monthStart(2020, 3), endDate: null, isCurrent: true, description: 'Phát triển API' }),
+      postable({ company: 'Công ty XYZ', position: 'Thực tập sinh', startDate: monthStart(2018, 1), endDate: monthStart(2019, 1), isCurrent: false, description: '' }),
     ]);
     expect(educations).toEqual([
-      { school: 'Đại học Bách Khoa', major: 'Công nghệ thông tin', startDate: monthStart(2014, 1), endDate: null, isCurrent: true, description: '' },
+      postable({ school: 'Đại học Bách Khoa', major: 'Công nghệ thông tin', startDate: monthStart(2014, 1), endDate: null, isCurrent: true, description: '' }),
     ]);
   });
 
@@ -83,7 +93,7 @@ describe('parseCvText — section + date-range heuristics', () => {
     const text = ['Học vấn:'.normalize('NFD'), 'Đại học Bách Khoa', '2014 - 2018'].join('\n');
 
     expect(parseCvText(text).educations).toEqual([
-      { school: 'Đại học Bách Khoa', major: '', startDate: monthStart(2014, 1), endDate: monthStart(2018, 1), isCurrent: false, description: '' },
+      postable({ school: 'Đại học Bách Khoa', major: '', startDate: monthStart(2014, 1), endDate: monthStart(2018, 1), isCurrent: false, description: '' }),
     ]);
   });
 
@@ -91,8 +101,8 @@ describe('parseCvText — section + date-range heuristics', () => {
     const text = ['Work Experience:', 'Acme Corp | Backend Engineer | Sep 2020 - Jun 2023', 'Built things', 'Globex Ltd — Intern  Jan 2019 – Aug 2019'].join('\n');
 
     expect(parseCvText(text).experiences).toEqual([
-      { company: 'Acme Corp', position: 'Backend Engineer', startDate: monthStart(2020, 9), endDate: monthStart(2023, 6), isCurrent: false, description: 'Built things' },
-      { company: 'Globex Ltd', position: 'Intern', startDate: monthStart(2019, 1), endDate: monthStart(2019, 8), isCurrent: false, description: '' },
+      postable({ company: 'Acme Corp', position: 'Backend Engineer', startDate: monthStart(2020, 9), endDate: monthStart(2023, 6), isCurrent: false, description: 'Built things' }),
+      postable({ company: 'Globex Ltd', position: 'Intern', startDate: monthStart(2019, 1), endDate: monthStart(2019, 8), isCurrent: false, description: '' }),
     ]);
   });
 
@@ -100,8 +110,8 @@ describe('parseCvText — section + date-range heuristics', () => {
     const text = ['Education', '2015 - 2019', 'State University, Computer Science', 'GPA 3.5', '2019 - 2020', 'Night College', 'Experience', 'none'].join('\n');
 
     expect(parseCvText(text).educations).toEqual([
-      { school: 'State University', major: 'Computer Science', startDate: monthStart(2015, 1), endDate: monthStart(2019, 1), isCurrent: false, description: 'GPA 3.5' },
-      { school: 'Night College', major: '', startDate: monthStart(2019, 1), endDate: monthStart(2020, 1), isCurrent: false, description: '' },
+      postable({ school: 'State University', major: 'Computer Science', startDate: monthStart(2015, 1), endDate: monthStart(2019, 1), isCurrent: false, description: 'GPA 3.5' }),
+      postable({ school: 'Night College', major: '', startDate: monthStart(2019, 1), endDate: monthStart(2020, 1), isCurrent: false, description: '' }),
     ]);
   });
 

@@ -1,5 +1,7 @@
 # Resume API — Backend
 
+Always respond in English.
+
 Node.js/TypeScript REST API for managing candidate CVs/resumes with auth, PDF export, Redis caching, and Winston logging.
 
 ## Stack
@@ -54,6 +56,8 @@ MONGO_MIN_POOL_SIZE=2        # optional; MongoDB connection pool min size
 CORS_ORIGIN=...              # comma-separated allow-list; required for the httpOnly cookie auth flow
                               # (credentials: true can't combine with a wildcard origin)
 TOKEN_REFRESH_EXP_IN=7d      # optional; refresh token lifetime (default 7d)
+TRUST_PROXY_HOPS=1           # optional; proxy hops in front of the app (1 on Render) so req.ip / rate limit
+                              # key on the real client; unset = trust none (no proxy)
 ```
 
 ## Conventions
@@ -72,7 +76,7 @@ TOKEN_REFRESH_EXP_IN=7d      # optional; refresh token lifetime (default 7d)
 - **NoSQL injection**: every DB query goes through `QuerySafe` (`utils/querySafe.ts`), which blocks `$` operators and `javascript:`.
 - **CSRF**: double-submit check (`utils/csrf.ts`) whenever a state-changing request authenticated purely off the httpOnly cookie (no Bearer header) — inline in `verifyToken`, standalone via `csrf.middleware.ts` on `/auth/refresh` and `/auth/logout` (outside `verifyToken`).
 - **Tokens**: Redis blacklist `blacklist:{token}` with TTL (value `revoked` or `rotated:<unix s>`), in-memory fallback. A rotated-away refresh token reused after a 10s grace window revokes every session of that candidate (same mechanism as logout-all, `utils/sessionRevocation.ts`).
-- **Rate limit**: 100 req/15 min general, 150 req/15 min auth; Redis failure falls back to in-memory.
+- **Rate limit**: 100 req/15 min general, 10 req/15 min on login/register/forgot/reset (v1 + v2); Redis failure falls back to in-memory.
 - **CORS**: `CORS_ORIGIN` allow-list with `credentials: true` — never a wildcard.
 
 ## Path-scoped detail (`.claude/rules/`)

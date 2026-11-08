@@ -1,8 +1,8 @@
 /**
  * Redirects plain-HTTP requests to HTTPS in production. Reads the proxy's
- * `x-forwarded-proto` directly instead of enabling `trust proxy`: a spoofed
- * header only affects the spoofer's own request, whereas `trust proxy`
- * would also change `req.ip` (rate limiting, visit geo).
+ * `x-forwarded-proto` directly rather than `req.protocol`, so it works the
+ * same whether or not `TRUST_PROXY_HOPS` enables `trust proxy`; a spoofed
+ * header only affects the spoofer's own request.
  *
  * @author Đạt Võ <votan.it@gmail.com>
  * @see https://github.com/datvt243

@@ -1,12 +1,14 @@
 /**
  * Multer config for the candidate CV file upload. Stores to disk under
- * `src/public/uploads/cv/`, one file per candidate — the destination
- * filename is always `<candidateId>-cv.pdf`, so a re-upload simply
- * overwrites the previous file with no separate cleanup step needed.
+ * `src/storage/cv/`, one file per candidate — the destination
+ * filename is always `<candidateId>-cv.pdf`. Multer writes to a temp name
+ * first and the file is renamed over the previous one only once the upload
+ * succeeded, so a rejected re-upload never destroys the stored CV.
  *
  * @author Đạt Võ <votan.it@gmail.com>
  * @see https://github.com/datvt243
  */
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
@@ -17,14 +19,31 @@ import { t } from '@/utils/i18n';
 import { ErrorCode } from '@/errors';
 
 /**
- * Anchored to __dirname, not a bare relative literal — resolves to
- * `src/public/uploads/cv/` when running from source and
- * `dist/public/uploads/cv/` when running compiled, matching exactly what
- * `express.static(path.join(__dirname, 'public'))` serves in
- * `src/server.ts` (fix-hardcoded-src-public-write-paths,
- * doctrine/domains/PROJECT.md).
+ * Anchored to __dirname — `src/storage/cv/` from source, `dist/storage/cv/`
+ * compiled. Deliberately outside `public/`: `express.static` would serve
+ * every CV without auth; the only way out is the authenticated `GET /cv-file`.
  */
-export const CV_UPLOAD_DIR = path.join(__dirname, '..', 'public', 'uploads', 'cv');
+export const CV_UPLOAD_DIR = path.join(__dirname, '..', 'storage', 'cv');
+// Where CVs were stored before they moved out of public/ — only read by moveLegacyCvUploads.
+const LEGACY_CV_UPLOAD_DIR = path.join(__dirname, '..', 'public', 'uploads', 'cv');
+
+/**
+ * Moves every `<candidateId>-cv.pdf` left in the old public folder into
+ * CV_UPLOAD_DIR, so existing downloads keep working and nothing stays
+ * publicly reachable. A file already in the new folder is newer and wins;
+ * the legacy copy is just removed. Returns how many legacy files were handled.
+ */
+export const moveLegacyCvUploads = (from: string = LEGACY_CV_UPLOAD_DIR, to: string = CV_UPLOAD_DIR): number => {
+  if (!fs.existsSync(from)) return 0;
+  const legacyFiles = fs.readdirSync(from).filter((name) => name.endsWith('-cv.pdf'));
+  if (legacyFiles.length) fs.mkdirSync(to, { recursive: true });
+  for (const name of legacyFiles) {
+    const target = path.join(to, name);
+    if (fs.existsSync(target)) fs.unlinkSync(path.join(from, name));
+    else fs.renameSync(path.join(from, name), target);
+  }
+  return legacyFiles.length;
+};
 export const CV_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB, per operator decision
 
 const storage = multer.diskStorage({
@@ -40,7 +59,7 @@ const storage = multer.diskStorage({
      * already trusts as the ownership key.
      */
     const candidateId = req.user?._id;
-    cb(null, `${candidateId}-cv.pdf`);
+    cb(null, `${candidateId}-${crypto.randomUUID()}.tmp`);
   },
 });
 
@@ -74,7 +93,16 @@ export const uploadCVMiddleware = (req: Request, res: Response, next: NextFuncti
    * every other candidate handler (fnUpdate/fnDelete) already makes.
    */
   upload(req, res, (err: unknown) => {
-    if (!err) return next();
+    if (!err) {
+      if (!req.file) return next();
+      try {
+        fs.renameSync(req.file.path, path.join(CV_UPLOAD_DIR, `${req.user?._id}-cv.pdf`));
+        return next();
+      } catch {
+        // Falls through to the generic upload-failed 400 below.
+        fs.rmSync(req.file.path, { force: true });
+      }
+    }
 
     if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
       return formatReturn(res, {

@@ -104,6 +104,8 @@
 2026-11-05T11:20:15Z role=verifier outcome=SEAL node=add-cv-file-name rerun=partial hub_bytes_before=84303 hub_bytes_after=83633
 2026-11-05T11:53:46Z role=verifier outcome=SEAL node=fix-visit-real-client-ip rerun=partial hub_bytes_before=84459 hub_bytes_after=83637
 2026-11-05T17:09:44Z role=verifier outcome=SEAL node=cv-filename-lang-suffix rerun=none hub_bytes_before=83637 hub_bytes_after=83647
+2026-11-07T03:04:49Z role=verifier outcome=REOPEN node=fix-candidate-email-empty-query rerun=none hub_bytes_before=93030 hub_bytes_after=93721
+2026-11-07T03:07:33Z role=verifier outcome=SEAL node=fix-candidate-email-empty-query rerun=none hub_bytes_before=93030 hub_bytes_after=93061
 2026-11-07T03:18:39Z role=verifier outcome=SEAL node=fix-section-id-empty-query rerun=none hub_bytes_before=93030 hub_bytes_after=93048
 2026-11-07T03:37:46Z role=verifier outcome=SEAL node=fix-account-delete-cleanup rerun=none hub_bytes_before=93048 hub_bytes_after=93058
 2026-11-07T03:42:49Z role=verifier outcome=REOPEN node=restrict-query-token rerun=none hub_bytes_before=93048 hub_bytes_after=93689
@@ -112,3 +114,22 @@
 2026-11-07T03:55:10Z role=verifier outcome=SEAL node=atomic-token-consume rerun=none hub_bytes_before=93048 hub_bytes_after=93046
 2026-11-07T04:01:44Z role=verifier outcome=SEAL node=logout-revokes-refresh rerun=none hub_bytes_before=93048 hub_bytes_after=93050
 2026-11-07T04:05:50Z role=verifier outcome=SEAL node=reset-revokes-sessions rerun=none hub_bytes_before=93048 hub_bytes_after=93050
+2026-11-07T21:40:44Z role=verifier outcome=REOPEN node=candidate-email-self-only rerun=none spawn=fresh hub_bytes_before=97638 hub_bytes_after=98464
+2026-11-07T21:42:44Z role=verifier outcome=SEAL node=candidate-email-self-only rerun=none spawn=resumed hub_bytes_before=97638 hub_bytes_after=96417
+2026-11-07T21:49:36Z role=verifier outcome=SEAL node=public-profile-field-whitelist rerun=none spawn=fresh hub_bytes_before=96417 hub_bytes_after=96414
+2026-11-07T21:56:07Z role=verifier outcome=REOPEN node=private-cv-storage rerun=none spawn=fresh hub_bytes_before=96414 hub_bytes_after=97439
+2026-11-07T21:57:44Z role=verifier outcome=SEAL node=private-cv-storage rerun=none spawn=resumed hub_bytes_before=96414 hub_bytes_after=96406
+2026-11-07T22:20:15Z role=verifier outcome=SEAL node=trust-proxy-hops rerun=none spawn=fresh hub_bytes_before=96406 hub_bytes_after=96389
+2026-11-07T22:27:04Z role=verifier outcome=SEAL node=auth-credential-limit rerun=none spawn=fresh hub_bytes_before=96389 hub_bytes_after=96395
+2026-11-07T22:35:12Z role=verifier outcome=SEAL node=cv-upload-temp-rename rerun=none spawn=fresh hub_bytes_before=96395 hub_bytes_after=96376
+2026-11-07T22:39:42Z role=verifier outcome=REOPEN node=login-password-any-length rerun=none spawn=fresh hub_bytes_before=96376 hub_bytes_after=97153
+2026-11-07T22:41:07Z role=verifier outcome=SEAL node=login-password-any-length rerun=none spawn=resumed hub_bytes_before=96376 hub_bytes_after=96366
+2026-11-07T22:45:52Z role=verifier outcome=SEAL node=visit-skip-private rerun=none spawn=fresh hub_bytes_before=96366 hub_bytes_after=96362
+2026-11-07T22:51:15Z role=verifier outcome=SEAL node=soft-deleted-writes-404 rerun=none spawn=fresh hub_bytes_before=96362 hub_bytes_after=96370
+2026-11-07T22:55:54Z role=verifier outcome=SEAL node=bulk-partial-message rerun=none spawn=fresh hub_bytes_before=96370 hub_bytes_after=96346
+2026-11-08T12:41:03Z role=verifier outcome=SEAL node=ats-classic-not-applicable rerun=none spawn=fresh hub_bytes_before=96346 hub_bytes_after=96348
+2026-11-08T12:46:16Z role=verifier outcome=SEAL node=ats-check-messages-i18n rerun=none spawn=fresh hub_bytes_before=96348 hub_bytes_after=96329
+2026-11-08T12:50:39Z role=verifier outcome=SEAL node=linkedin-unparseable-end-date rerun=none spawn=fresh hub_bytes_before=96329 hub_bytes_after=96335
+2026-11-08T13:01:05Z role=verifier outcome=SEAL node=parsed-entries-bulk-shape rerun=none spawn=fresh hub_bytes_before=96335 hub_bytes_after=96341
+2026-11-08T13:07:30Z role=verifier outcome=REOPEN node=short-values-validation rerun=none spawn=fresh hub_bytes_before=96341 hub_bytes_after=96551
+2026-11-08T13:11:29Z role=verifier outcome=SEAL node=short-values-validation rerun=none spawn=resumed hub_bytes_before=96341 hub_bytes_after=96346

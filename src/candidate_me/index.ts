@@ -33,6 +33,25 @@ const resolveLocalizedText = (value: unknown, lang: string): string => {
   return typeof resolved === 'string' ? resolved : '';
 };
 
+// Everything else on the candidate (birthday, gender, marital, cvFile, isPublic, …) stays owner-only.
+const PUBLIC_PROFILE_FIELDS = new Set([
+  'firstName',
+  'lastName',
+  'introduction',
+  'socialMedia',
+  'slug',
+  'email',
+  'phone',
+  'address',
+  'generalInformation',
+  'experiences',
+  'educations',
+  'references',
+  'projects',
+  'certificates',
+  'awards',
+]);
+
 export const fnGetAboutMe = async (req: Request, res: Response, next: NextFunction) => {
   const { email } = req.params;
   const lang = req.query['lang'] === 'en' ? 'en' : 'vi';
@@ -56,7 +75,8 @@ export const fnGetAboutMe = async (req: Request, res: Response, next: NextFuncti
      * data regardless of this flag.
      */
     if (_me.data?.isPublic === false) return next(profileNotFound(lang));
-    return formatReturn(res, _me);
+    const data = Object.fromEntries(Object.entries(_me.data as Record<string, unknown>).filter(([key]) => PUBLIC_PROFILE_FIELDS.has(key)));
+    return formatReturn(res, { ..._me, data });
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }
@@ -244,11 +264,11 @@ export const handlerRecordVisit = async (identifier: string, req: Request) => {
   // Slug first, then email, with the same fail-closed check as handlerGetAboutMe above — a rejected value must not fall through to an unfiltered findOne({}).
   const findBy = async (field: 'slug' | 'email') => {
     const safeQuery = candidateQuerySafe.safeQuery({}, { [field]: identifier });
-    return field in safeQuery ? MODEL.Candidate.findOne(safeQuery).select('_id').exec() : null;
+    return field in safeQuery ? MODEL.Candidate.findOne(safeQuery).select('_id isPublic').exec() : null;
   };
   const candidate = (await findBy('slug')) ?? (await findBy('email'));
-  // Same 404 as handlerGetAboutMe above for an unknown identifier.
-  if (!candidate) throw profileNotFound(req.lang);
+  // Same 404 as handlerGetAboutMe above for an unknown or private profile — nothing is recorded.
+  if (!candidate || candidate.isPublic === false) throw profileNotFound(req.lang);
 
   const ip = visitorIp(req);
   const geo = ip && ip !== 'unknown' ? geoip.lookup(ip) : null;
@@ -264,12 +284,11 @@ export const handlerRecordVisit = async (identifier: string, req: Request) => {
 };
 
 /**
- * The visitor's IP: the leftmost `X-Forwarded-For` entry (set by the site's
- * relay, then appended to by Render's proxy), else the socket address. Read
- * here only, not via a global `trust proxy`, so the rate-limit key keeps
- * using the unspoofable connecting address. A direct caller can forge this
- * header; accepted, since the visit endpoint is public and a whole visit is
- * forgeable anyway.
+ * The visitor's IP: the leftmost `X-Forwarded-For` entry, else `req.ip`.
+ * Deliberately not `req.ip` alone: the rate-limit key uses the trusted
+ * (rightmost, `TRUST_PROXY_HOPS`) entry, while visit geo wants the original
+ * client. A direct caller can forge this header; accepted, since the visit
+ * endpoint is public and a whole visit is forgeable anyway.
  */
 const visitorIp = (req: Request): string => {
   const xff = req.headers['x-forwarded-for'];

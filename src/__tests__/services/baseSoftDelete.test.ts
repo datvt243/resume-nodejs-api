@@ -14,7 +14,10 @@ const asModel = (m: ReturnType<typeof createFakeModel>) => m as unknown as Model
 
 function createFakeModel(existingDoc: Record<string, any> | null, updateResult: Record<string, any> = { modifiedCount: 1 }) {
   return {
-    findOne: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(existingDoc) }),
+    // Honors a `deletedAt: null` filter the way Mongo would, so excludeDeleted callers really miss a soft-deleted doc.
+    findOne: jest.fn((query: Record<string, unknown>) => ({
+      exec: jest.fn().mockResolvedValue(query['deletedAt'] === null && existingDoc?.['deletedAt'] ? null : existingDoc),
+    })),
     updateOne: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(updateResult) }),
   };
 }
@@ -41,6 +44,13 @@ describe('baseDeleteDocument (soft-delete, issue #121)', () => {
     const model = createFakeModel(null);
 
     await expect(baseDeleteDocument({ model: asModel(model), _id: 'missing', name: '', userID: 'c1' })).rejects.toMatchObject({ statusCode: 404, errorCode: 'NOT_FOUND' });
+
+    expect(model.updateOne).not.toHaveBeenCalled();
+  });
+  it('answers 404 for an already soft-deleted document, leaving deletedAt untouched', async () => {
+    const model = createFakeModel({ _id: '1', candidateId: 'c1', deletedAt: 1000 });
+
+    await expect(baseDeleteDocument({ model: asModel(model), _id: '1', name: '', userID: 'c1' })).rejects.toMatchObject({ statusCode: 404, errorCode: 'NOT_FOUND' });
 
     expect(model.updateOne).not.toHaveBeenCalled();
   });

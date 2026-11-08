@@ -45,6 +45,11 @@ describe('candidate.service.ts password exclusion (issue #152)', () => {
 
       expect(select).toHaveBeenCalledWith('-password');
     });
+
+    it.each(['a$b@x.com', '   '])('returns null without querying when safeQuery drops the email %p (#380)', async (email) => {
+      await expect(handlerGetInformationByEmail(email)).resolves.toBeNull();
+      expect((MODELS.Candidate.findOne as jest.Mock).mock.calls).toHaveLength(0);
+    });
   });
 
   describe('handlerGetInformationById', () => {

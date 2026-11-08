@@ -143,7 +143,8 @@ export const baseFindDocument = async <T extends CrudDocument>(props: baseProp<T
 export const baseDeleteDocument = async <T extends CrudDocument>(props: { model: Model<T>; _id: string; name: string; userID: string; lang?: string | undefined }) => {
   const { model: MODEL, _id: __id, userID, lang = DEFAULT_LANG } = props;
 
-  const { isExist, message: _mess, document } = await _baseHelper().baseCheckDocumentById({ MODEL, _id: __id, lang });
+  // An already soft-deleted document is 404, so deleting it again can't move `deletedAt` forward.
+  const { isExist, message: _mess, document } = await _baseHelper().baseCheckDocumentById({ MODEL, _id: __id, lang, opts: { excludeDeleted: true } });
   if (!isExist) throw new NotFoundError(_mess);
 
   const { _id, candidateId = '' } = document;
@@ -331,8 +332,8 @@ const _baseHelper = () => {
        * default (baseFindDocument), but this shared existence check was
        * never updated — update/patch could still find and mutate a
        * soft-deleted document. `excludeDeleted` is opt-in per caller:
-       * baseRestoreDocument (and baseDeleteDocument) must still find a
-       * document regardless of its deletedAt state.
+       * baseRestoreDocument must still find a document regardless of its
+       * deletedAt state.
        */
       const baseQuery = opts.excludeDeleted ? { deletedAt: null } : {};
       const safeIdQuery = idQuerySafe.safeQuery(baseQuery, { _id });

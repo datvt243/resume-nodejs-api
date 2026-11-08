@@ -18,11 +18,12 @@ import session from 'express-session';
 import swaggerUi from 'swagger-ui-express';
 
 import { errorsMiddleware, notFoundHandler, rateLimitMiddleware, startMemStoreCleanup, requestLogger, languageMiddleware, httpsRedirect } from '@/middlewares';
-import { sessionConfig, corsConfig, helmetConfig, swaggerSpec, REQUEST_BODY_LIMIT } from '@/config';
+import { sessionConfig, corsConfig, helmetConfig, swaggerSpec, REQUEST_BODY_LIMIT, trustProxySetting } from '@/config';
 import { logger } from '@/logger';
 import router from '@/routers';
 import { initRedis } from '@/services/redis';
 import { createShutdown } from '@/utils/gracefulShutdown';
+import { moveLegacyCvUploads } from '@/middlewares/uploadCV.middleware';
 
 dotenv.config();
 
@@ -33,6 +34,10 @@ process.on('unhandledRejection', (reason) => {
 
 const runServer = async ({ portNumber }: { portNumber: number }) => {
   const app = express();
+
+  // req.ip (rate-limit key) must be the real client, not Render's proxy.
+  const trustProxyHops = trustProxySetting();
+  if (trustProxyHops) app.set('trust proxy', trustProxyHops);
 
   app.use(requestLogger);
   app.use(httpsRedirect);
@@ -110,6 +115,13 @@ const runServer = async ({ portNumber }: { portNumber: number }) => {
 
   // Initialize Redis for token blacklist (non-blocking)
   await initRedis();
+
+  try {
+    const moved = moveLegacyCvUploads();
+    if (moved) logger.info(`[CV] Moved ${moved} legacy CV file(s) out of public/`);
+  } catch (err) {
+    logger.error('[CV] Failed to move legacy CV files out of public/', { err: (err as Error).message, stack: (err as Error).stack });
+  }
 
   // Start in-memory store cleanup (no-op if Redis is available)
   try {

@@ -30,8 +30,8 @@ as the raw aggregated data, in either language and in a chosen template.
    `<fullName>_<headline or CV>_CV`, plus `_VI`/`_EN` unless already
    suffixed; never contains the email.
 8. Classic/modern PDF is rendered with Puppeteer
-   (`PUPPETEER_EXECUTABLE_PATH` optional) and also written to
-   `public/pdf/<email>.pdf` (raw email). The ATS PDF is written to
+   (`PUPPETEER_EXECUTABLE_PATH` optional) and only streamed, never
+   written to disk. The ATS PDF is written to
    `public/pdf/<slugified email>-ats.pdf` (e.g. `a_b_com-ats.pdf`) only
    when `PERSIST_EXPORTED_PDF` is set.
 9. The Chromium process is closed even if rendering fails.
@@ -62,3 +62,4 @@ as the raw aggregated data, in either language and in a chosen template.
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-export-spec.md` | - |
+| 2026-11-08 | Behavior 8: classic/modern PDF no longer written to `public/pdf/`; uploaded CVs moved to `storage/cv/` (outside `public/`), legacy files moved at boot | operator answer #383 ("Move them at startup") | private-cv-storage |

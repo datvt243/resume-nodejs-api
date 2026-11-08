@@ -1,4 +1,4 @@
-import { createRateLimiter, memStore, startMemStoreCleanup, stopMemStoreCleanup } from '@/middlewares/rateLimit.middleware';
+import { authLimiter, createRateLimiter, memStore, startMemStoreCleanup, stopMemStoreCleanup } from '@/middlewares/rateLimit.middleware';
 import { Request, Response, NextFunction } from 'express';
 
 jest.mock('@/services/redis', () => ({
@@ -51,6 +51,18 @@ describe('rateLimit middleware (in-memory)', () => {
 
     await limiter(makeReq(), res, next);
     expect(res.status).toHaveBeenCalledWith(429);
+  });
+
+  it('authLimiter allows 10 requests per window and blocks the 11th (issue #387)', async () => {
+    const limit = authLimiter as unknown as (req: Request, res: Response, next: NextFunction) => Promise<void>;
+    const status = jest.fn().mockReturnValue({ json: jest.fn() });
+    const res = { setHeader: jest.fn(), status } as unknown as Response;
+    for (let i = 0; i < 10; i++) await limit(makeReq('9.9.9.9', '/login'), res, next);
+    expect(next).toHaveBeenCalledTimes(10);
+
+    await limit(makeReq('9.9.9.9', '/login'), res, next);
+    expect(next).toHaveBeenCalledTimes(10);
+    expect(status).toHaveBeenCalledWith(429);
   });
 
   it('separates limits by IP and userId', async () => {

@@ -13,23 +13,44 @@ import path from 'path';
 import AdmZip from 'adm-zip';
 import { parse as parseCsv } from 'csv-parse/sync';
 
-export interface ParsedEducation {
-  school: string;
-  major: string;
-  startDate: number | null;
-  endDate: number | null;
-  isCurrent: boolean;
-  description: string;
+export interface LocalizedText {
+  vi: string;
+  en: string;
 }
 
-export interface ParsedExperience {
+/**
+ * Parsed entries are shaped to post to `/education/bulk` / `/experience/bulk`
+ * unchanged: `_id: null` like a create form, localized text, and no
+ * `endDate` when it is unknown (the schema rejects `null`).
+ */
+interface ParsedDates {
+  _id: null;
+  startDate: number | null;
+  endDate?: number;
+  isCurrent: boolean;
+}
+
+export interface ParsedEducation extends ParsedDates {
+  school: LocalizedText;
+  major: LocalizedText;
+  description: LocalizedText;
+}
+
+export interface ParsedExperience extends ParsedDates {
   company: string;
   position: string;
-  startDate: number | null;
-  endDate: number | null;
-  isCurrent: boolean;
-  description: string;
+  description: LocalizedText;
 }
+
+// The source language is unknown, so both slots get the text; vi must be non-empty for education.
+export const localized = (text: string): LocalizedText => ({ vi: text, en: text });
+
+export const parsedDates = (startDate: number | null, endDate: number | null, isCurrent: boolean): ParsedDates => ({
+  _id: null,
+  startDate,
+  ...(endDate === null ? {} : { endDate }),
+  isCurrent,
+});
 
 const EDUCATION_FILENAME = 'education.csv';
 const POSITIONS_FILENAME = 'positions.csv';
@@ -60,6 +81,9 @@ const parseLinkedInDate = (raw: string): number | null => {
   return Number.isNaN(withDay) ? null : withDay;
 };
 
+// Ongoing = the CSV cell is blank or says "Present"; a present-but-unparseable date is a finished entry with an unknown end.
+const isOngoing = (raw: string): boolean => !raw.trim() || /present/i.test(raw);
+
 const findEntry = (entries: AdmZip.IZipEntry[], filename: string) =>
   entries.find((entry) => !entry.isDirectory && path.basename(entry.entryName).toLowerCase() === filename);
 
@@ -88,30 +112,28 @@ export const parseLinkedInExportZip = (buffer: Buffer): { educations: ParsedEduc
   const educations = readCsvRows(entries, EDUCATION_FILENAME)
     .map((row) => {
       const startDate = parseLinkedInDate(pickField(row, ['Start Date']));
-      const endDate = parseLinkedInDate(pickField(row, ['End Date']));
+      const rawEndDate = pickField(row, ['End Date']);
+      const endDate = parseLinkedInDate(rawEndDate);
       const education: ParsedEducation = {
-        school: pickField(row, ['School Name']),
-        major: pickField(row, ['Field Of Study']) || pickField(row, ['Degree Name']),
-        startDate,
-        endDate,
-        isCurrent: !endDate,
-        description: pickField(row, ['Notes']),
+        ...parsedDates(startDate, endDate, isOngoing(rawEndDate)),
+        school: localized(pickField(row, ['School Name'])),
+        major: localized(pickField(row, ['Field Of Study']) || pickField(row, ['Degree Name'])),
+        description: localized(pickField(row, ['Notes'])),
       };
       return education;
     })
-    .filter((education) => education.school);
+    .filter((education) => education.school.vi);
 
   const experiences = readCsvRows(entries, POSITIONS_FILENAME)
     .map((row) => {
       const startDate = parseLinkedInDate(pickField(row, ['Started On']));
-      const endDate = parseLinkedInDate(pickField(row, ['Finished On']));
+      const rawEndDate = pickField(row, ['Finished On']);
+      const endDate = parseLinkedInDate(rawEndDate);
       const experience: ParsedExperience = {
+        ...parsedDates(startDate, endDate, isOngoing(rawEndDate)),
         company: pickField(row, ['Company Name']),
         position: pickField(row, ['Title']),
-        startDate,
-        endDate,
-        isCurrent: !endDate,
-        description: pickField(row, ['Description']),
+        description: localized(pickField(row, ['Description'])),
       };
       return experience;
     })

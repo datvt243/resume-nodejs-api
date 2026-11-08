@@ -1,6 +1,6 @@
 ---
 name: ship
-description: "Gộp bước 'git add đúng file thuộc diff đã duyệt → commit → push' thành 1 lệnh cho branch feature/fix hiện tại. Thêm --merge để tự tạo PR <branch>→staging và tự merge. Chặn chạy trực tiếp trên main/staging (2 branch đó đã protected — dùng /release để lên main). Dùng: /ship [--merge]"
+description: "Gộp bước 'git add đúng file thuộc diff đã duyệt → commit → push' thành 1 lệnh cho branch feature/fix hiện tại. Thêm --merge để tự tạo PR [branch]→staging và tự merge. Chặn chạy trực tiếp trên main/staging (2 branch đó đã protected — dùng /release để lên main). Dùng: /ship [--merge]"
 argument-hint: "[--merge]"
 ---
 

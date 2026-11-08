@@ -49,11 +49,9 @@ export const fnAtsCheck = async (req: Request, res: Response, next: NextFunction
     if (template === 'classic') {
       /**
        * The classic template hardcodes Vietnamese section labels (not
-       * localized) and sets no PDF metadata — both correctly surface as
-       * failures below (standard-headings/metadata), not bugs in this
-       * check: pdf-export-standard.md rule 8's single-column/no-letter-
-       * spacing invariants only bind on a template claiming ATS-safety,
-       * which `classic` never has.
+       * localized) and sets no PDF metadata, so standard-headings and
+       * metadata have nothing to judge — `template` marks them not
+       * applicable and they drop out of the score.
        */
       buffer = await renderPdfBuffer(candidateData);
     } else {
@@ -68,6 +66,8 @@ export const fnAtsCheck = async (req: Request, res: Response, next: NextFunction
     const facts = buildAtsContent({ RECORD: candidateData, lang });
 
     const checkInput: AtsCheckInput = {
+      template,
+      messageLang: req.lang,
       text,
       pages,
       lang,
@@ -86,7 +86,7 @@ export const fnAtsCheck = async (req: Request, res: Response, next: NextFunction
 
     formatReturn(res, {
       success: true,
-      message: 'ATS self-check completed',
+      message: t('atsCheck.completed', req.lang),
       data: {
         score,
         pages,

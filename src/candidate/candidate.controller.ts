@@ -3,6 +3,7 @@
  * @see https://github.com/datvt243
  */
 
+import fs from 'fs';
 import path from 'path';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
@@ -36,7 +37,8 @@ export const fnGetInformationById = async (req: Request, res: Response, next: Ne
 export const fnGetInformationByEmail = async (req: Request, res: Response, next: NextFunction) => {
   const { email = '' } = req.params;
   const doc = await handlerGetInformationByEmail(email);
-  if (!doc) return next(new NotFoundError(t('candidate.userNotFound', req.lang)));
+  // Self only: another candidate's email answers the same 404 as an unknown one, so existence isn't confirmed.
+  if (!doc || String(doc._id) !== req.user?._id) return next(new NotFoundError(t('candidate.userNotFound', req.lang)));
   return ok(res, doc);
 };
 
@@ -94,7 +96,9 @@ export const fnDownloadCV = async (req: Request, res: Response, next: NextFuncti
     if (!req.user?._id) throw new AuthenticationError();
     const candidateId = req.user._id;
     const cvFile = await handlerGetCVFile(candidateId);
-    if (!cvFile) {
+    const filePath = path.join(CV_UPLOAD_DIR, `${candidateId}-cv.pdf`);
+    // A record whose file is gone on disk is answered like "no upload yet".
+    if (!cvFile || !fs.existsSync(filePath)) {
       return formatReturn(res, {
         statusCode: StatusCodes.NOT_FOUND,
         success: false,
@@ -102,7 +106,6 @@ export const fnDownloadCV = async (req: Request, res: Response, next: NextFuncti
       });
     }
 
-    const filePath = path.join(CV_UPLOAD_DIR, `${candidateId}-cv.pdf`);
     return res.download(filePath, cvFile.originalName || 'CV.pdf');
   } catch (err) {
     handleError({ err, next, lang: req.lang });

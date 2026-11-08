@@ -18,7 +18,7 @@ All v1 routes: `/api/v1/...` — JWT required except auth. Auth accepts either a
 `Authorization: Bearer <token>` header or an httpOnly JWT cookie; cookie-only
 state-changing requests must also pass the double-submit CSRF check (see Security).
 
-## Auth `/api/v1/auth` (authLimiter: 150 req/15 min)
+## Auth `/api/v1/auth` (authLimiter: 10 req/15 min per IP on login/register/forgot/reset, v1 + v2 shared)
 
 | Method | Path | Description |
 |---|---|---|
@@ -37,13 +37,13 @@ state-changing requests must also pass the double-submit CSRF check (see Securit
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/:email` | Get profile by email |
+| GET | `/:email` | Get own profile by email (self only — another candidate's email → 404, same as unknown) |
 | PUT | `/update` | Full update |
 | PATCH | `/update` | Partial update |
 | DELETE | `/` | Delete own account + all CV section data (self only, via `req.user._id`) |
 | POST | `/upload-cv` | Upload own PDF résumé (multer, max 5MB) |
 | GET | `/cv-file` | Download own uploaded résumé |
-| POST | `/parse-linkedin-export` | Parse a LinkedIn "Data export" ZIP → Education/Experience entries; stateless, nothing persisted |
+| POST | `/parse-linkedin-export` | Parse a LinkedIn "Data export" ZIP → Education/Experience entries in the `/bulk` item shape (`_id: null`, `{ vi, en }` text with the same value in both, no `endDate` when unknown/ongoing), postable unchanged; stateless, nothing persisted |
 | POST | `/parse-cv-pdf` | Parse an existing PDF CV (max 5MB, memory only) → same Education/Experience shape + `extractedText`; best-effort heading/date-range heuristic (vi + en), stateless, nothing persisted |
 | GET | `/visits` | Own public-profile visit count + list |
 | DELETE | `/visits` | Hard-delete all own visits (no restore); returns `data: { deletedCount }` |
@@ -77,9 +77,9 @@ best-effort — each item validated/created independently via the same
 | GET | `/api/me/search` | None | Keyword search (`?q=` 2–100 chars, `page`/`limit` ≤ 100) over public profiles that have a slug — escaped case-insensitive substring on GeneralInformation `positionDesired`/`professionalSkills.name`, Experience `company`/`position`/`skills`, Education `school`/`major`; returns `data: [{ slug, firstName, lastName, positionDesired }]` + `meta`, never email. Registered before `/api/me/:email` (a slug literally `search` is shadowed) |
 | GET | `/api/me/:email` | None | Public profile by vanity slug (checked first) or email; `?lang=vi\|en` and `?profile=<id>` (filters sections to that CV profile) |
 | GET | `/api/me/:identifier/download-pdf` | None | Public profile's ATS PDF (attachment, same renderer + metadata as the owner's `download-pdf?template=ats`); `?template=ats` only (anything else → 400), `?lang=`, `?profile=`. Private profile answers exactly like an unknown identifier. Rendered buffer cached in memory per sha256(resolved data) + lang (1h TTL, 50 entries, concurrent requests share one render), so a CV edit re-renders on the next request. Nothing written to disk |
-| POST | `/api/me/:identifier/visit` | None | Record a visit to the public profile by vanity slug (checked first) or email; unknown → 404 (count, timestamp, IP, geo via `geoip-lite`; IP = leftmost `X-Forwarded-For` entry if it's a valid IP, else the socket address — client-spoofable, accepted); optional body `referrer` (the SPA's `document.referrer` — the request's own `Referer` header is ignored) stored as hostname only, `www.`/`m.` stripped, invalid → null; optional body `profile` (the `?profile=` id the visitor was shown) stored only if it is a non-deleted profile of that candidate, else null |
+| POST | `/api/me/:identifier/visit` | None | Record a visit to the public profile by vanity slug (checked first) or email; unknown or private (`isPublic: false`) → 404, nothing stored (count, timestamp, IP, geo via `geoip-lite`; IP = leftmost `X-Forwarded-For` entry if it's a valid IP, else the socket address — client-spoofable, accepted); optional body `referrer` (the SPA's `document.referrer` — the request's own `Referer` header is ignored) stored as hostname only, `www.`/`m.` stripped, invalid → null; optional body `profile` (the `?profile=` id the visitor was shown) stored only if it is a non-deleted profile of that candidate, else null |
 | GET | `/api/v1/download-pdf` | Token via query | Export own CV; `?format=pdf\|json\|docx` (default `pdf`), `?lang=vi\|en`, `?template=classic\|modern\|ats` (default `classic`; `modern` is an additional visual theme, applies to `pdf` and `docx`; `ats` is the ATS-optimized single-column template, PDF-only; `template` ignored for `format=json`) |
-| POST | `/api/v1/cv/ats-check` | Bearer/cookie | Renders the candidate's own CV in memory (`template`/`lang` default `ats`/`vi`), extracts its text (`pdf-parse`), and scores it against 10 ATS-safety checks; optional `jobDescription` body field adds a keyword-coverage report |
+| POST | `/api/v1/cv/ats-check` | Bearer/cookie | Renders the candidate's own CV in memory (`template`/`lang` default `ats`/`vi`), extracts its text (`pdf-parse`), and scores it against 10 ATS-safety checks (`template=classic`: `standard-headings` + `metadata` come back `applicable: false` and are left out of the score); optional `jobDescription` body field adds a keyword-coverage report |
 | GET | `/api-docs` | None | Swagger UI (OpenAPI docs) |
 | GET | `/api-docs.json` | None | Raw OpenAPI spec (JSON) |
 

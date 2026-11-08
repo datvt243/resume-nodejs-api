@@ -156,7 +156,7 @@ router.get('/api/me/:email', asyncHandler(fnGetAboutMe));
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
  *       404:
- *         description: Unknown identifier
+ *         description: Unknown identifier or private profile (nothing recorded)
  *         content:
  *           application/json:
  *             schema:

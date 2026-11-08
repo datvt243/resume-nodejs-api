@@ -8,8 +8,9 @@ import { asyncHandler } from '@/utils/asyncHandler';
 const router = express.Router();
 
 import { authRegister, authLogin } from '@/auth/auth.controller';
+import { authLimiter } from '@/middlewares/rateLimit.middleware';
 
-router.post('/register', asyncHandler(authRegister));
-router.post('/login', asyncHandler(authLogin));
+router.post('/register', authLimiter, asyncHandler(authRegister));
+router.post('/login', authLimiter, asyncHandler(authLogin));
 
 export default router;

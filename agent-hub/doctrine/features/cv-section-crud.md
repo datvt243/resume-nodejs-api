@@ -26,8 +26,9 @@ structurally identical; checked 2026-11-06):
 4. `PUT /update` → body must contain `_id`; same schema. Unknown or
    soft-deleted `_id` → 404; entry of another candidate → 403; success →
    200 with the updated document.
-5. `DELETE /delete/:id` → soft delete (`deletedAt = now`). Unknown id →
-   404; other candidate's → 403; success → 200, `data: null`.
+5. `DELETE /delete/:id` → soft delete (`deletedAt = now`). Unknown or
+   already soft-deleted id → 404 (`deletedAt` untouched); other
+   candidate's → 403; success → 200, `data: null`.
 6. `POST /restore/:id` → `deletedAt = null`. Unknown id → 404; other
    candidate's → 403; entry not deleted → 404 (`restoreFailed`);
    success → 200, `data: null`.
@@ -41,11 +42,14 @@ Per-section differences:
    item validated and created independently. All fail → 400 with
    `details[].field = items.<i>.<field>` (or `items.<i>`). At least one
    created → 201, `data: { results: [{ index, success, ... }], summary:
-   { total, succeeded, failed } }`.
+   { total, succeeded, failed } }`; message `common.createSuccess` when
+   all succeeded, else `common.bulkPartialSuccess` ("Created X of Y
+   items" / "Đã thêm X/Y mục").
 9. Image upload — `award`, `certificate`, `project` only:
    `POST /:id/images`, multipart field `images`, max 5 files, 5MB each,
    extension jpg/jpeg/png/webp/gif and `image/*` mime. Ownership is
-   checked before any file is written. Unknown id → 404; other
+   checked before any file is written. Unknown or soft-deleted id → 404
+   (nothing written); other
    candidate's → 403; no files → 400; too large/too many/wrong type →
    400. Success → 200, `data: { images }` (new URLs
    `/uploads/images/<id>-<ts>-<rand><ext>` appended to existing ones).
@@ -57,6 +61,12 @@ Per-section differences:
 11. Localized fields are stored as `{ vi, en }`: `description` on
     education, experience, award, certificate, project; plus education
     `school`/`major`. Reference has no localized field.
+12. Short values (operator, #414) — education `major.vi` needs only 1
+    char ("IT" is valid; empty → 400 on `major.vi`). Award `link` is
+    optional (missing or `''` allowed, ≤ 100 chars) and must be a URL
+    when present, else 400 on `link`. Implementation choice, not part of
+    the operator's answer: only `http`/`https` schemes count as a URL, so
+    `javascript:` links are refused.
 
 ## Acceptance criteria
 - `npx jest src/__tests__/candidate_profile/BaseController.test.ts src/__tests__/candidate_profile/BaseService.test.ts` passes.
@@ -64,6 +74,7 @@ Per-section differences:
 - `npx jest src/__tests__/candidate_profile/education.validate.test.ts src/__tests__/candidate_profile/experience.validate.test.ts src/__tests__/candidate_profile/project.validate.test.ts src/__tests__/candidate_profile/project.service.test.ts` passes.
 - `PUT /award/update` with another candidate's `_id` → HTTP 403.
 - `POST /education/bulk` with 101 items → HTTP 400.
+- `npx jest src/__tests__/candidate_profile/award.validate.test.ts` passes.
 
 ## Edge cases
 - `GET /?limit=0` or non-numeric → all entries (no pagination).
@@ -89,3 +100,6 @@ Per-section differences:
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-section-crud-spec.md` | - |
+| 2026-11-08 | Behavior 5 + 9: soft-deleted entry → 404 on delete and image upload (restore unchanged) | operator answer #403 | soft-deleted-writes-404 |
+| 2026-11-08 | Behavior 8: partial-success message "Created X of Y items" (vi + en) instead of `common.createFailed` | operator answer #404 | bulk-partial-message |
+| 2026-11-08 | Behavior 12: education `major.vi` min 1; award `link` optional, a URL (http/https) when present | operator answer #414 | short-values-validation |

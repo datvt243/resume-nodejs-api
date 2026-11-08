@@ -360,3 +360,19 @@ describe('cvFilename', () => {
     expect(cvFilename({ cvFileName: 'my cv', content, lang: 'en' }, 'docx')).toBe('my_cv_EN.docx');
   });
 });
+
+describe('createCV never writes the PDF to disk (issue #383)', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  it('renders to a buffer only — page.pdf gets no path, the buffer is sent', async () => {
+    const browser = createFakeBrowser();
+    (puppeteer.launch as jest.Mock).mockResolvedValue(browser);
+    const res = createFakeRes();
+
+    await createCV({ email: 'a@b.com' }, res as any);
+
+    const page = await browser.newPage.mock.results[0]?.value;
+    expect(page.pdf).toHaveBeenCalledWith(expect.not.objectContaining({ path: expect.anything() }));
+    expect(res.send).toHaveBeenCalledWith(Buffer.from('fake-pdf-bytes'));
+  });
+});
