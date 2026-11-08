@@ -23,6 +23,10 @@ describe('schemaEducation — school', () => {
     expect(value).toMatchObject({ school: { vi: 'ĐH Bách Khoa', en: 'HCMUT' }, major: { vi: 'Khoa học máy tính', en: 'Computer Science' } });
   });
 
+  it.each(['IT', 'Y'])('accepts a short major %s', (vi) => {
+    expect(schemaEducation.validate({ ...base, school: { vi: 'MIT' }, major: { vi, en: '' } }).error).toBeUndefined();
+  });
+
   it('accepts a missing en variant', () => {
     expect(schemaEducation.validate({ ...base, school: { vi: 'FPT' }, major: { vi: 'CNTT' } }).error).toBeUndefined();
   });
@@ -30,7 +34,7 @@ describe('schemaEducation — school', () => {
   it.each([
     ['school as a plain string', { school: 'MIT' }, 'school'],
     ['school without vi', { school: { en: 'MIT' } }, 'school.vi'],
-    ['major vi shorter than 3', { school: { vi: 'MIT' }, major: { vi: 'IT' } }, 'major.vi'],
+    ['an empty major vi', { school: { vi: 'MIT' }, major: { vi: '' } }, 'major.vi'],
   ])('rejects %s', (_label, patch, path) => {
     const { error } = schemaEducation.validate({ ...base, ...patch });
     expect(error?.details[0]?.path.join('.')).toBe(path);

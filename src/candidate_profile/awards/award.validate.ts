@@ -11,7 +11,7 @@ export const schemaAward = Joi.object({
   name: _stringDefault({ min: 0, max: 50, title: 'Chứng chỉ' }),
   organization: _stringDefault({ min: 0, max: 50, title: 'Tổ chức' }),
   issueDate: Joi.number().required(),
-  link: _stringDefault({ min: 0, max: 100, title: 'Liên kết' }),
+  link: Joi.string().trim().max(100).uri({ scheme: ['http', 'https'] }).allow('').label('Liên kết'),
   images: _arrayString,
   description: description,
   candidateId,

@@ -9,7 +9,7 @@ import { _id, _boolean, candidateId, startDate, endDate, descriptionOptional, lo
 export const schemaEducation = Joi.object({
   _id,
   school: localizedName(1),
-  major: localizedName(3),
+  major: localizedName(1),
   startDate,
   endDate,
   isCurrent: _boolean,
