@@ -61,6 +61,12 @@ Per-section differences:
 11. Localized fields are stored as `{ vi, en }`: `description` on
     education, experience, award, certificate, project; plus education
     `school`/`major`. Reference has no localized field.
+12. Short values (operator, #414) — education `major.vi` needs only 1
+    char ("IT" is valid; empty → 400 on `major.vi`). Award `link` is
+    optional (missing or `''` allowed, ≤ 100 chars) and must be a URL
+    when present, else 400 on `link`. Implementation choice, not part of
+    the operator's answer: only `http`/`https` schemes count as a URL, so
+    `javascript:` links are refused.
 
 ## Acceptance criteria
 - `npx jest src/__tests__/candidate_profile/BaseController.test.ts src/__tests__/candidate_profile/BaseService.test.ts` passes.
@@ -68,6 +74,7 @@ Per-section differences:
 - `npx jest src/__tests__/candidate_profile/education.validate.test.ts src/__tests__/candidate_profile/experience.validate.test.ts src/__tests__/candidate_profile/project.validate.test.ts src/__tests__/candidate_profile/project.service.test.ts` passes.
 - `PUT /award/update` with another candidate's `_id` → HTTP 403.
 - `POST /education/bulk` with 101 items → HTTP 400.
+- `npx jest src/__tests__/candidate_profile/award.validate.test.ts` passes.
 
 ## Edge cases
 - `GET /?limit=0` or non-numeric → all entries (no pagination).
@@ -95,3 +102,4 @@ Per-section differences:
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-section-crud-spec.md` | - |
 | 2026-11-08 | Behavior 5 + 9: soft-deleted entry → 404 on delete and image upload (restore unchanged) | operator answer #403 | soft-deleted-writes-404 |
 | 2026-11-08 | Behavior 8: partial-success message "Created X of Y items" (vi + en) instead of `common.createFailed` | operator answer #404 | bulk-partial-message |
+| 2026-11-08 | Behavior 12: education `major.vi` min 1; award `link` optional, a URL (http/https) when present | operator answer #414 | short-values-validation |
