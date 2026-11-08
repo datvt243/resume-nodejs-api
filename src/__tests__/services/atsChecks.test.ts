@@ -13,6 +13,7 @@ import {
   runAtsChecks,
   type AtsCheckInput,
 } from '@/services/atsChecks';
+import { t } from '@/utils/i18n';
 
 const baseInput: AtsCheckInput = {
   text: 'Jane Doe\nSenior Backend Engineer\nHo Chi Minh City · 0901234567 · jane.doe@example.com\n\nSUMMARY\nSenior backend engineer.\n\nSKILLS\nLanguages: TypeScript\n\nEXPERIENCE\nSenior Backend Engineer — New Co\n09/2021 – Present\nLed the API team\n\nEDUCATION\nComputer Science — State University\n01/2015 – 01/2019',
@@ -196,5 +197,31 @@ describe('template=classic', () => {
     expect(applicable).toHaveLength(8);
     expect(scoreChecks(checks)).toBe(scoreChecks(applicable));
     expect(scoreChecks(checks)).toBe(100); // missing classic metadata no longer costs points
+  });
+});
+
+describe('check messages follow the request language', () => {
+  const failing: AtsCheckInput = { ...baseInput, text: 'x', pages: 3, metadataTitle: undefined, experienceStartDates: [1, 2] };
+
+  it.each([
+    ['passing', baseInput],
+    ['failing', failing],
+  ])('every %s message is translated in vi, with its placeholders filled', (_label, input) => {
+    const en = runAtsChecks({ ...input, messageLang: 'en' });
+    const vi = runAtsChecks({ ...input, messageLang: 'vi' });
+    vi.forEach((check, i) => {
+      expect(check.message).not.toBe(en[i]?.message);
+      expect(check.message).not.toMatch(/\{\{|atsCheck\./);
+    });
+  });
+
+  it('uses messageLang over the CV lang, falling back to the CV lang', () => {
+    expect(checkTextExtractable({ ...baseInput, lang: 'en', messageLang: 'vi' }).message).toBe(`Đã trích xuất ${baseInput.text.trim().length} ký tự văn bản.`);
+    expect(checkPageCount({ ...baseInput, pages: 3 }).message).toBe('3 pages — longer than the 2-page target for ≤10 years of experience.');
+  });
+
+  it('has the success message in both languages', () => {
+    expect(t('atsCheck.completed', 'en')).toBe('ATS self-check completed');
+    expect(t('atsCheck.completed', 'vi')).toBe('Đã kiểm tra ATS xong');
   });
 });

@@ -67,6 +67,7 @@ export const fnAtsCheck = async (req: Request, res: Response, next: NextFunction
 
     const checkInput: AtsCheckInput = {
       template,
+      messageLang: req.lang,
       text,
       pages,
       lang,
@@ -85,7 +86,7 @@ export const fnAtsCheck = async (req: Request, res: Response, next: NextFunction
 
     formatReturn(res, {
       success: true,
-      message: 'ATS self-check completed',
+      message: t('atsCheck.completed', req.lang),
       data: {
         score,
         pages,

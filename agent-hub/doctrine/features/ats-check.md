@@ -35,7 +35,10 @@ description.
    case-insensitive); `coverage` = matched / (matched + missing), 0 when
    the JD has no known keyword.
 6. Response 200: `data: { score, pages, checks, extractedText,
-   keywordMatch? }`.
+   keywordMatch? }`. The response `message` and every check's `message`
+   are localized (vi + en) in the request language (`req.lang`), which
+   may differ from the CV's `lang`; section-heading names are still
+   judged in the CV's `lang`.
 
 ## Acceptance criteria
 - `npx jest src/__tests__/services/atsChecks.test.ts src/__tests__/services/keywordMatcher.test.ts` passes.
@@ -62,3 +65,4 @@ description.
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/ats-check-spec.md` | - |
 | 2026-11-08 | Behavior 4/4b: classic → standard-headings + metadata `applicable: false`, excluded from score | operator answer #406 | ats-classic-not-applicable |
+| 2026-11-08 | Behavior 6: success + every check message localized via `req.lang` | operator answer #407 (+ issue comment: all check messages) | ats-check-messages-i18n |

@@ -29,6 +29,8 @@ export interface AtsCheckInput {
   text: string;
   pages: number;
   lang: SupportedLang;
+  /** Language of the check messages (the request's), when it differs from the CV's `lang`. */
+  messageLang?: string | undefined;
   fullName: string;
   email?: string | undefined;
   phone?: string | undefined;
@@ -64,11 +66,13 @@ const FORBIDDEN_FIELD_PHRASES = [
   'tình trạng hôn nhân',
 ];
 
+const msg = (input: AtsCheckInput, key: string): string => t(key, input.messageLang ?? input.lang);
+
 const notApplicable = (id: string, input: AtsCheckInput): AtsCheckResult => ({
   id,
   passed: true,
   severity: 'error',
-  message: t('atsCheck.notApplicableClassic', input.lang),
+  message: msg(input, 'atsCheck.notApplicableClassic'),
   applicable: false,
 });
 
@@ -84,7 +88,7 @@ export const checkTextExtractable = (input: AtsCheckInput): AtsCheckResult => {
     id: 'text-extractable',
     passed: length > MIN_EXTRACTABLE_LENGTH,
     severity: 'error',
-    message: length > MIN_EXTRACTABLE_LENGTH ? `Extracted ${length} characters of text.` : `Only ${length} characters extracted — the PDF may be image-based, not real text.`,
+    message: length > MIN_EXTRACTABLE_LENGTH ? msg(input, 'atsCheck.textExtractablePass').replace('{{length}}', String(length)) : msg(input, 'atsCheck.textExtractableFail').replace('{{length}}', String(length)),
   };
 };
 
@@ -118,7 +122,7 @@ export const checkReadingOrder = (input: AtsCheckInput): AtsCheckResult => {
     id: 'reading-order',
     passed,
     severity: 'error',
-    message: passed ? 'Name appears first; section headings appear in the expected order.' : !nameFirst ? 'The candidate name was not found on the first line of extracted text.' : 'Section headings do not appear in the expected reverse-chronological reading order.',
+    message: passed ? msg(input, 'atsCheck.readingOrderPass') : !nameFirst ? msg(input, 'atsCheck.readingOrderNameMissing') : msg(input, 'atsCheck.readingOrderHeadingsOutOfOrder'),
   };
 };
 
@@ -128,7 +132,7 @@ export const checkNoSpacedLetters = (input: AtsCheckInput): AtsCheckResult => {
     id: 'no-spaced-letters',
     passed: !match,
     severity: 'error',
-    message: match ? 'Found letters separated by single spaces (likely CSS letter-spacing) — keywords become unmatchable.' : 'No spaced-out letter sequences found.',
+    message: match ? msg(input, 'atsCheck.noSpacedLettersFail') : msg(input, 'atsCheck.noSpacedLettersPass'),
   };
 };
 
@@ -141,7 +145,7 @@ export const checkContactInBody = (input: AtsCheckInput): AtsCheckResult => {
     id: 'contact-in-body',
     passed,
     severity: 'error',
-    message: passed ? 'Email and phone both found near the top of the document body.' : 'Email and/or phone not found in the first ~10 lines of the document body.',
+    message: passed ? msg(input, 'atsCheck.contactInBodyPass') : msg(input, 'atsCheck.contactInBodyFail'),
   };
 };
 
@@ -153,7 +157,7 @@ export const checkStandardHeadings = (input: AtsCheckInput): AtsCheckResult => {
     id: 'standard-headings',
     passed: nonStandard.length === 0,
     severity: 'error',
-    message: nonStandard.length === 0 ? 'Every rendered section uses a standard heading name.' : `Non-standard heading(s) found: ${nonStandard.join(', ')}.`,
+    message: nonStandard.length === 0 ? msg(input, 'atsCheck.standardHeadingsPass') : msg(input, 'atsCheck.standardHeadingsFail').replace('{{headings}}', nonStandard.join(', ')),
   };
 };
 
@@ -163,7 +167,7 @@ export const checkDateFormat = (input: AtsCheckInput): AtsCheckResult => {
     id: 'date-format',
     passed: !hasUnpaddedMonth,
     severity: 'error',
-    message: hasUnpaddedMonth ? 'Found a date with an unpadded single-digit month (e.g. "9/2024" instead of "09/2024").' : 'All dates use zero-padded MM/YYYY.',
+    message: hasUnpaddedMonth ? msg(input, 'atsCheck.dateFormatFail') : msg(input, 'atsCheck.dateFormatPass'),
   };
 };
 
@@ -182,7 +186,7 @@ export const checkReverseChronological = (input: AtsCheckInput): AtsCheckResult 
     id: 'reverse-chronological',
     passed: descending,
     severity: 'error',
-    message: descending ? 'Experience entries are sorted reverse-chronologically.' : 'Experience entries are not sorted with the most recent start date first.',
+    message: descending ? msg(input, 'atsCheck.reverseChronologicalPass') : msg(input, 'atsCheck.reverseChronologicalFail'),
   };
 };
 
@@ -193,7 +197,7 @@ export const checkNoForbiddenFields = (input: AtsCheckInput): AtsCheckResult => 
     id: 'no-forbidden-fields',
     passed: found.length === 0,
     severity: 'error',
-    message: found.length === 0 ? 'No date of birth, gender, or marital status found.' : `Found forbidden field(s): ${found.join(', ')}.`,
+    message: found.length === 0 ? msg(input, 'atsCheck.noForbiddenFieldsPass') : msg(input, 'atsCheck.noForbiddenFieldsFail').replace('{{fields}}', found.join(', ')),
   };
 };
 
@@ -203,7 +207,7 @@ export const checkPageCount = (input: AtsCheckInput): AtsCheckResult => {
     id: 'page-count',
     passed,
     severity: 'warning',
-    message: passed ? `${input.pages} page(s) — within the 2-page target.` : `${input.pages} pages — longer than the 2-page target for ≤10 years of experience.`,
+    message: passed ? msg(input, 'atsCheck.pageCountPass').replace('{{pages}}', String(input.pages)) : msg(input, 'atsCheck.pageCountFail').replace('{{pages}}', String(input.pages)),
   };
 };
 
@@ -214,7 +218,7 @@ export const checkMetadata = (input: AtsCheckInput): AtsCheckResult => {
     id: 'metadata',
     passed,
     severity: 'error',
-    message: passed ? 'PDF Title and Author metadata are set.' : 'PDF Title and/or Author metadata is missing.',
+    message: passed ? msg(input, 'atsCheck.metadataPass') : msg(input, 'atsCheck.metadataFail'),
   };
 };
 
