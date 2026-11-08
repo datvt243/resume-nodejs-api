@@ -16,7 +16,7 @@
  * @see https://github.com/datvt243
  */
 import { extractPdfText } from '@/services/atsExtract';
-import type { ParsedEducation, ParsedExperience } from '@/candidate/parseLinkedInExport.service';
+import { localized, parsedDates, type ParsedEducation, type ParsedExperience } from '@/candidate/parseLinkedInExport.service';
 
 type SectionKind = 'education' | 'experience' | 'other';
 
@@ -246,7 +246,7 @@ const toExperience = (entry: RawEntry): ParsedExperience => {
     position = second;
     company = first;
   }
-  return { company, position, startDate: entry.startDate, endDate: entry.endDate, isCurrent: entry.isCurrent, description: entry.description };
+  return { ...parsedDates(entry.startDate, entry.endDate, entry.isCurrent), company, position, description: localized(entry.description) };
 };
 
 const toEducation = (entry: RawEntry): ParsedEducation => {
@@ -257,7 +257,7 @@ const toEducation = (entry: RawEntry): ParsedEducation => {
     major = second;
     school = first;
   }
-  return { school, major, startDate: entry.startDate, endDate: entry.endDate, isCurrent: entry.isCurrent, description: entry.description };
+  return { ...parsedDates(entry.startDate, entry.endDate, entry.isCurrent), school: localized(school), major: localized(major), description: localized(entry.description) };
 };
 
 export const parseCvText = (text: string): ParsedCvText => {
@@ -275,7 +275,7 @@ export const parseCvText = (text: string): ParsedCvText => {
   }
 
   return {
-    educations: educations.filter((education) => education.school),
+    educations: educations.filter((education) => education.school.vi),
     experiences: experiences.filter((experience) => experience.company),
   };
 };

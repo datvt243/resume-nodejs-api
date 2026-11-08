@@ -96,23 +96,25 @@ router.post('/upload-cv', uploadCVMiddleware, asyncHandler(fnUploadCV));
  *                           items:
  *                             type: object
  *                             properties:
- *                               school: { type: string }
- *                               major: { type: string }
+ *                               _id: { type: string, nullable: true, description: 'Always null — posts to /bulk unchanged' }
+ *                               school: { type: object, properties: { vi: { type: string }, en: { type: string } }, description: 'Same text in both languages' }
+ *                               major: { type: object, properties: { vi: { type: string }, en: { type: string } }, description: 'Same text in both languages' }
  *                               startDate: { type: number, nullable: true }
- *                               endDate: { type: number, nullable: true }
+ *                               endDate: { type: number, description: 'Absent when unknown or ongoing' }
  *                               isCurrent: { type: boolean }
- *                               description: { type: string }
+ *                               description: { type: object, properties: { vi: { type: string }, en: { type: string } }, description: 'Same text in both languages' }
  *                         experiences:
  *                           type: array
  *                           items:
  *                             type: object
  *                             properties:
+ *                               _id: { type: string, nullable: true, description: 'Always null — posts to /bulk unchanged' }
  *                               company: { type: string }
  *                               position: { type: string }
  *                               startDate: { type: number, nullable: true }
- *                               endDate: { type: number, nullable: true }
+ *                               endDate: { type: number, description: 'Absent when unknown or ongoing' }
  *                               isCurrent: { type: boolean }
- *                               description: { type: string }
+ *                               description: { type: object, properties: { vi: { type: string }, en: { type: string } }, description: 'Same text in both languages' }
  *       400:
  *         description: Missing file, wrong type (non-ZIP), too large (> 20MB), or the ZIP itself is corrupt/unreadable
  *         content:
@@ -160,23 +162,25 @@ router.post('/parse-linkedin-export', uploadLinkedInExportMiddleware, asyncHandl
  *                           items:
  *                             type: object
  *                             properties:
- *                               school: { type: string }
- *                               major: { type: string }
+ *                               _id: { type: string, nullable: true, description: 'Always null — posts to /bulk unchanged' }
+ *                               school: { type: object, properties: { vi: { type: string }, en: { type: string } }, description: 'Same text in both languages' }
+ *                               major: { type: object, properties: { vi: { type: string }, en: { type: string } }, description: 'Same text in both languages' }
  *                               startDate: { type: number, nullable: true }
- *                               endDate: { type: number, nullable: true }
+ *                               endDate: { type: number, description: 'Absent when unknown or ongoing' }
  *                               isCurrent: { type: boolean }
- *                               description: { type: string }
+ *                               description: { type: object, properties: { vi: { type: string }, en: { type: string } }, description: 'Same text in both languages' }
  *                         experiences:
  *                           type: array
  *                           items:
  *                             type: object
  *                             properties:
+ *                               _id: { type: string, nullable: true, description: 'Always null — posts to /bulk unchanged' }
  *                               company: { type: string }
  *                               position: { type: string }
  *                               startDate: { type: number, nullable: true }
- *                               endDate: { type: number, nullable: true }
+ *                               endDate: { type: number, description: 'Absent when unknown or ongoing' }
  *                               isCurrent: { type: boolean }
- *                               description: { type: string }
+ *                               description: { type: object, properties: { vi: { type: string }, en: { type: string } }, description: 'Same text in both languages' }
  *                         extractedText:
  *                           type: string
  *                           description: The raw text extracted from the PDF
