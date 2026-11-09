@@ -17,7 +17,7 @@ import { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 
 import { formatReturn, handleError, ok } from '@/utils';
-import { listMeta } from '@/services';
+import { listMeta, parsePositiveInt } from '@/services';
 import type { ListMeta } from '@/utils/response';
 import { t } from '@/utils/i18n';
 import * as MODEL from '@/models';
@@ -46,11 +46,6 @@ export interface PublicSearchResult {
  * injected through it (the same guarantee QuerySafe gives other paths).
  */
 const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-const parsePositiveInt = (value: unknown): number | null => {
-  const parsed = typeof value === 'string' ? Number.parseInt(value, 10) : NaN;
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-};
 
 export const handlerSearchPublicProfiles = async ({ query, page, limit }: { query: string; page: number; limit: number }): Promise<PublicSearchResult> => {
   const pattern = new RegExp(escapeRegex(query), 'i');

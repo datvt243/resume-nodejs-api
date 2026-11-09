@@ -45,7 +45,7 @@ state-changing requests must also pass the double-submit CSRF check (see Securit
 | GET | `/cv-file` | Download own uploaded résumé |
 | POST | `/parse-linkedin-export` | Parse a LinkedIn "Data export" ZIP → Education/Experience entries in the `/bulk` item shape (`_id: null`, `{ vi, en }` text with the same value in both, no `endDate` when unknown/ongoing), postable unchanged; stateless, nothing persisted |
 | POST | `/parse-cv-pdf` | Parse an existing PDF CV (max 5MB, memory only) → same Education/Experience shape + `extractedText`; best-effort heading/date-range heuristic (vi + en), stateless, nothing persisted |
-| GET | `/visits` | Own public-profile visit count + list |
+| GET | `/visits` | Own public-profile visits, newest first, paged: `?page=` (default 1), `?limit=` (default 20, max 100); `meta.total` is the visit count |
 | DELETE | `/visits` | Hard-delete all own visits (no restore); returns `data: { deletedCount }` |
 | GET | `/visits/stats` | Own visit stats: `?interval=day\|week\|month` (default `day`), inclusive local `from`/`to` (`YYYY-MM-DD`, default last 30 days), `?tz=` IANA zone (default `Asia/Ho_Chi_Minh`); zero-filled `series` (ISO weeks `YYYY-Www`) + `countries` from the recorded geo location + `sources` from the recorded referrer hostname (null = direct/unknown) + `profiles` (`{ profileId, name, deleted, count }`, null = default link; a profile deleted since keeps its row with `deleted: true`); ≤ 400 buckets |
 

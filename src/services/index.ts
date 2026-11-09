@@ -64,7 +64,13 @@ interface baseProp<T extends CrudDocument> {
 }
 
 // Pagination hard cap — a caller cannot request more than this many documents per page regardless of what `limit` it passes.
-const MAX_PAGE_LIMIT = 100;
+export const MAX_PAGE_LIMIT = 100;
+
+/** A `?page=`/`?limit=` query value as a positive integer, or `null` when missing or invalid. */
+export const parsePositiveInt = (value: unknown): number | null => {
+  const parsed = typeof value === 'string' ? Number.parseInt(value, 10) : NaN;
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
 /** List `meta`; an unpaginated list is one page whose `limit` is its own size. */
 export const listMeta = (total: number, page = 1, limit = total): ListMeta => ({
