@@ -14,14 +14,16 @@ const mockCandidateFind = jest.fn();
 const mockCandidateCount = jest.fn();
 const mockGeneralDistinct = jest.fn();
 const mockGeneralFind = jest.fn();
-const mockExperienceDistinct = jest.fn();
-const mockEducationDistinct = jest.fn();
+const mockExperienceFind = jest.fn();
+const mockEducationFind = jest.fn();
+const mockProfileFind = jest.fn();
 
 jest.mock('@/models', () => ({
   Candidate: { find: (...args: unknown[]) => mockCandidateFind(...args), countDocuments: (...args: unknown[]) => mockCandidateCount(...args) },
   generalInformation: { distinct: (...args: unknown[]) => mockGeneralDistinct(...args), find: (...args: unknown[]) => mockGeneralFind(...args) },
-  Experience: { distinct: (...args: unknown[]) => mockExperienceDistinct(...args) },
-  Education: { distinct: (...args: unknown[]) => mockEducationDistinct(...args) },
+  Experience: { find: (...args: unknown[]) => mockExperienceFind(...args) },
+  Education: { find: (...args: unknown[]) => mockEducationFind(...args) },
+  Profile: { find: (...args: unknown[]) => mockProfileFind(...args) },
 }));
 
 const execResolving = (value: unknown) => ({ exec: jest.fn().mockResolvedValue(value) });
@@ -33,19 +35,33 @@ const chainResolving = (value: unknown) => {
   return chain;
 };
 
+interface Entry {
+  _id: string;
+  candidateId: string;
+}
+
 interface MockDbOptions {
-  generalIds?: unknown[];
-  experienceIds?: unknown[];
-  educationIds?: unknown[];
+  generalIds?: string[];
+  experiences?: Entry[];
+  educations?: Entry[];
+  // Default: one profile per candidate listing every matched entry, so only the profile tests have to think about profiles.
+  profiles?: { candidateId: string; experienceIds: string[]; educationIds: string[] }[];
   candidates?: unknown[];
   total?: number;
   generalInfos?: unknown[];
 }
 
-const mockDb = ({ generalIds = [], experienceIds = [], educationIds = [], candidates = [], total, generalInfos = [] }: MockDbOptions = {}) => {
+const mockDb = ({ generalIds = [], experiences = [], educations = [], profiles, candidates = [], total, generalInfos = [] }: MockDbOptions = {}) => {
   mockGeneralDistinct.mockReturnValue(execResolving(generalIds));
-  mockExperienceDistinct.mockReturnValue(execResolving(experienceIds));
-  mockEducationDistinct.mockReturnValue(execResolving(educationIds));
+  mockExperienceFind.mockReturnValue(chainResolving(experiences));
+  mockEducationFind.mockReturnValue(chainResolving(educations));
+  const owners = [...new Set([...generalIds, ...experiences.map((e) => e.candidateId), ...educations.map((e) => e.candidateId)])];
+  const defaultProfiles = owners.map((candidateId) => ({
+    candidateId,
+    experienceIds: experiences.filter((e) => e.candidateId === candidateId).map((e) => e._id),
+    educationIds: educations.filter((e) => e.candidateId === candidateId).map((e) => e._id),
+  }));
+  mockProfileFind.mockReturnValue(chainResolving(profiles ?? defaultProfiles));
   const candidateChain = chainResolving(candidates);
   mockCandidateFind.mockReturnValue(candidateChain);
   mockCandidateCount.mockReturnValue(execResolving(total ?? candidates.length));
@@ -59,7 +75,7 @@ describe('handlerSearchPublicProfiles', () => {
   });
 
   it('only ever asks Mongo for public candidates that have a slug, among the matched ids', async () => {
-    mockDb({ generalIds: ['a'], experienceIds: ['b', 'a'], educationIds: ['c'] });
+    mockDb({ generalIds: ['a'], experiences: [{ _id: 'e1', candidateId: 'b' }, { _id: 'e2', candidateId: 'a' }], educations: [{ _id: 'd1', candidateId: 'c' }] });
 
     await handlerSearchPublicProfiles({ query: 'node', page: 1, limit: 20 });
 
@@ -114,10 +130,10 @@ describe('handlerSearchPublicProfiles', () => {
       deletedAt: null,
       $or: [{ positionDesired: pattern }, { 'professionalSkills.name': pattern }],
     });
-    expect(mockExperienceDistinct).toHaveBeenCalledWith('candidateId', { deletedAt: null, $or: [{ company: pattern }, { position: pattern }, { skills: pattern }] });
-    expect(mockEducationDistinct).toHaveBeenCalledWith('candidateId', { deletedAt: null, $or: [{ 'school.vi': pattern }, { 'school.en': pattern }, { 'major.vi': pattern }, { 'major.en': pattern }] });
+    expect(mockExperienceFind).toHaveBeenCalledWith({ deletedAt: null, $or: [{ company: pattern }, { position: pattern }, { skills: pattern }] });
+    expect(mockEducationFind).toHaveBeenCalledWith({ deletedAt: null, $or: [{ 'school.vi': pattern }, { 'school.en': pattern }, { 'major.vi': pattern }, { 'major.en': pattern }] });
 
-    const used = mockExperienceDistinct.mock.calls[0][1].$or[0].company as RegExp;
+    const used = mockExperienceFind.mock.calls[0][0].$or[0].company as RegExp;
     expect(used.test('Senior C++ (Senior) dev')).toBe(true);
     expect(used.test('C senior')).toBe(false);
   });
@@ -127,9 +143,37 @@ describe('handlerSearchPublicProfiles', () => {
 
     await handlerSearchPublicProfiles({ query: '{"$gt": ""}', page: 1, limit: 20 });
 
-    const filter = mockEducationDistinct.mock.calls[0][1];
+    const filter = mockEducationFind.mock.calls[0][0];
     expect(Object.keys(filter)).toEqual(['deletedAt', '$or']);
     expect(filter.$or[0]['school.vi']).toEqual(/\{"\$gt": ""\}/i);
+  });
+
+  it('only matches entries listed by a non-deleted profile of the same candidate', async () => {
+    mockDb({
+      generalIds: ['gen-with-profile', 'gen-no-profile'],
+      experiences: [
+        { _id: 'e-listed', candidateId: 'exp-in' },
+        { _id: 'e-unlisted', candidateId: 'exp-out' },
+        { _id: 'e-foreign', candidateId: 'victim' },
+      ],
+      educations: [{ _id: 'd-listed', candidateId: 'edu-in' }],
+      profiles: [
+        { candidateId: 'gen-with-profile', experienceIds: [], educationIds: [] },
+        { candidateId: 'exp-in', experienceIds: ['e-listed'], educationIds: [] },
+        { candidateId: 'exp-out', experienceIds: ['e-other'], educationIds: [] },
+        // Another candidate's profile listing victim's entry must not make it searchable.
+        { candidateId: 'attacker', experienceIds: ['e-foreign'], educationIds: [] },
+        { candidateId: 'edu-in', experienceIds: [], educationIds: ['d-listed'] },
+      ],
+    });
+
+    await handlerSearchPublicProfiles({ query: 'node', page: 1, limit: 20 });
+
+    expect(mockProfileFind).toHaveBeenCalledWith({
+      deletedAt: null,
+      candidateId: { $in: ['gen-with-profile', 'gen-no-profile', 'exp-in', 'exp-out', 'victim', 'edu-in'] },
+    });
+    expect(mockCandidateFind.mock.calls[0][0]._id).toEqual({ $in: ['gen-with-profile', 'exp-in', 'edu-in'] });
   });
 
   it('paginates with the { items, meta } shape', async () => {
@@ -180,14 +224,14 @@ describe('fnSearchPublicProfiles', () => {
 
     expect(candidateChain.skip).toHaveBeenCalledWith(0);
     expect(candidateChain.limit).toHaveBeenCalledWith(100);
-    expect(mockEducationDistinct.mock.calls[0][1].$or[0]['school.vi']).toEqual(/node/i);
+    expect(mockEducationFind.mock.calls[0][0].$or[0]['school.vi']).toEqual(/node/i);
     expect(res.json).toHaveBeenCalledWith({ success: true, message: '', data: [], meta: { page: 1, limit: 100, total: 0, totalPages: 1 } });
   });
 
   it('forwards an unexpected DB error to the global error handler', async () => {
     mockGeneralDistinct.mockReturnValue({ exec: jest.fn().mockRejectedValue(new Error('db down')) });
-    mockExperienceDistinct.mockReturnValue(execResolving([]));
-    mockEducationDistinct.mockReturnValue(execResolving([]));
+    mockExperienceFind.mockReturnValue(chainResolving([]));
+    mockEducationFind.mockReturnValue(chainResolving([]));
     const res = mockRes();
     const next = jest.fn();
 

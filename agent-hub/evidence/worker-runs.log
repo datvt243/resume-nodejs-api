@@ -134,3 +134,4 @@
 2026-11-08T13:07:30Z role=verifier outcome=REOPEN node=short-values-validation rerun=none spawn=fresh hub_bytes_before=96341 hub_bytes_after=96551
 2026-11-08T13:11:29Z role=verifier outcome=SEAL node=short-values-validation rerun=none spawn=resumed hub_bytes_before=96341 hub_bytes_after=96346
 2026-11-09T02:51:48Z role=verifier outcome=SEAL node=paginate-visits rerun=none spawn=fresh hub_bytes_before=96902 hub_bytes_after=96170
+2026-11-09T03:05:30Z role=verifier outcome=SEAL node=search-in-profile-only rerun=none spawn=fresh hub_bytes_before=96170 hub_bytes_after=96174
