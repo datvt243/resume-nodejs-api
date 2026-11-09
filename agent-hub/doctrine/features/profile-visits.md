@@ -20,9 +20,11 @@ can wipe it.
    `X-Forwarded-For` entry if it is a valid IP, else `req.ip` / socket
    address; `location` = "city, region,
    country" from a local geoip lookup (empty if unknown). 200, `data: null`.
-2. `GET /api/v1/candidate/visits` (auth, self only) → 200, all of the
-   caller's visits newest first (with ip, location, referrer, profileId,
-   timestamps) + list `meta`.
+2. `GET /api/v1/candidate/visits?page=&limit=` (auth, self only) → 200,
+   one page of the caller's visits newest first (with ip, location,
+   referrer, profileId, timestamps) + list `meta` (`total` = all visits).
+   `page` default 1, `limit` default 20, capped at 100; missing/invalid →
+   default.
 3. `DELETE /api/v1/candidate/visits` (auth, self only) → hard-deletes
    all the caller's visits, 200 `data: { deletedCount }`.
 4. `GET /api/v1/candidate/visits/stats?interval=&from=&to=&tz=` (auth,
@@ -63,3 +65,4 @@ can wipe it.
 | 2026-11-07 | Operator answers recorded; Issues set; stays draft — Behavior 1 misstates the X-Forwarded-For rule, see `evidence/analyst/2026-11-07/profile-visits-spec.md` | analyst backfill re-check | - |
 | 2026-11-07 | Behavior 1 IP wording corrected to the code; Status → verified | operator answer round 2, see `evidence/analyst/2026-11-07/profile-visits-spec.md` | - |
 | 2026-11-08 | Behavior 1: private profile → 404, no visit stored | operator answer #398 | visit-skip-private |
+| 2026-11-09 | Behavior 2: list is paginated (`page`/`limit`, default 20, max 100) | operator answer #396 | paginate-visits |
