@@ -247,6 +247,8 @@ export const handlerGetAboutMe = async ({
   };
 };
 
+const VISIT_DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 export const fnRecordVisit = async (req: Request, res: Response, next: NextFunction) => {
   const { identifier } = req.params;
   if (!identifier) return next(new BadRequestError(t('publicProfile.identifierRequired', req.lang)));
@@ -271,6 +273,15 @@ export const handlerRecordVisit = async (identifier: string, req: Request) => {
   if (!candidate || candidate.isPublic === false) throw profileNotFound(req.lang);
 
   const ip = visitorIp(req);
+  const recorded = { success: true, message: t('publicProfile.visitRecorded', req.lang), data: null };
+  /**
+   * One visit per visitor IP per candidate per 24h, so reloads don't inflate counts; an unknown IP is never deduped (it would merge every such visitor).
+   * shortcut: check-then-create, so two concurrent first hits can both store; fine for analytics, upgrade to a unique bucket key if exact counts matter.
+   */
+  if (ip && ip !== 'unknown' && (await MODEL.Visit.exists({ candidateId: candidate._id, ip, createdAt: { $gte: new Date(Date.now() - VISIT_DEDUP_WINDOW_MS) } }))) {
+    return recorded;
+  }
+
   const geo = ip && ip !== 'unknown' ? geoip.lookup(ip) : null;
   const location = geo ? [geo.city, geo.region, geo.country].filter(Boolean).join(', ') : '';
 
@@ -280,7 +291,7 @@ export const handlerRecordVisit = async (identifier: string, req: Request) => {
 
   await MODEL.Visit.create({ candidateId: candidate._id, ip, location, referrer, profileId });
 
-  return { success: true, message: t('publicProfile.visitRecorded', req.lang), data: null };
+  return recorded;
 };
 
 /**
