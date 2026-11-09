@@ -33,7 +33,11 @@ and download it as PDF, unless the candidate made their profile private.
    400. Case-insensitive substring match (regex-escaped) over general
    information `positionDesired` / `professionalSkills.name`, experience
    `company` / `position` / `skills`, education `school` / `major` (vi
-   and en), non-deleted rows only. Returns only public candidates with a
+   and en), non-deleted rows only, and only entries in at least one of
+   the candidate's non-deleted profiles: an experience/education row
+   counts only if such a profile of the same candidate lists its id;
+   general information (shown in every profile view) counts only if the
+   candidate has ≥1 non-deleted profile. Returns only public candidates with a
    non-empty slug, sorted by `_id`, `page` default 1, `limit` default 20
    (max 100); each item is `{ slug, firstName, lastName,
    positionDesired }` + list `meta`. Registered before `/api/me/:email`,
@@ -74,3 +78,4 @@ and download it as PDF, unless the candidate made their profile private.
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/public-profile-spec.md` | - |
 | 2026-11-08 | Behavior 3: explicit public whitelist of candidate fields | operator answer #382 (fields: email, phone, address) | public-profile-field-whitelist |
 | 2026-11-08 | Behavior 1: rate limit keyed per real client IP via `TRUST_PROXY_HOPS` | operator answer #386 (browser → Render directly, 1 hop) | trust-proxy-hops |
+| 2026-11-09 | Behavior 6: search only matches entries in ≥1 non-deleted profile of the candidate | operator answer #397 (2026-11-07) | search-in-profile-only |

@@ -3,7 +3,8 @@
  * candidate profiles. The query is matched as a case-insensitive
  * substring (so "vue" finds "Vue.js") against GeneralInformation
  * `positionDesired`/`professionalSkills.name`, Experience
- * `company`/`position`/`skills`, and Education `school`/`major`.
+ * `company`/`position`/`skills`, and Education `school`/`major` — only
+ * entries that belong to at least one of the candidate's profiles.
  *
  * Only candidates whose profile is public AND who have a vanity slug are
  * ever returned: the slug is the result's only identifier, so a
@@ -50,11 +51,36 @@ const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]
 export const handlerSearchPublicProfiles = async ({ query, page, limit }: { query: string; page: number; limit: number }): Promise<PublicSearchResult> => {
   const pattern = new RegExp(escapeRegex(query), 'i');
 
-  const matchedIds = await Promise.all([
+  const [generalCandidateIds, experiences, educations] = await Promise.all([
     MODEL.generalInformation.distinct('candidateId', { deletedAt: null, $or: [{ positionDesired: pattern }, { 'professionalSkills.name': pattern }] }).exec(),
-    MODEL.Experience.distinct('candidateId', { deletedAt: null, $or: [{ company: pattern }, { position: pattern }, { skills: pattern }] }).exec(),
-    MODEL.Education.distinct('candidateId', { deletedAt: null, $or: [{ 'school.vi': pattern }, { 'school.en': pattern }, { 'major.vi': pattern }, { 'major.en': pattern }] }).exec(),
+    MODEL.Experience.find({ deletedAt: null, $or: [{ company: pattern }, { position: pattern }, { skills: pattern }] })
+      .select({ candidateId: 1 })
+      .lean()
+      .exec(),
+    MODEL.Education.find({ deletedAt: null, $or: [{ 'school.vi': pattern }, { 'school.en': pattern }, { 'major.vi': pattern }, { 'major.en': pattern }] })
+      .select({ candidateId: 1 })
+      .lean()
+      .exec(),
   ]);
+
+  /**
+   * Only entries in at least one non-deleted profile are searchable.
+   * General information has no id list on a profile and shows in every
+   * profile view, so it needs just one profile to exist. Keyed on
+   * `candidateId:entryId` because profile writes don't ownership-check the
+   * ids, so a profile listing another candidate's entry never counts.
+   */
+  const entries = [...experiences, ...educations];
+  const profiles = await MODEL.Profile.find({ deletedAt: null, candidateId: { $in: [...generalCandidateIds, ...entries.map((entry) => entry.candidateId)] } })
+    .select({ candidateId: 1, experienceIds: 1, educationIds: 1 })
+    .lean()
+    .exec();
+  const candidatesWithProfile = new Set(profiles.map((profile) => String(profile.candidateId)));
+  const entriesInProfile = new Set(profiles.flatMap((profile) => [...profile.experienceIds, ...profile.educationIds].map((id) => `${String(profile.candidateId)}:${String(id)}`)));
+  const matchedIds = [
+    ...generalCandidateIds.filter((id) => candidatesWithProfile.has(String(id))),
+    ...entries.filter((entry) => entriesInProfile.has(`${String(entry.candidateId)}:${String(entry._id)}`)).map((entry) => entry.candidateId),
+  ];
 
   /**
    * `isPublic: { $ne: false }` rather than `true`: the schema default
@@ -62,7 +88,7 @@ export const handlerSearchPublicProfiles = async ({ query, page, limit }: { quer
    * the field is still public — the same rule `fnGetAboutMe` applies with
    * its `=== false` check. `$nin: [null, '']` also excludes a missing slug.
    */
-  const filter = { _id: { $in: matchedIds.flat() }, isPublic: { $ne: false }, slug: { $nin: [null, ''] } };
+  const filter = { _id: { $in: matchedIds }, isPublic: { $ne: false }, slug: { $nin: [null, ''] } };
   const [candidates, total] = await Promise.all([
     MODEL.Candidate.find(filter)
       .select({ _id: 1, slug: 1, firstName: 1, lastName: 1, isPublic: 1 })
