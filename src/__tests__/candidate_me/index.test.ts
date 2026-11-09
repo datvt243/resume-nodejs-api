@@ -20,7 +20,7 @@ import { errorsMiddleware } from '@/middlewares/errors.middleware';
 
 jest.mock('@/models', () => ({
   Candidate: { findOne: jest.fn() },
-  Visit: { create: jest.fn() },
+  Visit: { create: jest.fn(), exists: jest.fn() },
   Profile: { findOne: jest.fn() },
   generalInformation: { find: jest.fn() },
   Experience: { find: jest.fn() },
@@ -138,6 +138,39 @@ describe('candidate_me/index.ts (issue #135)', () => {
       await handlerRecordVisit('votan.it@gmail.com', req as any);
 
       expect((MODEL.Visit.create as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ ip: '10.0.0.1' }));
+    });
+
+    it('stores nothing but still answers 200 when the same IP visited this candidate within 24h', async () => {
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
+      (MODEL.Visit.exists as jest.Mock).mockResolvedValue({ _id: 'v1' });
+      const now = Date.now();
+      const clock = jest.spyOn(Date, 'now').mockReturnValue(now);
+
+      const result = await handlerRecordVisit('votan.it@gmail.com', { ip: '10.0.0.1', socket: {}, headers: {} } as any);
+
+      expect(result).toEqual(expect.objectContaining({ success: true, data: null }));
+      expect(jest.mocked(MODEL.Visit).exists).toHaveBeenCalledWith({ candidateId: 'c1', ip: '10.0.0.1', createdAt: { $gte: new Date(now - 24 * 60 * 60 * 1000) } });
+      expect(jest.mocked(MODEL.Visit).create).not.toHaveBeenCalled();
+      clock.mockRestore();
+    });
+
+    it('records the visit when that IP has no visit to this candidate in the last 24h', async () => {
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
+      (MODEL.Visit.exists as jest.Mock).mockResolvedValue(null);
+
+      await handlerRecordVisit('votan.it@gmail.com', { ip: '10.0.0.1', socket: {}, headers: {} } as any);
+
+      expect(jest.mocked(MODEL.Visit).create).toHaveBeenCalledTimes(1);
+    });
+
+    it('never dedups a visitor whose IP is unknown', async () => {
+      (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({ select: () => ({ exec: jest.fn().mockResolvedValue({ _id: 'c1' }) }) });
+      (MODEL.Visit.exists as jest.Mock).mockResolvedValue({ _id: 'v1' });
+
+      await handlerRecordVisit('votan.it@gmail.com', { ip: '', socket: {}, headers: {} } as any);
+
+      expect(jest.mocked(MODEL.Visit).exists).not.toHaveBeenCalled();
+      expect(jest.mocked(MODEL.Visit).create).toHaveBeenCalledTimes(1);
     });
 
     const ownProfileId = '64b7f0c2a1b2c3d4e5f60799';

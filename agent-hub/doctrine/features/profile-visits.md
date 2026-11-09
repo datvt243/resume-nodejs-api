@@ -20,6 +20,9 @@ can wipe it.
    `X-Forwarded-For` entry if it is a valid IP, else `req.ip` / socket
    address; `location` = "city, region,
    country" from a local geoip lookup (empty if unknown). 200, `data: null`.
+   At most one visit per visitor IP per candidate per 24h: a repeat inside
+   the window answers the same 200 and stores nothing (profile is not part
+   of the key; an empty/unknown IP is never deduped).
 2. `GET /api/v1/candidate/visits?page=&limit=` (auth, self only) → 200,
    one page of the caller's visits newest first (with ip, location,
    referrer, profileId, timestamps) + list `meta` (`total` = all visits).
@@ -66,3 +69,4 @@ can wipe it.
 | 2026-11-07 | Behavior 1 IP wording corrected to the code; Status → verified | operator answer round 2, see `evidence/analyst/2026-11-07/profile-visits-spec.md` | - |
 | 2026-11-08 | Behavior 1: private profile → 404, no visit stored | operator answer #398 | visit-skip-private |
 | 2026-11-09 | Behavior 2: list is paginated (`page`/`limit`, default 20, max 100) | operator answer #396 | paginate-visits |
+| 2026-11-09 | Behavior 1: one visit per visitor IP per candidate per 24h, repeats answer 200 and store nothing | operator answer #399 | dedup-visits |
