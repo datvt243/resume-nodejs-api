@@ -20,8 +20,9 @@ without duplicating data.
 3. `GET /` first creates a default profile named `Tổng hợp` containing
    every current non-deleted entry of the six sections when the caller
    has no non-deleted profile, then lists.
-4. A profile is used by `?profile=<id>` on the public profile and the
-   public PDF: each section is filtered to the ids listed on that profile
+4. A profile is used by `?profile=<id>` on the public profile, the
+   public PDF, the owner export (`GET /download-pdf`) and
+   `POST /cv/ats-check`: each section is filtered to the ids listed on that profile
    (see `public-profile`). Visit recording only stores the id from the
    body `profile` field for stats, no filtering (see `profile-visits`).
 
@@ -48,3 +49,4 @@ without duplicating data.
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-profiles-spec.md` | - |
+| 2026-11-10 | Behavior 4: `?profile=` also on owner export + ATS check | operator answer #400 | owner-export-profile-filter |

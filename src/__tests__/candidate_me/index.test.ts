@@ -16,6 +16,7 @@ import geoip from 'geoip-lite';
 import * as MODEL from '@/models';
 import { fnExportPDF, fnGetAboutMe, handlerGetAboutMe, handlerRecordVisit, normalizeReferrer, profileNotFound } from '@/candidate_me';
 import { fnAtsCheck } from '@/candidate_me/ats-check';
+import * as atsPdf from '@/services/createPDF.ats';
 import { errorsMiddleware } from '@/middlewares/errors.middleware';
 
 jest.mock('@/models', () => ({
@@ -433,6 +434,57 @@ describe('own-CV endpoints when the candidate no longer exists', () => {
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(404);
     expect(json.mock.calls[0][0]).toMatchObject({ success: false, error: { code: 'NOT_FOUND' } });
+  });
+});
+
+describe('own-CV endpoints — ?profile= filter', () => {
+  const candidateId = '507f1f77bcf86cd799439011';
+  const profileId = '507f1f77bcf86cd799439099';
+  const educationIds = ['507f1f77bcf86cd799439012'];
+  let renderSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (MODEL.Candidate.findOne as jest.Mock).mockReturnValue({
+      exec: jest.fn().mockResolvedValue({ _id: candidateId, email: 'votan.it@gmail.com' }),
+    });
+    const emptyFind = { exec: jest.fn().mockResolvedValue([]) };
+    for (const model of ['generalInformation', 'Experience', 'Education', 'Reference', 'Project', 'Certificate', 'Award'] as const) {
+      (MODEL[model].find as jest.Mock).mockReturnValue(emptyFind);
+    }
+    (MODEL.Profile.findOne as jest.Mock).mockReturnValue({
+      exec: jest.fn().mockResolvedValue({ educationIds, experienceIds: [], projectIds: [], certificateIds: [], awardIds: [], referenceIds: [] }),
+    });
+    // Stop fnAtsCheck right after the data fetch — rendering is out of scope here.
+    renderSpy = jest.spyOn(atsPdf, 'renderAtsPdfBuffer').mockRejectedValue(new Error('render skipped'));
+  });
+
+  afterEach(() => renderSpy.mockRestore());
+
+  const call = async (handler: typeof fnExportPDF, query: Record<string, string>) => {
+    const res: any = { status: jest.fn().mockReturnValue({ json: jest.fn() }) };
+    const req: any = { user: { _id: candidateId }, query: { format: 'json', ...query }, body: {}, lang: 'en' };
+    await handler(req, res, jest.fn());
+  };
+
+  it.each([
+    ['GET /api/v1/download-pdf', fnExportPDF],
+    ['POST /api/v1/cv/ats-check', fnAtsCheck],
+  ])('%s filters sections to the caller\'s own non-deleted profile', async (_label, handler) => {
+    await call(handler, { profile: profileId });
+
+    expect((MODEL.Profile.findOne as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ _id: profileId, candidateId, deletedAt: null }));
+    expect((MODEL.Education.find as jest.Mock).mock.calls[0][0]).toEqual(expect.objectContaining({ _id: { $in: educationIds } }));
+  });
+
+  it.each([
+    ['GET /api/v1/download-pdf', fnExportPDF],
+    ['POST /api/v1/cv/ats-check', fnAtsCheck],
+  ])('%s stays unfiltered without ?profile=', async (_label, handler) => {
+    await call(handler, {});
+
+    expect((MODEL.Profile.findOne as jest.Mock).mock.calls).toHaveLength(0);
+    expect((MODEL.Education.find as jest.Mock).mock.calls[0][0]).not.toHaveProperty('_id');
   });
 });
 

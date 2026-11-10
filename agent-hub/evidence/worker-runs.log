@@ -136,3 +136,4 @@
 2026-11-09T02:51:48Z role=verifier outcome=SEAL node=paginate-visits rerun=none spawn=fresh hub_bytes_before=96902 hub_bytes_after=96170
 2026-11-09T03:05:30Z role=verifier outcome=SEAL node=search-in-profile-only rerun=none spawn=fresh hub_bytes_before=96170 hub_bytes_after=96174
 2026-11-09T05:47:18Z role=verifier outcome=SEAL node=dedup-visits rerun=none spawn=fresh hub_bytes_before=96174 hub_bytes_after=96166
+2026-11-10T09:26:27Z role=verifier outcome=SEAL node=owner-export-profile-filter rerun=none spawn=fresh hub_bytes_before=96166 hub_bytes_after=96177

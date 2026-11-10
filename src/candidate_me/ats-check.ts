@@ -37,7 +37,9 @@ export const fnAtsCheck = async (req: Request, res: Response, next: NextFunction
     const template: 'ats' | 'classic' = req.body?.['template'] === 'classic' ? 'classic' : 'ats';
     const jobDescription: string | undefined = typeof req.body?.['jobDescription'] === 'string' ? req.body['jobDescription'] : undefined;
 
-    const { data } = await handlerGetAboutMe({ identifier: find.email, lang });
+    const profileId = typeof req.query['profile'] === 'string' ? req.query['profile'] : undefined;
+
+    const { data } = await handlerGetAboutMe({ identifier: find.email, lang, profileId });
 
     const candidateData = data as AggregatedCandidateData;
 

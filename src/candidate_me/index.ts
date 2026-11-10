@@ -131,7 +131,7 @@ export const handlerGetAboutMe = async ({
    * Resolve the optional profile filter — must belong to this same
    * candidate; an invalid/foreign/deleted profile id is treated the same
    * as "no profile given" (falls back to unfiltered) rather than
-   * erroring, since this is a public, unauthenticated route.
+   * erroring, on the public routes and the owner's export alike.
    */
   let profileDoc: Awaited<ReturnType<typeof MODEL.Profile.findOne>> = null;
   // A non-ObjectId value would make Mongoose throw a CastError (500) instead of falling back.
@@ -361,7 +361,8 @@ export const fnExportPDF = async (req: Request, res: Response, next: NextFunctio
 
   try {
     const lang = req.query['lang'] === 'en' ? 'en' : 'vi';
-    const { success, message, data } = await handlerGetAboutMe({ identifier: email, lang });
+    const profileId = typeof req.query['profile'] === 'string' ? req.query['profile'] : undefined;
+    const { success, message, data } = await handlerGetAboutMe({ identifier: email, lang, profileId });
 
     // ?format=json reuses the same aggregated data already assembled for
     // the PDF path — no new dependency, no new data-fetch.

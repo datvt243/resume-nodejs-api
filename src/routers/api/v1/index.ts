@@ -101,6 +101,12 @@ router.use('/cv', asyncHandler(verifyToken), routeCv);
  *           text extraction (see doctrine/standards/pdf-export-standard.md).
  *           `classic`/`modern` both apply to `format=docx` too; `ats` is
  *           PDF-only. Ignored when `format=json`.
+ *       - in: query
+ *         name: profile
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Id of one of the caller's own CV profiles — each section is limited to the entries listed on it. An unknown, deleted, foreign or malformed id falls back to every entry (no error). Applies to every format.
  *     responses:
  *       200:
  *         description: PDF file stream, the candidate's aggregated data as JSON when `format=json`, or a .docx file when `format=docx`
