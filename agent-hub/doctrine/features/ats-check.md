@@ -2,7 +2,7 @@
 
 - Status: verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/ats-check-spec.md`
 - Source: backfill from code
-- Issues: #406, #407
+- Issues: #400, #406, #407
 - Anchors: `src/routers/api/v1/cv.route.ts`, `src/candidate_me/ats-check.ts`, `src/services/atsChecks.ts`, `src/services/atsExtract.ts`, `src/services/keywordMatcher.ts`, `src/services/createPDF.ats.ts`, `src/services/createPDF.ts`
 
 ## Goal
@@ -14,7 +14,8 @@ description.
 1. `POST /api/v1/cv/ats-check` requires a valid access token; it always
    checks the caller's own CV. Nothing is saved.
 2. Body (all optional): `lang` (`en`, else `vi`), `template` (`classic`,
-   else `ats`), `jobDescription` (string).
+   else `ats`), `jobDescription` (string). Query `?profile=<id>` filters
+   the checked CV exactly like `cv-export` rule 2.
 3. The CV is rendered to a PDF in memory with the chosen template, its
    text is extracted back out, and 10 checks run: `text-extractable`,
    `reading-order`, `no-spaced-letters`, `contact-in-body`,
@@ -66,3 +67,4 @@ description.
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/ats-check-spec.md` | - |
 | 2026-11-08 | Behavior 4/4b: classic → standard-headings + metadata `applicable: false`, excluded from score | operator answer #406 | ats-classic-not-applicable |
 | 2026-11-08 | Behavior 6: success + every check message localized via `req.lang` | operator answer #407 (+ issue comment: all check messages) | ats-check-messages-i18n |
+| 2026-11-10 | Behavior 2: `?profile=` query filters the checked CV (same rule as `cv-export` rule 2) | operator answer #400 | owner-export-profile-filter |

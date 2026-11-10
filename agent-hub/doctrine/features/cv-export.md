@@ -15,8 +15,10 @@ as the raw aggregated data, in either language and in a chosen template.
    links/new tabs, cookie; see `auth-session-tokens` rule 1). The CV
    exported is always the caller's own.
 2. Data = same aggregation as the public profile (`public-profile`
-   rule 3) for the caller, ignoring `isPublic` and without `?profile=`
-   filtering.
+   rule 3) for the caller, ignoring `isPublic`. `?profile=<id>` filters
+   each section like the public routes: a non-deleted profile of the
+   caller → its listed ids only; missing/unknown/deleted/foreign/malformed
+   → unfiltered, no error. Applies to every format.
 3. `?lang=en` → English; any other value → Vietnamese. Localized fields
    fall back to whichever language has content.
 4. `?format=json` → 200 JSON envelope with the aggregated data.
@@ -63,3 +65,4 @@ as the raw aggregated data, in either language and in a chosen template.
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-export-spec.md` | - |
 | 2026-11-08 | Behavior 8: classic/modern PDF no longer written to `public/pdf/`; uploaded CVs moved to `storage/cv/` (outside `public/`), legacy files moved at boot | operator answer #383 ("Move them at startup") | private-cv-storage |
+| 2026-11-10 | Behavior 2: `?profile=` filters the owner export (all formats), same rule as the public routes | operator answer #400 | owner-export-profile-filter |
