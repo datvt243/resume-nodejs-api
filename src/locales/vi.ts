@@ -101,6 +101,9 @@ export default {
   application: {
     profileNotFound: 'CV profile đã chọn không tồn tại hoặc đã bị xoá',
   },
+  profile: {
+    entryNotFound: 'Một hoặc nhiều mục đã chọn không tồn tại, đã bị xoá hoặc không thuộc về bạn',
+  },
   project: {
     experienceNotFound: 'Kinh nghiệm làm việc đã chọn không tồn tại hoặc đã bị xoá',
   },
