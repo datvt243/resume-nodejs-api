@@ -101,6 +101,9 @@ export default {
   application: {
     profileNotFound: 'The selected CV profile does not exist or has been deleted',
   },
+  profile: {
+    entryNotFound: 'One or more selected entries do not exist, have been deleted, or are not yours',
+  },
   project: {
     experienceNotFound: 'The selected work experience does not exist or has been deleted',
   },
