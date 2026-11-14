@@ -112,9 +112,9 @@ disable-model-invocation: true
    - **Có `--ship`**: gọi ngay `/ship "<task>"` đúng như skill đó định
      nghĩa — KHÔNG tự triển khai lại logic của `/ship` ở đây. `/ship` vẫn
      chạy TOÀN BỘ hợp đồng của chính nó (guard chặn main/staging, show
-     git commands thật, chờ approval, evidence note riêng) — `--ship` chỉ
-     bỏ bước gõ `/ship` làm lệnh thứ 2, KHÔNG bỏ qua seal gate của
-     `/ship`. Muốn `--merge` (mở PR vào staging) thì gõ `/ship --merge`
+     git commands thật rồi chạy luôn — `AutoCommitNoGate`, truyền `--ship`
+     chính là approval — evidence note riêng) — `--ship` chỉ bỏ bước gõ
+     `/ship` làm lệnh thứ 2. Muốn `--merge` (mở PR vào staging) thì gõ `/ship --merge`
      riêng sau, hoặc `/todo "<task>" --ship` rồi tự thêm `--merge` — cờ
      `--ship` ở đây không tự suy ra `--merge`.
 
