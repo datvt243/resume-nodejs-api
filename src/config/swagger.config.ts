@@ -284,7 +284,7 @@ const options: swaggerJsdoc.Options = {
             appliedDate: { type: 'number' },
             status: { type: 'string', enum: ['applied', 'interview', 'offer', 'rejected'] },
             note: { type: 'string' },
-            jobLink: { type: 'string' },
+            jobLink: { type: 'string', maxLength: 500, description: "http(s) URL, or '' for none (anything else → 400)." },
             profileId: {
               type: 'string',
               nullable: true,

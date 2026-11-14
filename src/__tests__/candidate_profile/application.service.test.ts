@@ -43,6 +43,16 @@ describe('schemaApplication profileId', () => {
   });
 });
 
+describe('schemaApplication jobLink', () => {
+  it.each(['', 'http://acme.com/jobs/1', 'https://acme.com/jobs?id=1'])('accepts %p', (jobLink) => {
+    expect(schemaApplication.validate({ ...application, jobLink }).error).toBeUndefined();
+  });
+
+  it.each(['acme.com/jobs', 'ftp://acme.com/jobs', 'javascript:alert(1)', `https://acme.com/${'a'.repeat(500)}`])('rejects %p', (jobLink) => {
+    expect(schemaApplication.validate({ ...application, jobLink }).error).toBeDefined();
+  });
+});
+
 describe('application.service profile link', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -107,5 +117,19 @@ describe('POST /application/create with an unowned profile', () => {
     expect(res.status).toHaveBeenCalledTimes(1);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(json).toHaveBeenCalledWith(expect.objectContaining({ success: false, error: expect.objectContaining({ message: 'The selected CV profile does not exist or has been deleted' }) }));
+  });
+});
+
+describe('POST /application/create with a non-http(s) jobLink', () => {
+  it('answers 400 with jobLink in details', async () => {
+    const json = jest.fn();
+    const res = { status: jest.fn().mockReturnValue({ json }) };
+    const req = { body: { ...application, jobLink: 'ftp://acme.com/jobs' }, lang: 'en' };
+
+    await fnCreate(req as never, res as never, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({ success: false, error: expect.objectContaining({ details: [expect.objectContaining({ field: 'jobLink' })] }) }));
+    expect(mockCrudCreate).not.toHaveBeenCalled();
   });
 });
