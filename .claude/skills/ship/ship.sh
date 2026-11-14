@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Commit + push the STAGED changes of a SEALED node.
-# Usage: ship.sh <node-slug> "<type(scope): summary>" [--merge[=<branch>]] [--yes]
+# Usage: ship.sh <node-slug> "<type(scope): summary>" [--merge[=<branch>]]
 # Stage the node's files yourself first (git add <files>) — never blind add.
 # Main working branch comes from ship.env next to this script.
-# Exit: 0 shipped, 1 refused/failed, 3 declined at the seal gate.
+# Runs the chain at once — invoking it is the approval (AutoCommitNoGate).
+# Exit: 0 shipped, 1 refused/failed.
 set -euo pipefail
 
 die() { echo "ship: $*" >&2; exit 1; }
@@ -14,16 +15,16 @@ env_file="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ship.env"
 # shellcheck source=/dev/null
 [ -f "$env_file" ] && . "$env_file"
 
-slug="" msg="" merge="" yes=false
+slug="" msg="" merge=""
 for a in "$@"; do
   case $a in
     --merge) merge=main ;;
     --merge=*) merge=${a#--merge=} ;;
-    --yes) yes=true ;;
+    --yes) ;; # accepted for old callers; no gate to skip
     *) if [ -z "$slug" ]; then slug=$a; elif [ -z "$msg" ]; then msg=$a; else die "unexpected arg: $a"; fi ;;
   esac
 done
-[ -n "$slug" ] && [ -n "$msg" ] || die "usage: ship.sh <node-slug> \"<commit message>\" [--merge[=<branch>]] [--yes]"
+[ -n "$slug" ] && [ -n "$msg" ] || die "usage: ship.sh <node-slug> \"<commit message>\" [--merge[=<branch>]]"
 [ -n "$SHIP_MAIN_BRANCH" ] || die "SHIP_MAIN_BRANCH not set in $env_file — don't guess the main branch"
 [ "$merge" = main ] && merge=$SHIP_MAIN_BRANCH
 [[ $SHIP_MERGE_VIA =~ ^(git|pr)$ ]] || die "SHIP_MERGE_VIA must be git or pr, got: $SHIP_MERGE_VIA"
@@ -47,7 +48,7 @@ branch=$(git branch --show-current)
 [ -n "$branch" ] || die "detached HEAD"
 created=""
 if [ "$branch" = "$SHIP_MAIN_BRANCH" ]; then
-  # created after approval, so a declined run leaves nothing behind
+  # created only after every check passed, so a refused run leaves nothing behind
   created="fix/$slug"
   git rev-parse -q --verify "refs/heads/$created" >/dev/null && die "branch $created already exists"
   branch=$created
@@ -59,7 +60,7 @@ echo "$code"
 git diff --cached --quiet -- "$hub" || echo "📝 agent-hub: updated"
 git diff --quiet || echo "(unstaged changes stay out of this commit)"
 
-# 5. SEAL GATE — show the full chain, one approval
+# 5. Show the full chain (transparency, not a gate)
 cmds=()
 [ -n "$created" ] && cmds+=("git checkout -b $created")
 cmds+=("git commit -m \"$msg\"" "git push -u origin $branch")
@@ -76,11 +77,6 @@ end=${merge:-$branch}
 [ "$SHIP_MERGE_VIA" = pr ] && [ "$merge" = "$SHIP_MAIN_BRANCH" ] && cmds+=("git pull --ff-only origin $SHIP_MAIN_BRANCH")
 echo; echo "node $slug → remote origin, branch $branch"
 printf '  %s\n' "${cmds[@]}"
-if ! $yes; then
-  [ -t 0 ] || { echo "ship: approval needed — rerun with --yes once approved" >&2; exit 3; }
-  read -rp "run these? [y/N] " ok
-  [[ $ok =~ ^[yY]$ ]] || { echo "not approved — nothing run"; exit 3; }
-fi
 
 # 6. Run + read back (NoForce: no --force/--no-verify/amend anywhere)
 out=$(mktemp)
@@ -131,8 +127,7 @@ mkdir -p "$(dirname "$note")"
   echo; echo "## Commands"; printf -- '- `%s`\n' "${cmds[@]}"
   echo; echo "## Output"; echo "Commit: \`$hash\`"; echo '```'; cat "$out"; echo '```'
   echo; echo "## Seal gate"
-  if $yes; then echo "Approved by the operator before the run (\`--yes\`), covering the whole chain above."
-  else echo "Approved interactively (y) by the operator before the run, covering the whole chain above."; fi
+  echo "Approved by the operator invoking /ship (AutoCommitNoGate), covering the whole chain above."
 } >> "$note"
 rm -f "$out"
 

@@ -1,6 +1,6 @@
 ---
 name: ship
-description: "Commit + push a SEALED node via the bundled ship.sh — the outward-facing gate at the end of the loop. Usage: /ship \"[note]\" or /ship \"[note]\" --merge[=branch] to also merge into a target branch (directly, or through a GitHub PR + required CI when ship.env sets SHIP_MERGE_VIA=pr). Always shows the exact git commands and waits for approval before any commit/push/merge. Never --force/--no-verify."
+description: "Commit + push a SEALED node via the bundled ship.sh — the outward-facing gate at the end of the loop. Usage: /ship \"[note]\" or /ship \"[note]\" --merge[=branch] to also merge into a target branch (directly, or through a GitHub PR + required CI when ship.env sets SHIP_MERGE_VIA=pr). Prints the exact git commands, then runs them at once — invoking /ship is the approval. Never --force/--no-verify."
 argument-hint: "[note] [--merge[=<branch>]]"
 ---
 
@@ -10,8 +10,9 @@ argument-hint: "[note] [--merge[=<branch>]]"
 SEALED a node. Every git action lives in `${CLAUDE_SKILL_DIR}/ship.sh`
 (the operator can run it by hand:
 `.claude/skills/ship/ship.sh <node-slug> "<msg>" [--merge[=<branch>]]`).
-Never run the commit/push/merge chain yourself, never pass `--yes` before
-the operator approved.
+Never run the commit/push/merge chain yourself. Run `/ship` only when the
+operator typed `/ship` or `/todo --ship` — that call is the approval
+(`AutoCommitNoGate`); never start it on your own.
 
 ## Steps
 1. Read `haven/diagrams/` to find the node matching the working-tree
@@ -22,22 +23,20 @@ the operator approved.
    diff/content — one line `📝 agent-hub: updated`.
 3. Write a Conventional Commits message (`type(scope): summary`) from the
    real evidence note — don't invent detail. `$ARGUMENTS` note = hint.
-4. **SEAL GATE**: run `bash "${CLAUDE_SKILL_DIR}/ship.sh" <node-slug> "<msg>" [--merge[=<branch>]]`
-   WITHOUT `--yes`. It checks SEALED + both evidence notes (`NO_EVIDENCE`)
-   + staged diff, changes nothing, prints the full command chain (auto
-   `fix/<node-slug>` branch when on the main branch, commit, push,
-   merge — `git merge --no-ff`, or with `SHIP_MERGE_VIA=pr` a PR + wait
-   for required checks + `gh pr merge --merge`, never `--admin` —
-   cleanup, return to main branch) and exits 3. Show that output
-   verbatim, wait for explicit operator approval. No approval = no run.
-5. After approval: rerun the exact same command + `--yes`. Print its
-   output verbatim (`ReadBackBeforeClaim`) — it runs the chain, writes
-   `evidence/ship/<date>/<slug>-ship.md`, and ends on the main branch.
+4. Run `bash "${CLAUDE_SKILL_DIR}/ship.sh" <node-slug> "<msg>" [--merge[=<branch>]]`.
+   It checks SEALED + both evidence notes (`NO_EVIDENCE`) + staged diff,
+   prints the full command chain (auto `fix/<node-slug>` branch when on
+   the main branch, commit, push, merge — `git merge --no-ff`, or with
+   `SHIP_MERGE_VIA=pr` a PR + wait for required checks + `gh pr merge
+   --merge`, never `--admin` — cleanup, return to main branch), then runs
+   it at once — no approval wait (`AutoCommitNoGate`).
+5. Print its output verbatim (`ReadBackBeforeClaim`) — it writes
+   `evidence/ship/<date>/<slug>-ship.md` and ends on the main branch.
 6. Exit 1 → report the real error verbatim. Never retry with `--force`,
    `--no-verify`, amend, `-D`, stash or discard.
 
 ## Hard rules honored
-`SealedOnly` | `NoForce` | `ReadBackBeforeClaim` | `MergeOnRequest`
+`SealedOnly` | `AutoCommitNoGate` | `NoForce` | `ReadBackBeforeClaim` | `MergeOnRequest`
 (only with `--merge`) | `BranchBeforeCommit` | `CleanupFixBranch` (only
 with `--merge` AND a branch this run created) | `ReturnToWorkingBranch` —
 all enforced inside `ship.sh`.
