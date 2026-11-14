@@ -6,7 +6,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { asyncHandler } from '@/utils/asyncHandler';
 import { Collections } from '@/types/base.type';
-import { baseDelete, baseGetAll, baseRestore } from '@/candidate_profile/BaseController';
+import { baseDelete, baseGetAll, baseRestore, baseReorder } from '@/candidate_profile/BaseController';
 import { fnCreate, fnUpdate, fnBulkCreate } from '@/candidate_profile/education/education.controller';
 
 const router = express.Router();
@@ -158,6 +158,47 @@ router.post('/bulk', asyncHandler(fnBulkCreate));
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.put('/update', asyncHandler(fnUpdate));
+
+/**
+ * @swagger
+ * /api/v1/education/reorder:
+ *   put:
+ *     tags: [Education]
+ *     summary: Save the manual CV display order of every own education entry
+ *     description: "`ids` must list each of the caller's non-deleted entries exactly once; position i stores `order = i`. Nothing is written on any error."
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [ids]
+ *             properties:
+ *               ids: { type: array, items: { type: string }, minItems: 1 }
+ *     responses:
+ *       200:
+ *         description: Order saved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       400:
+ *         description: Duplicate, unknown, foreign or deleted id (`ids.<i>`), or an own entry missing (`ids`)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.put(
+  '/reorder',
+  (req: Request, _res: Response, next: NextFunction) => {
+    req.params['collection'] = Collections.EDUCATION;
+    next();
+  },
+  asyncHandler(baseReorder),
+);
 
 /**
  * @swagger

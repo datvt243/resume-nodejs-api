@@ -55,6 +55,9 @@ export default {
     bulkNoItems: 'No items provided',
     bulkTooManyItems: 'Too many items in one request (max 100)',
     bulkPartialSuccess: 'Created {{succeeded}} of {{total}} items',
+    reorderSuccess: 'Order saved',
+    reorderEntryNotFound: 'This entry does not exist, has been deleted, or is not yours',
+    reorderIncomplete: 'The list must contain every one of your entries in this section',
   },
   candidate: {
     userNotFound: 'User not found',

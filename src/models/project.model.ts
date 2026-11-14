@@ -25,6 +25,8 @@ const schema = new Schema(
     isWorking: { type: Boolean, default: false },
     startDate: { type: Number, default: '', required: [false, 'Vui lòng nhập ngày bắt đầu'] },
     endDate: { type: Number, default: '', required: [false, 'Vui lòng nhập ngày kết thúc'] },
+    // manual CV display position, set only by PUT /project/reorder; absent until the first reorder
+    order: { type: Number },
     candidateId: { type: ObjectId, required: [true, 'Vui lòng nhập ID ứng viên'], ref: 'candidate', index: true },
     // soft-delete — null nghĩa là chưa xoá
     deletedAt: { type: Number, default: null },

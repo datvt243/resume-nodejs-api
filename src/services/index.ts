@@ -8,7 +8,7 @@ import type { BaseReturn } from '@/types/base.type';
 import type { ListMeta } from '@/utils/response';
 import { getSelectFields } from '@/utils/helper';
 import { t, DEFAULT_LANG } from '@/utils/i18n';
-import { AuthorizationError, BadRequestError, NotFoundError } from '@/errors';
+import { AuthorizationError, BadRequestError, NotFoundError, ValidationError } from '@/errors';
 
 /**
  * The minimal raw-document shape every CV-section model shares, at the
@@ -37,6 +37,8 @@ export interface CrudDocument {
    * `deletedAt` above, not a claim every section has images.
    */
   images?: string[];
+  // Education/Project only (`MANUALLY_ORDERED_COLLECTIONS`), same shared-optional pattern as `images`.
+  order?: number | null;
 }
 
 interface baseProp<T extends CrudDocument> {
@@ -61,7 +63,27 @@ interface baseProp<T extends CrudDocument> {
   page?: number | undefined;
   limit?: number | undefined;
   sort?: string | undefined;
+  // without `sort`, list in CV display order (`byManualOrder`) instead of insertion order
+  manualOrder?: boolean;
 }
+
+/**
+ * Sections whose entries the candidate orders by hand (`PUT /<section>/reorder`).
+ * Experience is left out on purpose: it always follows its dates.
+ */
+export const MANUALLY_ORDERED_COLLECTIONS: ReadonlySet<string> = new Set(['educations', 'projects']);
+
+/**
+ * CV display order: entries with a manual `order` first, ascending; then
+ * the rest, newest `startDate` first. Equal `order` values (possible after
+ * a restore) also fall back to `startDate`.
+ */
+export const byManualOrder = (a: { order?: unknown; startDate?: unknown }, b: { order?: unknown; startDate?: unknown }): number => {
+  const orderA = typeof a.order === 'number' ? a.order : Infinity;
+  const orderB = typeof b.order === 'number' ? b.order : Infinity;
+  if (orderA !== orderB) return orderA - orderB;
+  return (Number(b.startDate) || 0) - (Number(a.startDate) || 0);
+};
 
 // Pagination hard cap — a caller cannot request more than this many documents per page regardless of what `limit` it passes.
 export const MAX_PAGE_LIMIT = 100;
@@ -103,7 +125,7 @@ export const formatReturnFailed = (props: string | BaseReturn) => {
 };
 
 export const baseFindDocument = async <T extends CrudDocument>(props: baseProp<T>) => {
-  const { model: MODEL, fields = { _id: '' }, findOne = true, lang = DEFAULT_LANG, page, limit, sort } = props;
+  const { model: MODEL, fields = { _id: '' }, findOne = true, lang = DEFAULT_LANG, page, limit, sort, manualOrder = false } = props;
 
   if (!MODEL || !fields || !Object.keys(fields).length) return formatReturnFailed(t('common.notFoundData', lang));
 
@@ -131,8 +153,10 @@ export const baseFindDocument = async <T extends CrudDocument>(props: baseProp<T
    * without `limit` it is one page holding everything.
    */
   const hasPagination = Number.isInteger(limit) && (limit as number) > 0;
+  const useManualOrder = manualOrder && !sort;
   if (!hasPagination) {
     const find = await query.exec();
+    if (useManualOrder) find.sort(byManualOrder);
     return { ...formatReturn({ success: true, data: find, message: '', errors: null }), meta: listMeta(find.length) };
   }
 
@@ -140,9 +164,40 @@ export const baseFindDocument = async <T extends CrudDocument>(props: baseProp<T
   const safePage = Number.isInteger(page) && (page as number) > 0 ? (page as number) : 1;
   const skip = (safePage - 1) * safeLimit;
 
+  // shortcut: "entries without `order` last" has no Mongo sort, so the whole per-candidate list is sorted and paged in memory; move to an aggregation if a section ever grows past a few hundred entries.
+  if (useManualOrder) {
+    const all = (await query.exec()).sort(byManualOrder);
+    return { ...formatReturn({ success: true, data: all.slice(skip, skip + safeLimit), message: '', errors: null }), meta: listMeta(all.length, safePage, safeLimit) };
+  }
+
   const [items, total] = await Promise.all([query.skip(skip).limit(safeLimit).exec(), MODEL.countDocuments(safeFields)]);
 
   return { ...formatReturn({ success: true, data: items, message: '', errors: null }), meta: listMeta(total, safePage, safeLimit) };
+};
+
+/**
+ * Stores a candidate's manual display order: `ids` (Joi-checked unique
+ * 24-hex strings) must be exactly their non-deleted entries in this
+ * section, and the entry at position `i` gets `order = i`. Nothing is
+ * written unless the whole list checks out — a partial list would leave
+ * the omitted entries' old positions colliding with the new ones.
+ */
+export const baseReorderDocuments = async <T extends CrudDocument>(props: { model: Model<T>; ids: string[]; userID: string; lang?: string | undefined }) => {
+  const { model: MODEL, ids, userID, lang = DEFAULT_LANG } = props;
+
+  const idQuerySafe = (await import('@/utils/querySafe')).idQuerySafe;
+  const safeCandidateQuery = idQuerySafe.safeQuery({ deletedAt: null }, { candidateId: userID });
+  if (!('candidateId' in safeCandidateQuery)) throw new BadRequestError(t('common.notFoundData', lang));
+
+  const owned = new Set((await MODEL.find(safeCandidateQuery, '_id').exec()).map((doc) => doc._id.toString()));
+  const details = ids.flatMap((id, index) => (owned.has(id.toLowerCase()) ? [] : [{ field: `ids.${index}`, message: t('common.reorderEntryNotFound', lang) }]));
+  if (details.length) throw new ValidationError(t('common.reorderEntryNotFound', lang), details);
+  // ids are unique and all owned, so equal counts means every owned entry is listed
+  if (ids.length !== owned.size) throw new ValidationError(t('common.reorderIncomplete', lang), [{ field: 'ids', message: t('common.reorderIncomplete', lang) }]);
+
+  await Promise.all(ids.map((_id, order) => MODEL.updateOne({ _id }, { order }).exec()));
+
+  return formatReturn({ success: true, message: t('common.reorderSuccess', lang) });
 };
 
 // `lang?: string | undefined` (`exactOptionalPropertyTypes`): BaseController.ts passes `req.lang`, itself `string | undefined`.
