@@ -14,5 +14,7 @@ export const schemaEducation = Joi.object({
   endDate,
   isCurrent: _boolean,
   description: descriptionOptional,
+  // only PUT /reorder sets it; stripped so an entry read from GET can be sent back unchanged
+  order: Joi.any().strip(),
   candidateId,
 });

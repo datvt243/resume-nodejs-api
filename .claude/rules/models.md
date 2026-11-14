@@ -18,8 +18,8 @@ All models use Mongoose with `timestamps: true` and `candidateId` foreign key (e
 | Candidate | email, password, firstName, lastName, gender, marital, birthday, address, phone, introduction, socialMedia, slug (vanity public-profile URL), cvFile ({ originalName, uploadedAt } metadata for the uploaded PDF résumé), cvFileName (download filename for classic/ATS/public PDF + DOCX via `cvFilename()` in `createPDF.ats.ts`; empty → `<fullName>_<headline>_CV`; always suffixed `_VI`/`_EN` per `?lang=` unless it already ends in one), isPublic (default true — gates whether `GET /api/me/:slug-or-email` returns anything), emailVerified (default false, informational only, doesn't gate login) |
 | GeneralInformation | candidateId, position/career, professionalSkills[], personalSkills[], foreignLanguages[], workLocation, workForm, salaryDesiredFrom/salaryDesiredTo (Number or null, `To >= From`; a legacy single `salaryDesired` is read as From = To on hydrate and still accepted as input) |
 | Experience | candidateId, company, position, startDate, endDate, isCurrent, description, skills[] |
-| Education | candidateId, school, major, startDate, endDate, isCurrent, description |
-| Project | candidateId, name, position, description, technology[], startDate, endDate, isWorking, images[], link, type (`company`\|`personal`, default `personal`), experienceId (ref experience; required iff `company`, ownership checked in `project.service.ts`) |
+| Education | candidateId, school, major, startDate, endDate, isCurrent, description, order (manual CV position, set only by `PUT /reorder`) |
+| Project | candidateId, name, position, description, technology[], startDate, endDate, isWorking, images[], link, type (`company`\|`personal`, default `personal`), experienceId (ref experience; required iff `company`, ownership checked in `project.service.ts`), order (manual CV position, set only by `PUT /reorder`) |
 | Certificate | candidateId, name, organization, startDate, endDate, isNoExpiration, link, images[], description |
 | Award | candidateId, name, organization, issueDate, link, images[], description |
 | Reference | candidateId, fullName, phone, company, position |

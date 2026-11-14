@@ -37,6 +37,7 @@ as the raw aggregated data, in either language and in a chosen template.
    `public/pdf/<slugified email>-ats.pdf` (e.g. `a_b_com-ats.pdf`) only
    when `PERSIST_EXPORTED_PDF` is set.
 9. The Chromium process is closed even if rendering fails.
+10. Pending #413 (draft): `educations` and `projects` will be ordered by the manual display order, see `cv-section-crud` rules 13–16.
 
 ## Acceptance criteria
 - `npx jest src/__tests__/candidate_me/index.test.ts` passes.

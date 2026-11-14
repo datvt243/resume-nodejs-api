@@ -55,6 +55,9 @@ export default {
     bulkNoItems: 'Không có dữ liệu nào được gửi lên',
     bulkTooManyItems: 'Gửi quá nhiều mục trong một lần (tối đa 100)',
     bulkPartialSuccess: 'Đã thêm {{succeeded}}/{{total}} mục',
+    reorderSuccess: 'Đã lưu thứ tự',
+    reorderEntryNotFound: 'Mục này không tồn tại, đã bị xoá hoặc không thuộc về bạn',
+    reorderIncomplete: 'Danh sách phải gồm tất cả các mục của bạn trong phần này',
   },
   candidate: {
     userNotFound: 'Không tìm thấy người dùng',

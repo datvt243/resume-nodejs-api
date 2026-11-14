@@ -14,6 +14,7 @@ import { t } from '@/utils/i18n';
 import { createCV } from '@/services/createPDF';
 import { createCVAts } from '@/services/createPDF.ats';
 import { createCVDocx } from '@/services/createDocx';
+import { byManualOrder, MANUALLY_ORDERED_COLLECTIONS } from '@/services';
 import * as MODEL from '@/models';
 
 // One error for unknown and private profiles, so a private profile can't be told apart from a missing one.
@@ -224,6 +225,8 @@ export const handlerGetAboutMe = async ({
       ...(key === 'educations' && { school: resolveLocalizedText(item['school'], lang), major: resolveLocalizedText(item['major'], lang) }),
     }));
   }
+  // One order per section, so a `?profile=` subset keeps the same relative order.
+  for (const key of MANUALLY_ORDERED_COLLECTIONS) (dataResult as Record<string, Record<string, unknown>[] | undefined>)[key]?.sort(byManualOrder);
   if (dataResult.generalInformation && Object.keys(dataResult.generalInformation).length) {
     /**
      * Spread into a new plain object rather than mutating in place —

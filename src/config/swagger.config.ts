@@ -215,6 +215,7 @@ const options: swaggerJsdoc.Options = {
             endDate: { type: 'number' },
             isCurrent: { type: 'boolean' },
             description: { type: 'string' },
+            order: { type: 'integer', readOnly: true, description: 'Manual CV position, set only by PUT /education/reorder; ignored on create/update' },
           },
         },
         Award: {
@@ -261,6 +262,7 @@ const options: swaggerJsdoc.Options = {
             isWorking: { type: 'boolean' },
             startDate: { type: 'number' },
             endDate: { type: 'number' },
+            order: { type: 'integer', readOnly: true, description: 'Manual CV position, set only by PUT /project/reorder; ignored on create/update' },
           },
         },
         Reference: {

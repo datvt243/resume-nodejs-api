@@ -67,7 +67,7 @@ link; `GET /` synthesizes a default "Tổng hợp" (All) profile on first read i
 the candidate has none yet (`ensureDefaultProfile`). `education` and
 `experience` also have `POST /bulk` (`{ items: [...] }`, up to 100 items,
 best-effort — each item validated/created independently via the same
-`fnBulkCreate` path as `/create`; response `data: { results, summary }`).
+`fnBulkCreate` path as `/create`; response `data: { results, summary }`). `education` and `project` also have `PUT /reorder` (`{ ids: [...] }` = every own non-deleted entry once, else 400 at `ids.<i>` / `ids`, nothing written; stores `order = i`); their owner list (no `?sort`) and every CV view list `order` asc, then entries without one by `startDate` desc. `order` in a create/update/bulk body is ignored.
 
 ## Other
 

@@ -5,7 +5,7 @@
 
 import { Response, Request, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { Schema } from 'joi';
+import Joi, { Schema } from 'joi';
 import multer from 'multer';
 
 import type { Model } from 'mongoose';
@@ -13,7 +13,7 @@ import { created, formatReturn, handleError, ok, toAppError, validateSchema } fr
 import type { BaseReturn } from '@/types/base.type';
 import { logger } from '@/logger';
 import { ErrorCode, ValidationError, type ErrorDetail } from '@/errors';
-import { baseDeleteDocument, baseFindDocument, baseRestoreDocument, CrudDocument } from '@/services';
+import { baseDeleteDocument, baseFindDocument, baseReorderDocuments, baseRestoreDocument, CrudDocument, MANUALLY_ORDERED_COLLECTIONS } from '@/services';
 import * as MODELS from '@/models';
 import { t } from '@/utils/i18n';
 import { uploadImagesMiddleware } from '@/middlewares/uploadImages.middleware';
@@ -83,6 +83,7 @@ export const baseGetAll = async (req: Request, res: Response, next: NextFunction
       page: page !== undefined ? parseInt(page, 10) : undefined,
       limit: limit !== undefined ? parseInt(limit, 10) : undefined,
       sort: sort && SORT_FIELD_REGEX.test(sort) ? sort : undefined,
+      manualOrder: typeof collection === 'string' && MANUALLY_ORDERED_COLLECTIONS.has(collection),
     });
     return ok(res, _result.data, _result.message, 'meta' in _result ? _result.meta : undefined);
   } catch (err) {
@@ -129,6 +130,33 @@ export const baseRestore = async (req: Request, res: Response, next: NextFunctio
       _id: id,
       userID: req.body.candidateId || '',
       name: '',
+      lang: req.lang,
+    });
+    return ok(res, null, _result.message);
+  } catch (err) {
+    handleError({ err, next, lang: req.lang });
+  }
+};
+
+// Duplicates are a Joi error at `ids.<i>`; ownership and completeness are checked in `baseReorderDocuments`.
+const schemaReorder = Joi.object({
+  ids: Joi.array().items(Joi.string().pattern(/^[0-9a-fA-F]{24}$/)).min(1).unique().required(),
+});
+
+export const baseReorder = async (req: Request, res: Response, next: NextFunction) => {
+  const { collection = '' } = req.params;
+
+  if (!MANUALLY_ORDERED_COLLECTIONS.has(collection) || !modelObject[collection])
+    return formatReturn(res, { statusCode: StatusCodes.NOT_FOUND, success: false, message: t('common.notFoundData', req.lang) });
+
+  const validated = validateSchema({ schema: schemaReorder, item: { ids: (req.body as { ids?: unknown }).ids }, lang: req.lang });
+  if (!validated.isValidated) return formatReturn(res, { success: false, message: validated.message, errors: validated.errors });
+
+  try {
+    const _result = await baseReorderDocuments({
+      model: modelObject[collection],
+      ids: (validated.value as { ids: string[] }).ids,
+      userID: req.user?._id ?? '',
       lang: req.lang,
     });
     return ok(res, null, _result.message);

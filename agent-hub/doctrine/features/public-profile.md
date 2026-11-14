@@ -48,6 +48,7 @@ and download it as PDF, unless the candidate made their profile private.
    metadata, filename as in `cv-export` rule 7). Rendered PDFs are cached
    in memory per exact data + lang for 1 hour (max 50 entries, oldest
    evicted; failed renders not cached).
+8. Pending #413 (draft): `educations` and `projects` will be ordered by the manual display order, see `cv-section-crud` rules 13–16.
 
 ## Acceptance criteria
 - `npx jest src/__tests__/candidate_me/index.test.ts src/__tests__/candidate_me/search.test.ts src/__tests__/candidate_me/public-pdf.test.ts` passes.

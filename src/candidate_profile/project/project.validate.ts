@@ -27,5 +27,7 @@ export const schemaProject = Joi.object({
   isWorking: _boolean,
   startDate,
   endDate,
+  // only PUT /reorder sets it; stripped so an entry read from GET can be sent back unchanged
+  order: Joi.any().strip(),
   candidateId,
 });
