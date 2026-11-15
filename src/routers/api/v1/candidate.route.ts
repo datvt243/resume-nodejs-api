@@ -226,9 +226,17 @@ router.get('/cv-file', asyncHandler(fnDownloadCV));
  *     summary: Get the authenticated candidate's own profile visit count + list (recorded via POST /api/me/{identifier}/visit)
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         description: Page size, capped at 100
+ *         schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
  *     responses:
  *       200:
- *         description: Visit list, newest first; `meta.total` is the visit count
+ *         description: One page of visits, newest first; `meta.total` is the visit count
  *         content:
  *           application/json:
  *             schema:

@@ -8,7 +8,7 @@ import path from 'path';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { formatReturn, validateSchema, handleError, ok } from '@/utils';
-import { listMeta } from '@/services';
+import { parsePositiveInt, MAX_PAGE_LIMIT } from '@/services';
 import { AuthenticationError, NotFoundError } from '@/errors';
 import { schemaCandidate, schemaCandidatePatch } from '@/candidate/candidate.validate';
 import {
@@ -26,6 +26,9 @@ import { parseLinkedInExportZip } from '@/candidate/parseLinkedInExport.service'
 import { parseCvPdf } from '@/candidate/parseCvPdf.service';
 import { handlerGetVisitStats, resolveVisitStatsQuery } from '@/candidate/visitStats.service';
 import { t } from '@/utils/i18n';
+
+// Visits grow without bound, so the list pages by default (same default as /api/me/search).
+const VISITS_DEFAULT_LIMIT = 20;
 
 export const fnGetInformationById = async (req: Request, res: Response, next: NextFunction) => {
   const { id = '' } = req.params;
@@ -184,8 +187,10 @@ export const fnGetVisits = async (req: Request, res: Response, next: NextFunctio
    */
   try {
     if (!req.user?._id) throw new AuthenticationError();
-    const { data: visits, message } = await handlerGetVisits(req.user._id, req.lang);
-    return ok(res, visits, message, listMeta(visits.length));
+    const page = parsePositiveInt(req.query['page']) ?? 1;
+    const limit = Math.min(parsePositiveInt(req.query['limit']) ?? VISITS_DEFAULT_LIMIT, MAX_PAGE_LIMIT);
+    const { data: visits, message, meta } = await handlerGetVisits(req.user._id, { page, limit }, req.lang);
+    return ok(res, visits, message, meta);
   } catch (err) {
     handleError({ err, next, lang: req.lang });
   }

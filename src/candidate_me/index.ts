@@ -14,6 +14,7 @@ import { t } from '@/utils/i18n';
 import { createCV } from '@/services/createPDF';
 import { createCVAts } from '@/services/createPDF.ats';
 import { createCVDocx } from '@/services/createDocx';
+import { byManualOrder, MANUALLY_ORDERED_COLLECTIONS } from '@/services';
 import * as MODEL from '@/models';
 
 // One error for unknown and private profiles, so a private profile can't be told apart from a missing one.
@@ -131,7 +132,7 @@ export const handlerGetAboutMe = async ({
    * Resolve the optional profile filter — must belong to this same
    * candidate; an invalid/foreign/deleted profile id is treated the same
    * as "no profile given" (falls back to unfiltered) rather than
-   * erroring, since this is a public, unauthenticated route.
+   * erroring, on the public routes and the owner's export alike.
    */
   let profileDoc: Awaited<ReturnType<typeof MODEL.Profile.findOne>> = null;
   // A non-ObjectId value would make Mongoose throw a CastError (500) instead of falling back.
@@ -224,6 +225,8 @@ export const handlerGetAboutMe = async ({
       ...(key === 'educations' && { school: resolveLocalizedText(item['school'], lang), major: resolveLocalizedText(item['major'], lang) }),
     }));
   }
+  // One order per section, so a `?profile=` subset keeps the same relative order.
+  for (const key of MANUALLY_ORDERED_COLLECTIONS) (dataResult as Record<string, Record<string, unknown>[] | undefined>)[key]?.sort(byManualOrder);
   if (dataResult.generalInformation && Object.keys(dataResult.generalInformation).length) {
     /**
      * Spread into a new plain object rather than mutating in place —
@@ -246,6 +249,8 @@ export const handlerGetAboutMe = async ({
     message: t('publicProfile.getSuccess', lang),
   };
 };
+
+const VISIT_DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export const fnRecordVisit = async (req: Request, res: Response, next: NextFunction) => {
   const { identifier } = req.params;
@@ -271,6 +276,15 @@ export const handlerRecordVisit = async (identifier: string, req: Request) => {
   if (!candidate || candidate.isPublic === false) throw profileNotFound(req.lang);
 
   const ip = visitorIp(req);
+  const recorded = { success: true, message: t('publicProfile.visitRecorded', req.lang), data: null };
+  /**
+   * One visit per visitor IP per candidate per 24h, so reloads don't inflate counts; an unknown IP is never deduped (it would merge every such visitor).
+   * shortcut: check-then-create, so two concurrent first hits can both store; fine for analytics, upgrade to a unique bucket key if exact counts matter.
+   */
+  if (ip && ip !== 'unknown' && (await MODEL.Visit.exists({ candidateId: candidate._id, ip, createdAt: { $gte: new Date(Date.now() - VISIT_DEDUP_WINDOW_MS) } }))) {
+    return recorded;
+  }
+
   const geo = ip && ip !== 'unknown' ? geoip.lookup(ip) : null;
   const location = geo ? [geo.city, geo.region, geo.country].filter(Boolean).join(', ') : '';
 
@@ -280,7 +294,7 @@ export const handlerRecordVisit = async (identifier: string, req: Request) => {
 
   await MODEL.Visit.create({ candidateId: candidate._id, ip, location, referrer, profileId });
 
-  return { success: true, message: t('publicProfile.visitRecorded', req.lang), data: null };
+  return recorded;
 };
 
 /**
@@ -350,7 +364,8 @@ export const fnExportPDF = async (req: Request, res: Response, next: NextFunctio
 
   try {
     const lang = req.query['lang'] === 'en' ? 'en' : 'vi';
-    const { success, message, data } = await handlerGetAboutMe({ identifier: email, lang });
+    const profileId = typeof req.query['profile'] === 'string' ? req.query['profile'] : undefined;
+    const { success, message, data } = await handlerGetAboutMe({ identifier: email, lang, profileId });
 
     // ?format=json reuses the same aggregated data already assembled for
     // the PDF path — no new dependency, no new data-fetch.

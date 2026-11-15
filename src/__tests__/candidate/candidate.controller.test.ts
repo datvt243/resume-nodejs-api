@@ -7,7 +7,7 @@
  */
 
 import { StatusCodes } from 'http-status-codes';
-import { fnDownloadCV, fnGetInformationByEmail, fnGetInformationById, fnParseLinkedInExport, fnParseCvPdf, fnUpdate, fnUpdateFields } from '@/candidate/candidate.controller';
+import { fnDownloadCV, fnGetVisits, fnGetInformationByEmail, fnGetInformationById, fnParseLinkedInExport, fnParseCvPdf, fnUpdate, fnUpdateFields } from '@/candidate/candidate.controller';
 import * as candidateService from '@/candidate/candidate.service';
 import * as parseService from '@/candidate/parseLinkedInExport.service';
 import * as parseCvPdfService from '@/candidate/parseCvPdf.service';
@@ -229,5 +229,24 @@ describe('GET /cv-file when the stored file is missing on disk', () => {
 
     expect(res.download).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(StatusCodes.NOT_FOUND);
+  });
+});
+
+describe('GET /visits paging', () => {
+  it.each([
+    [{}, { page: 1, limit: 20 }],
+    [{ page: '3', limit: '5' }, { page: 3, limit: 5 }],
+    [{ page: '0', limit: 'abc' }, { page: 1, limit: 20 }],
+    [{ page: '-2', limit: '1000' }, { page: 1, limit: 100 }],
+  ])('query %p pages the service with %p', async (query, paging) => {
+    const meta = { page: paging.page, limit: paging.limit, total: 0, totalPages: 1 };
+    const spy = jest.spyOn(candidateService, 'handlerGetVisits').mockResolvedValue({ success: true, message: 'ok', data: [], meta });
+    const req: any = { user: { _id: 'user-1' }, query, lang: 'en' };
+    const res = mockRes();
+
+    await fnGetVisits(req, res, jest.fn());
+
+    expect(spy).toHaveBeenCalledWith('user-1', paging, 'en');
+    expect(res.json).toHaveBeenCalledWith({ success: true, message: 'ok', data: [], meta });
   });
 });

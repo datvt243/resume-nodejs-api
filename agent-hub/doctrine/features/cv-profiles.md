@@ -16,22 +16,29 @@ without duplicating data.
    `POST /restore/:id`).
 2. Fields: `name` (1–100 chars, required), `educationIds`,
    `experienceIds`, `projectIds`, `certificateIds`, `awardIds`,
-   `referenceIds` (arrays of 24-hex ids, default `[]`).
+   `referenceIds` (arrays of 24-hex ids, default `[]`). On create/update
+   every listed id must be a non-deleted entry of the caller in that
+   section; any other id (unknown, another candidate's, deleted) → 400
+   `VALIDATION_ERROR`, one `details` item per `<field>.<index>`, nothing
+   written.
 3. `GET /` first creates a default profile named `Tổng hợp` containing
    every current non-deleted entry of the six sections when the caller
    has no non-deleted profile, then lists.
-4. A profile is used by `?profile=<id>` on the public profile and the
-   public PDF: each section is filtered to the ids listed on that profile
+4. A profile is used by `?profile=<id>` on the public profile, the
+   public PDF, the owner export (`GET /download-pdf`) and
+   `POST /cv/ats-check`: each section is filtered to the ids listed on that profile
    (see `public-profile`). Visit recording only stores the id from the
    body `profile` field for stats, no filtering (see `profile-visits`).
 
 ## Acceptance criteria
 - `npx jest src/__tests__/candidate_profile/profile.service.test.ts` passes.
+- Create/update with a foreign or unknown id → 400 with `details[].field` = `<field>.<index>`, no write.
 - First `GET /profile/` for a candidate with no profile → `data` has exactly one item named `Tổng hợp`.
 
 ## Edge cases
 - Deleting every profile, then `GET /` → a fresh default profile is created again.
 - An id in the arrays that isn't a 24-hex string → 400.
+- A 24-hex id of another candidate's entry, or of the caller's deleted entry → 400 at `<field>.<index>`.
 
 ## Out of scope
 - Section ordering or per-profile field overrides.
@@ -48,3 +55,5 @@ without duplicating data.
 | 2026-11-06 | Backfilled from code | /spec-backfill | - |
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/cv-profiles-spec.md` | - |
+| 2026-11-10 | Behavior 4: `?profile=` also on owner export + ATS check | operator answer #400 | owner-export-profile-filter |
+| 2026-11-10 | Behavior 2: listed ids must be the caller's non-deleted entries, else 400 | operator answer #405 | profile-section-ids-ownership |

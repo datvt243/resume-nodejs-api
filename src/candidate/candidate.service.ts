@@ -11,7 +11,7 @@ import { candidateQuerySafe } from '@/utils/querySafe';
 import { t, DEFAULT_LANG } from '@/utils/i18n';
 import { CV_UPLOAD_DIR } from '@/middlewares/uploadCV.middleware';
 import { IMAGE_UPLOAD_DIR } from '@/middlewares/uploadImages.middleware';
-import { CrudDocument } from '@/services';
+import { CrudDocument, listMeta } from '@/services';
 import { invalidateAllSessions } from '@/utils/sessionRevocation';
 
 const MODEL = MODELS.Candidate;
@@ -118,9 +118,13 @@ export const handlerGetCVFile = async (candidateId: string) => {
  * handlerDelete's own CV_SECTION_MODELS.deleteMany calls above, so no
  * QuerySafe wrapping needed.
  */
-export const handlerGetVisits = async (candidateId: string, lang: string = DEFAULT_LANG) => {
-  const visits = await MODELS.Visit.find({ candidateId }).sort({ createdAt: -1 }).exec();
-  return { success: true, message: t('candidate.getVisitsSuccess', lang), data: visits };
+export const handlerGetVisits = async (candidateId: string, { page, limit }: { page: number; limit: number }, lang: string = DEFAULT_LANG) => {
+  const [visits, total] = await Promise.all([
+    // `_id` breaks createdAt ties so a visit never shows on two pages.
+    MODELS.Visit.find({ candidateId }).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).exec(),
+    MODELS.Visit.countDocuments({ candidateId }).exec(),
+  ]);
+  return { success: true, message: t('candidate.getVisitsSuccess', lang), data: visits, meta: listMeta(total, page, limit) };
 };
 
 // Hard delete on purpose: Visit has no deletedAt, and the candidate is wiping their own analytics.

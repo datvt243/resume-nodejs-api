@@ -55,6 +55,9 @@ export default {
     bulkNoItems: 'No items provided',
     bulkTooManyItems: 'Too many items in one request (max 100)',
     bulkPartialSuccess: 'Created {{succeeded}} of {{total}} items',
+    reorderSuccess: 'Order saved',
+    reorderEntryNotFound: 'This entry does not exist, has been deleted, or is not yours',
+    reorderIncomplete: 'The list must contain every one of your entries in this section',
   },
   candidate: {
     userNotFound: 'User not found',
@@ -100,6 +103,9 @@ export default {
   },
   application: {
     profileNotFound: 'The selected CV profile does not exist or has been deleted',
+  },
+  profile: {
+    entryNotFound: 'One or more selected entries do not exist, have been deleted, or are not yours',
   },
   project: {
     experienceNotFound: 'The selected work experience does not exist or has been deleted',

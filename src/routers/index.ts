@@ -150,7 +150,7 @@ router.get('/api/me/:email', asyncHandler(fnGetAboutMe));
  *                 example: 64b7f0c2a1b2c3d4e5f60799
  *     responses:
  *       200:
- *         description: Visit recorded
+ *         description: Visit recorded (a repeat from the same IP to the same candidate within 24h also answers 200 but stores nothing)
  *         content:
  *           application/json:
  *             schema:

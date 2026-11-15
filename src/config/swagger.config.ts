@@ -215,6 +215,7 @@ const options: swaggerJsdoc.Options = {
             endDate: { type: 'number' },
             isCurrent: { type: 'boolean' },
             description: { type: 'string' },
+            order: { type: 'integer', readOnly: true, description: 'Manual CV position, set only by PUT /education/reorder; ignored on create/update' },
           },
         },
         Award: {
@@ -261,6 +262,7 @@ const options: swaggerJsdoc.Options = {
             isWorking: { type: 'boolean' },
             startDate: { type: 'number' },
             endDate: { type: 'number' },
+            order: { type: 'integer', readOnly: true, description: 'Manual CV position, set only by PUT /project/reorder; ignored on create/update' },
           },
         },
         Reference: {
@@ -284,7 +286,7 @@ const options: swaggerJsdoc.Options = {
             appliedDate: { type: 'number' },
             status: { type: 'string', enum: ['applied', 'interview', 'offer', 'rejected'] },
             note: { type: 'string' },
-            jobLink: { type: 'string' },
+            jobLink: { type: 'string', maxLength: 500, description: "http(s) URL, or '' for none (anything else → 400)." },
             profileId: {
               type: 'string',
               nullable: true,

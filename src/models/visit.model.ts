@@ -36,6 +36,9 @@ const schema = new Schema(
   { timestamps: true },
 );
 
+// Backs the 24h per-IP dedup lookup in handlerRecordVisit (candidate_me/index.ts).
+schema.index({ candidateId: 1, ip: 1, createdAt: -1 });
+
 const Visit = mongoose.model('visit', schema);
 
 export default Visit;

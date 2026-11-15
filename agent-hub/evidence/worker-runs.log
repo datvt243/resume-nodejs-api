@@ -133,3 +133,12 @@
 2026-11-08T13:01:05Z role=verifier outcome=SEAL node=parsed-entries-bulk-shape rerun=none spawn=fresh hub_bytes_before=96335 hub_bytes_after=96341
 2026-11-08T13:07:30Z role=verifier outcome=REOPEN node=short-values-validation rerun=none spawn=fresh hub_bytes_before=96341 hub_bytes_after=96551
 2026-11-08T13:11:29Z role=verifier outcome=SEAL node=short-values-validation rerun=none spawn=resumed hub_bytes_before=96341 hub_bytes_after=96346
+2026-11-09T02:51:48Z role=verifier outcome=SEAL node=paginate-visits rerun=none spawn=fresh hub_bytes_before=96902 hub_bytes_after=96170
+2026-11-09T03:05:30Z role=verifier outcome=SEAL node=search-in-profile-only rerun=none spawn=fresh hub_bytes_before=96170 hub_bytes_after=96174
+2026-11-09T05:47:18Z role=verifier outcome=SEAL node=dedup-visits rerun=none spawn=fresh hub_bytes_before=96174 hub_bytes_after=96166
+2026-11-10T09:26:27Z role=verifier outcome=SEAL node=owner-export-profile-filter rerun=none spawn=fresh hub_bytes_before=96166 hub_bytes_after=96177
+2026-11-10T09:43:08Z role=verifier outcome=SEAL node=profile-section-ids-ownership rerun=none spawn=fresh hub_bytes_before=96177 hub_bytes_after=96183
+2026-11-14T10:25:42Z role=verifier outcome=SEAL node=job-applications-validate rerun=none spawn=fresh hub_bytes_before=96759 hub_bytes_after=96180
+2026-11-14T11:01:01Z role=verifier outcome=SEAL node=education-project-manual-order rerun=full spawn=fresh hub_bytes_before=96180 hub_bytes_after=96181
+2026-11-15T10:25:34Z role=verifier outcome=SEAL node=config-fail-fast rerun=none spawn=fresh hub_bytes_before=97386 hub_bytes_after=97380
+2026-11-15T10:39:37Z role=verifier outcome=SEAL node=upload-route-tests rerun=none spawn=fresh hub_bytes_before=97380 hub_bytes_after=97385

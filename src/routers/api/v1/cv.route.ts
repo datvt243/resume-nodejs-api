@@ -26,6 +26,13 @@ import { fnAtsCheck } from '@/candidate_me/ats-check';
  *       browser-navigated download.
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: profile
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Id of one of the caller's own CV profiles — the checked CV is limited to the entries listed on it. An unknown, deleted, foreign or malformed id falls back to every entry (no error).
  *     requestBody:
  *       required: false
  *       content:

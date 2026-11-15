@@ -13,7 +13,7 @@
 import fs from 'fs';
 import * as MODELS from '@/models';
 import { invalidateAllSessions } from '@/utils/sessionRevocation';
-import { handlerGetInformationByEmail, handlerGetInformationById, handlerDelete, handlerDeleteVisits } from '@/candidate/candidate.service';
+import { handlerGetInformationByEmail, handlerGetInformationById, handlerDelete, handlerDeleteVisits, handlerGetVisits } from '@/candidate/candidate.service';
 
 jest.mock('@/models', () => ({
   Candidate: { findOne: jest.fn(), findById: jest.fn(), deleteOne: jest.fn() },
@@ -26,7 +26,7 @@ jest.mock('@/models', () => ({
   Award: { deleteMany: jest.fn(), find: jest.fn() },
   Application: { deleteMany: jest.fn() },
   Profile: { deleteMany: jest.fn() },
-  Visit: { deleteMany: jest.fn() },
+  Visit: { deleteMany: jest.fn(), find: jest.fn(), countDocuments: jest.fn() },
 }));
 
 jest.mock('@/utils/sessionRevocation', () => ({ invalidateAllSessions: jest.fn().mockResolvedValue(true) }));
@@ -202,6 +202,26 @@ describe('candidate.service.ts handlerDelete (issue #158)', () => {
 
       expect((MODELS.Visit.deleteMany as jest.Mock).mock.calls).toEqual([[{ candidateId: 'cand1' }]]);
       expect(result).toMatchObject({ success: true, data: { deletedCount: 3 } });
+    });
+  });
+
+  describe('handlerGetVisits', () => {
+    it('returns one newest-first page of the candidate\'s visits with list meta over all of them', async () => {
+      const query = { sort: jest.fn(), skip: jest.fn(), limit: jest.fn(), exec: jest.fn().mockResolvedValue([{ _id: 'v3' }, { _id: 'v4' }]) };
+      query.sort.mockReturnValue(query);
+      query.skip.mockReturnValue(query);
+      query.limit.mockReturnValue(query);
+      (MODELS.Visit.find as jest.Mock).mockReturnValue(query);
+      (MODELS.Visit.countDocuments as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue(5) });
+
+      const result = await handlerGetVisits('cand1', { page: 2, limit: 2 });
+
+      expect((MODELS.Visit.find as jest.Mock).mock.calls).toEqual([[{ candidateId: 'cand1' }]]);
+      expect((MODELS.Visit.countDocuments as jest.Mock).mock.calls).toEqual([[{ candidateId: 'cand1' }]]);
+      expect(query.sort).toHaveBeenCalledWith({ createdAt: -1, _id: -1 });
+      expect(query.skip).toHaveBeenCalledWith(2);
+      expect(query.limit).toHaveBeenCalledWith(2);
+      expect(result).toMatchObject({ success: true, data: [{ _id: 'v3' }, { _id: 'v4' }], meta: { page: 2, limit: 2, total: 5, totalPages: 3 } });
     });
   });
 });

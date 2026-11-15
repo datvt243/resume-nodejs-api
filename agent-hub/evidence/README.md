@@ -34,6 +34,10 @@ Date in `YYYY-mm-dd` format, slug in kebab-case taken from the task name.
   not-yet-SEALED rows for the same issue: retired by this node on SEAL,
   or kept open with a reason (`recipes/implement.md` step 7b); `none` if
   there are none
+- `## Review` — `/code-review` (+ `/security-review` for a
+  `security`-labeled issue): each finding → fixed | false positive
+  (why) | moved to `## Noticed, not done`; or `skipped — docs`
+  (`implement` step 6c)
 - `## Noticed, not done` — things noticed outside scope but not fixed
   on your own
 - `## Seal gate` — record the approval if there was an outward-facing
@@ -116,13 +120,13 @@ Date in `YYYY-mm-dd` format, slug in kebab-case taken from the task name.
 - `## Commands` — the exact commands run: 3 commands (`git add`,
   `git commit`, `git push`), or 4 more (`git checkout`, `git pull`,
   `git merge --no-ff`, `git push`) if ship ran with `--merge`; plus the
-  `git checkout -b fix/<node-slug>` if step 2b auto-created a branch, and
-  the `git branch -d`/`git push origin --delete` cleanup if step 9 ran
+  `git checkout -b fix/<node-slug>` if `BranchBeforeCommit` auto-created a branch, and
+  the `git branch -d`/`git push origin --delete` cleanup if `CleanupFixBranch` ran
 - `## Output` — the verbatim commit hash + push result (and merge if
   any), never paraphrased into a bare "pushed successfully"
-- `## Seal gate` — clearly record the approval received before running
-  (no approval = this note may not be written) — with `--merge`, this
-  approval covers the merge step too, not 2 separate approvals
+- `## Seal gate` — record that the operator's `/ship` call was the
+  approval (`AutoCommitNoGate`) — with `--merge`, it covers the merge step
+  too
 
 ## The three rules of this directory
 1. **VERBATIM, ALWAYS** — never claim anything without real cited

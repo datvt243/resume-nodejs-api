@@ -61,15 +61,6 @@ flowchart TD
 |---|---|---|
 | `fix-candidate-password-leak` | PENDING | `src/candidate/candidate.service.ts` — `handlerGetInformationByEmail` has no `.select()` at all; `handlerGetInformationById` double-wraps `whitelistSelect([select])`, making the select a permanent no-op. Result: `GET /api/v1/candidate/:email` and `PUT/PATCH /candidate/update` return the raw bcrypt password hash in the response. |
 | `fix-refresh-token-expiry-unused` | PENDING | `TOKEN_EXP_IN` (`.env`, already exported in config) is never used at any `jwtSign()` call site (`auth.service.ts`, `auth.controller.ts`, `api/v1/auth/services/login.ts`) — access and refresh tokens always share the same default 1h expiry, so the refresh token is pointless. |
-| `atomic-token-consume` | SEALED | 2026-11-07 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-07/atomic-token-consume-seal.md`. |
-| `remove-get-login` | SEALED | 2026-11-07 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-07/remove-get-login-seal.md`. |
-| `restrict-query-token` | SEALED | 2026-11-07 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-07/restrict-query-token-seal-r2.md`. |
-| `fix-account-delete-cleanup` | SEALED | 2026-11-07 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-07/fix-account-delete-cleanup-seal.md`. |
-| `cast-legacy-localized-strings` | SEALED | 2026-11-05 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-05/cast-legacy-localized-strings-seal-r2.md`. |
-| `candidate-email-self-only` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/candidate-email-self-only-seal-r2.md`. |
-| `public-profile-field-whitelist` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/public-profile-field-whitelist-seal.md` |
-| `private-cv-storage` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/private-cv-storage-seal-r2.md` |
-| `trust-proxy-hops` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/trust-proxy-hops-seal.md` |
 | `auth-credential-limit` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/auth-credential-limit-seal.md` |
 | `cv-upload-temp-rename` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/cv-upload-temp-rename-seal.md` |
 | `login-password-any-length` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/login-password-any-length-seal-r2.md` |
@@ -81,3 +72,12 @@ flowchart TD
 | `linkedin-unparseable-end-date` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/linkedin-unparseable-end-date-seal.md`. |
 | `parsed-entries-bulk-shape` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/parsed-entries-bulk-shape-seal.md`. |
 | `short-values-validation` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/short-values-validation-seal-r2.md`. |
+| `paginate-visits` | SEALED | 2026-11-09 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-09/paginate-visits-seal.md`. |
+| `search-in-profile-only` | SEALED | 2026-11-09 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-09/search-in-profile-only-seal.md`. |
+| `dedup-visits` | SEALED | 2026-11-09 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-09/dedup-visits-seal.md`. |
+| `owner-export-profile-filter` | SEALED | 2026-11-10 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-10/owner-export-profile-filter-seal.md`. |
+| `profile-section-ids-ownership` | SEALED | 2026-11-10 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-10/profile-section-ids-ownership-seal.md`. |
+| `job-applications-validate` | SEALED | 2026-11-14 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-14/job-applications-validate-seal.md`. |
+| `education-project-manual-order` | SEALED | 2026-11-14 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-14/education-project-manual-order-seal.md`. |
+| `config-fail-fast` | SEALED | 2026-11-14 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-14/config-fail-fast-seal.md`. |
+| `upload-route-tests` | SEALED | 2026-11-15 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-15/upload-route-tests-seal.md`. |

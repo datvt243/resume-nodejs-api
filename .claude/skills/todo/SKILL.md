@@ -83,21 +83,38 @@ disable-model-invocation: true
    reasoning, so isolation holds; it skips the bundle reload. Resume fails
    (no id, agent gone, error) → fresh spawn as in step 2 — never verify
    inline. Implementer `failed` with `## Loop guard` → stop, no REOPEN retry.
-4. **Verdict = SEAL** → báo kết quả (node, evidence, issue + branch ở Bước
-   0) plus one spawn line read back from
-   `grep "role=verifier.*node=<slug> " evidence/worker-runs.log`:
-   `spawns: verifier <N> (<F> fresh, <R> resumed), REOPEN <k>`. A REOPEN
-   round logged `fresh` means step 3's resume fell back — say why. Same
-   line on a retry-limit stop.
+4. **Verdict = SEAL** → (kit 2026-11-09) print exactly this report,
+   nothing else (no diff, no recap of the work — the evidence note has it):
+   ```
+   ✅ SEALED <slug> — <task>
+   issue #<n> <url> · branch <branch>
+   evidence: <note path>[, <note path>…]
+   spawns: verifier <N> (<F> fresh, <R> resumed), REOPEN <k>
+   next: /ship "<task>"
+   ```
+   `spawns:` is read back from
+   `grep "role=verifier.*node=<slug> " evidence/worker-runs.log`, never
+   counted from memory. A REOPEN round logged `fresh` means step 3's
+   resume fell back — append ` (fresh: <why>)` to that line. With
+   `--ship`, `next:` becomes `next: running /ship "<task>"`.
+   Every non-SEAL stop (Bước 0 failure, `blocked`, `failed`, retry limit)
+   uses the same shape:
+   ```
+   ⛔ STOPPED <slug|-> — <task> (<blocked|failed|retry-limit|issue/branch>)
+   issue #<n> <url> · branch <branch>   (omit if Bước 0 failed)
+   reason: <blocker | latest REOPEN reason | real error, verbatim>
+   spawns: verifier <N> (<F> fresh, <R> resumed), REOPEN <k>   (omit if no verifier ran)
+   next: <the one decision the user must make>
+   ```
    - **Không có `--ship`** (mặc định): dừng ở đây. KHÔNG tự
      `commit`/`push` — seal gate trong `CLAUDE.md` vẫn áp dụng cho mọi
      hành động outward-facing trên `src/`, kể cả khi gọi qua `/todo`.
    - **Có `--ship`**: gọi ngay `/ship "<task>"` đúng như skill đó định
      nghĩa — KHÔNG tự triển khai lại logic của `/ship` ở đây. `/ship` vẫn
      chạy TOÀN BỘ hợp đồng của chính nó (guard chặn main/staging, show
-     git commands thật, chờ approval, evidence note riêng) — `--ship` chỉ
-     bỏ bước gõ `/ship` làm lệnh thứ 2, KHÔNG bỏ qua seal gate của
-     `/ship`. Muốn `--merge` (mở PR vào staging) thì gõ `/ship --merge`
+     git commands thật rồi chạy luôn — `AutoCommitNoGate`, truyền `--ship`
+     chính là approval — evidence note riêng) — `--ship` chỉ bỏ bước gõ
+     `/ship` làm lệnh thứ 2. Muốn `--merge` (mở PR vào staging) thì gõ `/ship --merge`
      riêng sau, hoặc `/todo "<task>" --ship` rồi tự thêm `--merge` — cờ
      `--ship` ở đây không tự suy ra `--merge`.
 
