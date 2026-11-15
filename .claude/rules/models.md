@@ -23,7 +23,7 @@ All models use Mongoose with `timestamps: true` and `candidateId` foreign key (e
 | Certificate | candidateId, name, organization, startDate, endDate, isNoExpiration, link, images[], description |
 | Award | candidateId, name, organization, issueDate, link, images[], description |
 | Reference | candidateId, fullName, phone, company, position |
-| Application | candidateId, company, position, appliedDate, status (`applied`\|`interview`\|`offer`\|`rejected`), note, jobLink, profileId (CV profile sent; must be the candidate's own non-deleted profile on create/update, else 400; `null`/`''` unlinks; kept if the profile is deleted later) |
+| Application | candidateId, company, position, appliedDate, status (`applied`\|`interview`\|`offer`\|`accepted`\|`rejected`; update may only move forward — `accepted` only from `offer`, `accepted`/`rejected` final, else 400), note, jobLink, profileId (CV profile sent; must be the candidate's own non-deleted profile on create/update, else 400; `null`/`''` unlinks; kept if the profile is deleted later) |
 | Profile | candidateId, name, educationIds[], experienceIds[], projectIds[], certificateIds[], awardIds[], referenceIds[] |
 | Visit | candidateId, ip, location, referrer (hostname only, nullable), profileId (owned profile, nullable) (no `_id` override — see comment in `visit.model.ts` on why) |
 

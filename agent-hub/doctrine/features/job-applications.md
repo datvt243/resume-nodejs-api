@@ -13,18 +13,20 @@ profile they sent.
 1. Same CRUD contract as `cv-section-crud` rules 1–6, at
    `/api/v1/application`.
 2. Fields: `company`, `position` (required, ≤ 100, `min(0)` so `""` passes), `appliedDate` (number, required),
-   `status` (one of `applied`, `interview`, `offer`, `rejected`,
+   `status` (one of `applied`, `interview`, `offer`, `accepted`, `rejected`,
    required), `note` (≤ 1000), `jobLink` (≤ 500; `''` or an `http`/`https` URL, else 400 with `details[].field = "jobLink"`), `profileId`.
 3. `profileId`: absent → left unchanged; `null` or `''` → stored as
    `null` (unlinked); a 24-hex id must be a non-deleted profile of the
    caller, else 400 `application.profileNotFound`.
 4. Applications are never shown on the public profile.
+5. Status transitions (update only; create takes any status): same status → OK; forward by rank `applied`=0 < `interview`=1 < `offer`=2, skips allowed; `accepted` only from `offer`; `applied`/`interview`/`offer` → `rejected` OK; `accepted`/`rejected` final; anything else → 400 `application.statusTransitionInvalid` (vi + en).
 
 ## Acceptance criteria
 - `npx jest src/__tests__/candidate_profile/application.service.test.ts` passes.
 - Create with `status: "hired"` → HTTP 400.
 - Create with another candidate's profile id → HTTP 400.
 - Create with `jobLink: "ftp://…"` → HTTP 400, `details` has field `jobLink`.
+- Update `offer` → `applied`, `applied` → `accepted`, or `rejected` → anything → HTTP 400; `applied` → `offer`, `offer` → `accepted`, `interview` → `rejected` → OK.
 
 ## Edge cases
 - Linked profile later soft-deleted → application keeps the id; no cascade.
@@ -43,3 +45,4 @@ profile they sent.
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/job-applications-spec.md` | - |
 | 2026-11-07 | Q2 answer revised: #410 rules after research | operator revised after research, see `evidence/analyst/2026-11-07/job-applications-spec.md` (Round 2) | - |
 | 2026-11-14 | Behavior #2: `jobLink` must be `''` or an http(s) URL; acceptance criterion added | operator answer to open question 1 (2026-11-07), #409 | `job-applications-validate` |
+| 2026-11-15 | Behavior #2 adds `accepted`; Behavior #5 status transitions; acceptance criterion added | operator answer to open question 2 (2026-11-07, revised), #410 | `job-applications-status-transitions` |
