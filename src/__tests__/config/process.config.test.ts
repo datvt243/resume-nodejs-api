@@ -5,7 +5,6 @@ const validProd = {
   NODE_ENV: 'production',
   TOKEN_SECRET: SECRET,
   TOKEN_REFRESH: SECRET,
-  SESSION_SECRET: SECRET,
   MONGOBD_USER: 'user',
   MONGOBD_PASSWORD: 'password',
 };
@@ -26,7 +25,7 @@ describe('checkEnv', () => {
     expect(() => checkEnv(env)).toThrow(/TOKEN_SECRET/);
   });
 
-  it.each(['TOKEN_REFRESH', 'SESSION_SECRET'])('production: %s of 31 chars → throws', (key) => {
+  it.each(['TOKEN_SECRET', 'TOKEN_REFRESH'])('production: %s of 31 chars → throws', (key) => {
     expect(() => checkEnv({ ...validProd, [key]: 'x'.repeat(31) })).toThrow(new RegExp(key));
   });
 

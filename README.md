@@ -44,7 +44,6 @@ LOCAL_PORT=3001
 MONGO_URI=...                     # hoặc MONGOBD_USER + MONGOBD_PASSWORD
 TOKEN_SECRET=...                  # 32+ ký tự
 TOKEN_REFRESH=...
-SESSION_SECRET=...
 REDIS_URL=redis://localhost:6379  # tuỳ chọn
 CORS_ORIGIN=https://your-frontend.example   # bắt buộc cho luồng httpOnly cookie
 ```

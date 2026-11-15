@@ -12,7 +12,6 @@ const mongoCredential = Joi.string().when('MONGO_URI', { not: Joi.exist(), then:
 const envSchema = Joi.object({
   TOKEN_SECRET: secret,
   TOKEN_REFRESH: secret,
-  SESSION_SECRET: secret,
   MONGO_URI: Joi.string(),
   MONGOBD_USER: mongoCredential,
   MONGOBD_PASSWORD: mongoCredential,
@@ -50,7 +49,6 @@ const {
   LOCAL_PORT,
   MONGOBD_USER,
   MONGOBD_PASSWORD,
-  SESSION_SECRET,
   TOKEN_SECRET,
   TOKEN_REFRESH,
   TOKEN_EXP_IN,
@@ -74,7 +72,6 @@ export {
   MONGO_URI,
   MONGOBD_USER,
   MONGOBD_PASSWORD,
-  SESSION_SECRET,
   TOKEN_SECRET,
   TOKEN_REFRESH,
   TOKEN_EXP_IN,
