@@ -142,3 +142,4 @@
 2026-11-14T11:01:01Z role=verifier outcome=SEAL node=education-project-manual-order rerun=full spawn=fresh hub_bytes_before=96180 hub_bytes_after=96181
 2026-11-15T10:25:34Z role=verifier outcome=SEAL node=config-fail-fast rerun=none spawn=fresh hub_bytes_before=97386 hub_bytes_after=97380
 2026-11-15T10:39:37Z role=verifier outcome=SEAL node=upload-route-tests rerun=none spawn=fresh hub_bytes_before=97380 hub_bytes_after=97385
+2026-11-15T11:05:14Z role=verifier outcome=SEAL node=job-applications-status-transitions rerun=none spawn=fresh hub_bytes_before=97385 hub_bytes_after=97414

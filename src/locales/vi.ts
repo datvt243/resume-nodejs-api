@@ -103,6 +103,7 @@ export default {
   },
   application: {
     profileNotFound: 'CV profile đã chọn không tồn tại hoặc đã bị xoá',
+    statusTransitionInvalid: 'Không thể đổi sang trạng thái này: trạng thái chỉ được tiến lên, và accepted hoặc rejected là trạng thái cuối',
   },
   profile: {
     entryNotFound: 'Một hoặc nhiều mục đã chọn không tồn tại, đã bị xoá hoặc không thuộc về bạn',

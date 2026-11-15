@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 const Schema = mongoose.Schema;
 const ObjectId = mongoose.Schema.Types.ObjectId;
 
-export const APPLICATION_STATUSES = ['applied', 'interview', 'offer', 'rejected'];
+export const APPLICATION_STATUSES = ['applied', 'interview', 'offer', 'accepted', 'rejected'];
 
 const schema = new Schema(
   {

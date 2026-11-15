@@ -284,7 +284,11 @@ const options: swaggerJsdoc.Options = {
             company: { type: 'string' },
             position: { type: 'string' },
             appliedDate: { type: 'number' },
-            status: { type: 'string', enum: ['applied', 'interview', 'offer', 'rejected'] },
+            status: {
+              type: 'string',
+              enum: ['applied', 'interview', 'offer', 'accepted', 'rejected'],
+              description: 'Create: any status. Update: same or forward (applied → interview → offer, skips allowed); accepted only from offer; applied/interview/offer → rejected; accepted and rejected are final (anything else → 400).',
+            },
             note: { type: 'string' },
             jobLink: { type: 'string', maxLength: 500, description: "http(s) URL, or '' for none (anything else → 400)." },
             profileId: {

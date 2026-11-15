@@ -103,6 +103,7 @@ export default {
   },
   application: {
     profileNotFound: 'The selected CV profile does not exist or has been deleted',
+    statusTransitionInvalid: 'This status change is not allowed: a status can only move forward, and accepted or rejected is final',
   },
   profile: {
     entryNotFound: 'One or more selected entries do not exist, have been deleted, or are not yours',
