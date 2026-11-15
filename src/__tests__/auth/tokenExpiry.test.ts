@@ -53,7 +53,8 @@ describe('access vs refresh token expiry — real TOKEN_EXP_IN/TOKEN_REFRESH_EXP
 
   it('falls back to a 1h access token when TOKEN_EXP_IN is unset (regression check on the || \'1h\' default)', () => {
     jest.resetModules();
-    delete process.env['TOKEN_EXP_IN'];
+    // '' not delete: re-requiring config re-runs dotenv, which would reload a local .env value but never overrides a set key.
+    process.env['TOKEN_EXP_IN'] = '';
     process.env['TOKEN_REFRESH_EXP_IN'] = '7d';
 
     const { jwtSign, jwtVerify } = require('@/utils/jwt');
@@ -67,7 +68,7 @@ describe('access vs refresh token expiry — real TOKEN_EXP_IN/TOKEN_REFRESH_EXP
 
   it('TOKEN_REFRESH_EXP_IN itself defaults to 7d when unset (existing default, regression check)', () => {
     jest.resetModules();
-    delete process.env['TOKEN_REFRESH_EXP_IN'];
+    process.env['TOKEN_REFRESH_EXP_IN'] = ''; // see above: '' survives dotenv, delete doesn't
 
     const { TOKEN_REFRESH_EXP_IN } = require('@/config/process.config');
 
