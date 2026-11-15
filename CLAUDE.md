@@ -49,7 +49,6 @@ MONGOBD_PASSWORD=...
 TOKEN_SECRET=...             # 32+ chars, signs access tokens
 TOKEN_REFRESH=...            # signs refresh tokens
 TOKEN_EXP_IN=...             # access token expiry
-SESSION_SECRET=...
 REDIS_URL=redis://localhost:6379   # optional; fallback to in-memory if absent
 MONGO_MAX_POOL_SIZE=10       # optional; MongoDB connection pool max size
 MONGO_MIN_POOL_SIZE=2        # optional; MongoDB connection pool min size

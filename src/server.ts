@@ -10,15 +10,13 @@ import dotenv from 'dotenv';
 
 import path from 'path';
 import express from 'express';
-import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import helmet from 'helmet';
-import session from 'express-session';
 import swaggerUi from 'swagger-ui-express';
 
 import { errorsMiddleware, notFoundHandler, rateLimitMiddleware, startMemStoreCleanup, requestLogger, languageMiddleware, httpsRedirect } from '@/middlewares';
-import { sessionConfig, corsConfig, helmetConfig, swaggerSpec, REQUEST_BODY_LIMIT, trustProxySetting } from '@/config';
+import { corsConfig, helmetConfig, swaggerSpec, REQUEST_BODY_LIMIT, trustProxySetting } from '@/config';
 import { logger } from '@/logger';
 import router from '@/routers';
 import { initRedis } from '@/services/redis';
@@ -49,11 +47,10 @@ const runServer = async ({ portNumber }: { portNumber: number }) => {
   // resolve request language (Accept-Language) → req.lang / req.t(key)
   app.use(languageMiddleware);
 
-  app.use(session(sessionConfig()));
   app.use(cors(corsConfig()));
 
-  app.use(bodyParser.urlencoded({ extended: true, limit: REQUEST_BODY_LIMIT }));
-  app.use(bodyParser.json({ limit: REQUEST_BODY_LIMIT }));
+  app.use(express.urlencoded({ extended: true, limit: REQUEST_BODY_LIMIT }));
+  app.use(express.json({ limit: REQUEST_BODY_LIMIT }));
 
   /**
    * @swagger
