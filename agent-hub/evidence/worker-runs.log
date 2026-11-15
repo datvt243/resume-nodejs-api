@@ -143,3 +143,4 @@
 2026-11-15T10:25:34Z role=verifier outcome=SEAL node=config-fail-fast rerun=none spawn=fresh hub_bytes_before=97386 hub_bytes_after=97380
 2026-11-15T10:39:37Z role=verifier outcome=SEAL node=upload-route-tests rerun=none spawn=fresh hub_bytes_before=97380 hub_bytes_after=97385
 2026-11-15T11:05:14Z role=verifier outcome=SEAL node=job-applications-status-transitions rerun=none spawn=fresh hub_bytes_before=97385 hub_bytes_after=97414
+2026-11-15T11:17:45Z role=verifier outcome=SEAL node=compound-candidate-deleted-index rerun=none spawn=fresh hub_bytes_before=97414 hub_bytes_after=97437
