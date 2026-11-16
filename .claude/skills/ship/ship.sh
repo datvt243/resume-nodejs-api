@@ -90,7 +90,7 @@ pr_url=""
 if [ -n "$merge" ] && [ "$SHIP_MERGE_VIA" = pr ]; then
   git fetch -q origin "$merge"
   pr_url=$(gh pr list --base "$merge" --head "$branch" --state open --json url --jq '.[0].url')
-  # branch named <N>-slug (e.g. 399-dedup-visits) → Closes #N, so /release + /issues-ls see the issue
+  # branch named <type>/<N>-<desc> (e.g. fix/399-dedup-visits) → Closes #N, so /release + /issues-ls see the issue
   issue=$(printf '%s' "${branch##*/}" | grep -oE '^[0-9]+' || true)
   body=$(git log --oneline "origin/$merge..$branch")
   [ -n "$issue" ] && body+=$'\n\nCloses #'"$issue"

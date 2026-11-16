@@ -30,7 +30,7 @@ Repo: `github.com/datvt243/resume-nodejs-api`. Author: DatVT.
   `npm run build`.
 
 ## Branch naming
-Branch naming: `<number>-<slug>` (`gh issue develop` default; kept over kit default)
+Branch naming: `<type>/<issue-number>-<desc-max-3-words>` — type = `feature`/`fix`/`hotfix`/`refactor`/`perf`/`chore`, desc = at most 3 kebab-case words (e.g. `fix/408-general-info-confirm`). Changed 2026-11-16 from `<number>-<slug>` (operator request). Pick type from the issue: label `bug` → `fix` (`hotfix` if it must skip the normal release cadence), `enhancement`/`feature` → `feature`, else the title's leading verb (refactor/perf/chore…); unclear → ask.
 
 ## Diagram-first
 The diagram (`haven/diagrams/`) is the source of truth for progress — code

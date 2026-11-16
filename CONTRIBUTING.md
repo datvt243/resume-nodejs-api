@@ -1,114 +1,116 @@
 # Contributing — Branching & Release Workflow
 
-2 tầng: **`staging`** (integration) → **`main`** (production). Áp dụng
-từ 2026-08-30.
+2 tiers: **`staging`** (integration) → **`main`** (production). In effect
+since 2026-08-30.
 
 ```
-feature/fix/hotfix branch  →  PR  →  staging  →  /release  →  main  →  deploy tự động
-      (branch từ staging)      (/ship)                (merge commit + tag)
+<type>/<n>-<desc> branch   →  PR  →  staging  →  /release  →  main  →  auto deploy
+      (branched from staging)  (/ship)                (merge commit + tag)
 ```
 
-## Quy tắc
+## Rules
 
-1. **Không bao giờ branch từ `main`.** Mọi branch fix/feature/hotfix
-   branch ra từ `staging`:
+1. **Never branch from `main`.** Every feature/fix/hotfix/refactor/perf/chore
+   branch is cut from `staging`:
    ```
-   git checkout -b <ten-branch> staging
+   git checkout -b <type>/<issue-number>-<desc-max-3-words> staging
    ```
-2. **PR luôn merge về `staging`**, không bao giờ merge thẳng vào `main`.
-3. **`main` chỉ nhận code qua bước release chính thức** (`/release` nếu
-   dùng Claude Code, hoặc tương đương thủ công — xem "Release process"
-   bên dưới) — không PR trực tiếp nào từ branch feature được base vào
+2. **PRs always merge into `staging`**, never directly into `main`.
+3. **`main` only receives code through the official release step**
+   (`/release` with Claude Code, or the manual equivalent — see "Release
+   process" below) — no PR from a feature branch is ever based on
    `main`.
-4. **Cả `main` và `staging` đều bật GitHub branch protection thật**:
-   không ai push thẳng được, kể cả owner/admin (`enforce_admins: true`).
-   Mọi thay đổi — kể cả 1 dòng version-bump — đi qua PR.
-5. **Cả 2 branch đều gate bằng CI thật** (`required_status_checks`):
-   PR không được merge (kể cả bởi owner) nếu `build (20.x)`/`build
-   (22.x)` (job `build` trong `.github/workflows/node.js.yml`, chạy
-   `npm ci && npm run build && npm test`) chưa xong hoặc fail trên chính
-   commit đó. `strict: false` — không bắt buộc branch phải rebase lên
-   mới nhất của base trước khi merge, tránh thao tác thủ công không cần
-   thiết cho 1 maintainer duy nhất; điều được gate là "commit này có pass
-   CI không", không phải "branch có mới nhất không".
+4. **Both `main` and `staging` have real GitHub branch protection**:
+   nobody can push directly, not even the owner/admin (`enforce_admins: true`).
+   Every change — even a 1-line version bump — goes through a PR.
+5. **Both branches are gated by real CI** (`required_status_checks`):
+   a PR cannot be merged (not even by the owner) while `build (20.x)`/`build
+   (22.x)` (the `build` job in `.github/workflows/node.js.yml`, running
+   `npm ci && npm run build && npm test`) is unfinished or failing on that
+   exact commit. `strict: false` — the branch does not have to be rebased
+   onto the latest base before merging, avoiding needless manual steps
+   for a single maintainer; what is gated is "does this commit pass
+   CI", not "is the branch up to date".
 
-## Vì sao `required_approving_review_count = 0`?
+## Why `required_approving_review_count = 0`?
 
-Nghe ngược đời cho một branch "protected", nhưng đây là lựa chọn có chủ
-đích: repo này hiện chỉ có 1 người duy trì, dùng cả người thật lẫn agent
-(Claude Code) để merge PR. GitHub **không cho một tài khoản tự approve
-PR của chính mình** — nếu đặt `required_approving_review_count >= 1`,
-sẽ không ai (kể cả owner) tự merge được PR của chính mình nữa, khoá
-cứng toàn bộ quy trình. Đặt `0` vẫn giữ được phần quan trọng của branch
-protection (không ai push thẳng, không force-push, không xoá branch —
-mọi thay đổi bắt buộc phải là 1 PR có thể xem lại diff trước khi merge)
-mà không tự khoá chân mình. Khi repo có thêm người maintain, đây là giá
-trị đầu tiên nên nâng lên `>= 1`.
+It sounds backwards for a "protected" branch, but it is deliberate:
+this repo currently has a single maintainer, who uses both a human
+account and an agent (Claude Code) to merge PRs. GitHub **does not let an
+account approve its own PR** — with `required_approving_review_count >= 1`,
+nobody (not even the owner) could merge their own PRs any more, locking
+the whole workflow. Setting `0` keeps the part of branch protection that
+matters (no direct push, no force-push, no branch deletion — every change
+must be a PR whose diff can be reviewed before merge) without locking
+ourselves out. When the repo gains more maintainers, this is the first
+value to raise to `>= 1`.
 
-## Vì sao thêm `required_status_checks` (CI thật) vào branch protection?
+## Why add `required_status_checks` (real CI) to branch protection?
 
-Ban đầu (2026-08-30) branch protection KHÔNG gate theo CI check
-(`required_status_checks: null`) — lý do lúc đó: `/release` đã tự chạy
-`npm run build`/`npm test` cục bộ (trong 1 git worktree cô lập) trước
-khi tạo PR lên `main`, nên coi như đã có gate.
+Initially (2026-08-30) branch protection did NOT gate on CI checks
+(`required_status_checks: null`) — the reasoning then: `/release` already
+ran `npm run build`/`npm test` locally (in an isolated git worktree)
+before opening the PR into `main`, so a gate effectively existed.
 
-Nhưng gate đó chỉ tồn tại trên đường `/release` (`staging → main`).
-Đường `/ship --merge` (PR feature/fix → `staging`) **không có gate build
-+test nào cả** trước khi merge — chỉ dựa vào việc operator tự nhớ đã
-chạy test trước đó trong phiên. Thêm `required_status_checks` (check
-`build (20.x)`/`build (22.x)`, đúng job/matrix thật trong
-`.github/workflows/node.js.yml`) vào CẢ 2 branch bịt lỗ hổng này: mọi PR
-vào `staging` HOẶC `main`, dù qua `/ship`, `/release`, hay merge tay trên
-GitHub UI, đều bắt buộc CI thật (chạy trên máy GitHub, không phải máy
-local của operator) phải xanh trước khi `gh pr merge` được chấp nhận —
-kể cả `enforce_admins: true` nên owner cũng không bypass được.
+But that gate only existed on the `/release` path (`staging → main`).
+The `/ship --merge` path (PR `<type>/…` → `staging`) **had no build
++test gate at all** before merging — it relied on the operator
+remembering to have run the tests earlier in the session. Adding
+`required_status_checks` (checks `build (20.x)`/`build (22.x)`, the real
+job/matrix in `.github/workflows/node.js.yml`) to BOTH branches closes
+that hole: every PR into `staging` OR `main`, whether via `/ship`,
+`/release`, or a manual merge in the GitHub UI, must have real CI (running
+on GitHub's machines, not the operator's local machine) green before
+`gh pr merge` is accepted — and with `enforce_admins: true` the owner
+cannot bypass it either.
 
-`strict: false` (không phải `true`): không bắt buộc nhánh đang merge
-phải chứa commit mới nhất của base trước khi merge. Vì repo chỉ có 1
-maintainer, những PR chồng lấn hiếm khi xảy ra — bật `strict: true` chỉ
-thêm thao tác "update branch" thủ công không cần thiết mỗi lần base
-nhích lên, mà không mua thêm an toàn tương xứng.
+`strict: false` (not `true`): the branch being merged does not have to
+contain the latest base commit before merging. With a single
+maintainer, overlapping PRs are rare — `strict: true` would only add a
+manual "update branch" step every time the base moves, without buying
+matching safety.
 
 ## Release process
 
-Mỗi lần muốn đưa `staging` lên `main` (production):
+Each time `staging` is promoted to `main` (production):
 
-1. Chạy build + test thật trên `staging` — merge nếu fail là không được
-   phép.
-2. Merge `staging` → `main` bằng **merge commit thật, không squash**.
-3. Bump version (semver, tự động theo Conventional Commits trong các
-   commit message), tạo git tag `vX.Y.Z`.
-4. Push vào `main` tự kích hoạt deploy (`.github/workflows/deploy.yml`
-   → Render, đã cấu hình secret sẵn — không cần thao tác thêm).
-5. Sync version-bump ngược lại `staging` để 2 branch không lệch version.
-6. Đóng các issue mà release này thực sự đưa lên `main`.
+1. Run a real build + test on `staging` — merging on failure is not
+   allowed.
+2. Merge `staging` → `main` with a **real merge commit, not a squash**.
+3. Bump the version (semver, derived automatically from the Conventional
+   Commits messages), create git tag `vX.Y.Z`.
+4. The push to `main` triggers the deploy automatically
+   (`.github/workflows/deploy.yml` → Render, secrets already configured —
+   nothing else to do).
+5. Sync the version bump back to `staging` so the 2 branches don't drift.
+6. Close the issues this release actually brought to `main`.
 
-Nếu dùng Claude Code, toàn bộ 6 bước trên chạy qua `/release`.
+With Claude Code, all 6 steps above run through `/release`.
 
-### Vì sao merge commit thật, không squash, ở bước release?
+### Why a real merge commit, not a squash, at release?
 
-Squash sẽ gộp toàn bộ commit của `staging` (có thể là hàng chục commit
-từ nhiều PR khác nhau) thành 1 commit duy nhất trên `main` — mất hoàn
-toàn ranh giới từng thay đổi. Merge commit thật giữ nguyên từng commit
-gốc trên `main`, nên `git bisect`/`git blame`/audit sau này vẫn thấy
-đúng commit nào làm gì, thay vì một khối "release" không thể chẻ nhỏ.
+A squash would collapse every commit on `staging` (possibly dozens of
+commits from many different PRs) into a single commit on `main` — losing
+every change boundary. A real merge commit keeps each original commit
+on `main`, so `git bisect`/`git blame`/later audits still see exactly
+which commit did what, instead of one indivisible "release" block.
 
-### Vì sao issue không tự đóng khi PR merge vào `staging`?
+### Why don't issues close when a PR merges into `staging`?
 
-GitHub chỉ tự đóng issue (`Closes #N` trong PR body) khi PR đó merge
-vào **default branch** của repo — hiện là `main`. PR feature/fix merge
-vào `staging` (không phải default branch) sẽ **không** tự đóng issue dù
-body có ghi `Closes #N` — issue chỉ thực sự đóng khi PR release
-(`staging → main`) merge, mang theo đúng các `Closes #N` cho những issue
-đã thực sự lên `main` trong đợt đó.
+GitHub only auto-closes an issue (`Closes #N` in the PR body) when that
+PR merges into the repo's **default branch** — currently `main`. A
+`<type>/…` PR merged into `staging` (not the default branch) does **not**
+close the issue even with `Closes #N` in its body — the issue only closes
+when the release PR (`staging → main`) merges, carrying the `Closes #N`
+for exactly the issues that reached `main` in that batch.
 
-## Command tương ứng (Claude Code)
+## Matching commands (Claude Code)
 
-| Việc | Command |
+| Task | Command |
 |---|---|
-| Commit + push branch feature/fix hiện tại | `/ship` |
-| Commit + push, rồi tự tạo PR + merge vào `staging` | `/ship --merge` |
-| Release `staging` → `main` (build+test gate, bump version, tag, deploy-check, đóng issue) | `/release` |
+| Commit + push the current `<type>/…` branch | `/ship` |
+| Commit + push, then open a PR + merge into `staging` | `/ship --merge` |
+| Release `staging` → `main` (build+test gate, version bump, tag, deploy check, close issues) | `/release` |
 
-`/ship` từ chối chạy nếu branch hiện tại là `main`/`staging` (dùng
-`/release` thay cho trường hợp đó).
+`/ship` refuses to run when the current branch is `main`/`staging` (use
+`/release` for that case).
