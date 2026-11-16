@@ -146,3 +146,4 @@
 2026-11-15T11:17:45Z role=verifier outcome=SEAL node=compound-candidate-deleted-index rerun=none spawn=fresh hub_bytes_before=97414 hub_bytes_after=97437
 2026-11-15T12:01:58Z role=verifier outcome=SEAL node=remove-express-session-unused-deps rerun=none spawn=fresh hub_bytes_before=97437 hub_bytes_after=97453
 2026-11-16T07:39:52Z role=verifier outcome=SEAL node=ci-lint-ratchet rerun=none spawn=fresh hub_bytes_before=97624 hub_bytes_after=97790
+2026-11-16T07:55:50Z role=verifier outcome=SEAL node=translate-vietnamese-docs rerun=full spawn=fresh hub_bytes_before=98753 hub_bytes_after=97837

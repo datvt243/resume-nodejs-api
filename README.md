@@ -1,108 +1,108 @@
 # Resume API — Backend
 
-REST API (Node.js + TypeScript) để quản lý hồ sơ ứng viên (CV): đăng nhập JWT, quản lý từng phần CV, nhiều phiên bản CV, link hồ sơ công khai, xuất PDF/DOCX (kể cả mẫu tối ưu cho ATS), theo dõi ứng tuyển. Đây là backend của [resume-vuejs-website](https://github.com/datvt243/resume-vuejs-website).
+REST API (Node.js + TypeScript) for managing candidate profiles (CVs): JWT login, per-section CV management, multiple CV versions, public profile links, PDF/DOCX export (including an ATS-optimized template), and job application tracking. This is the backend for [resume-vuejs-website](https://github.com/datvt243/resume-vuejs-website).
 
-## Mục lục
+## Table of contents
 
-- [Tính năng](#tính-năng)
-- [Bắt đầu nhanh](#bắt-đầu-nhanh)
-- [Chạy bằng Docker](#chạy-bằng-docker)
-- [Tài liệu API](#tài-liệu-api)
-- [Lệnh thường dùng](#lệnh-thường-dùng)
-- [Xử lý sự cố](#xử-lý-sự-cố)
-- [Công nghệ](#công-nghệ)
-- [Đóng góp](#đóng-góp)
-- [Tác giả & License](#tác-giả--license)
+- [Features](#features)
+- [Quick start](#quick-start)
+- [Running with Docker](#running-with-docker)
+- [API documentation](#api-documentation)
+- [Common commands](#common-commands)
+- [Troubleshooting](#troubleshooting)
+- [Tech stack](#tech-stack)
+- [Contributing](#contributing)
+- [Author & License](#author--license)
 
-## Tính năng
+## Features
 
-- **Xác thực** — JWT access/refresh (httpOnly cookie hoặc Bearer), bcrypt, CSRF, token blacklist, đăng xuất mọi thiết bị, phát hiện dùng lại refresh token, quên/đặt lại mật khẩu (stub, chưa gửi email thật)
-- **Hồ sơ CV** — thông tin ứng viên, học vấn, kinh nghiệm (có career break), dự án, giải thưởng, chứng chỉ, người tham khảo; xoá mềm và khôi phục
-- **Nhiều phiên bản CV** — mỗi phiên bản là một tập con các mục, có link công khai và PDF riêng
-- **Hồ sơ công khai** — slug tuỳ chỉnh, tìm kiếm hồ sơ công khai, thống kê lượt xem (quốc gia, nguồn truy cập, phiên bản CV)
-- **Xuất CV** — PDF / JSON / DOCX, nhiều mẫu (`classic`, `modern`, `ats`); tự chấm CV theo 10 tiêu chí ATS + so khớp từ khoá với mô tả công việc
-- **Nhập CV** — từ file export LinkedIn (ZIP) hoặc từ file PDF CV có sẵn
-- **Theo dõi ứng tuyển** — applied / interview / offer / rejected, gắn với phiên bản CV đã gửi
-- **Song ngữ** — Việt/Anh qua `Accept-Language` hoặc `?lang=`
-- **Vận hành** — rate limit (Redis, tự fallback về bộ nhớ khi không có Redis), log Winston theo ngày, `/health`, Swagger tại `/api-docs`
+- **Authentication** — JWT access/refresh (httpOnly cookie or Bearer), bcrypt, CSRF, token blacklist, log out of every device, refresh-token reuse detection, forgot/reset password (stub, no real email sent yet)
+- **CV profile** — candidate information, education, experience (with career breaks), projects, awards, certificates, references; soft delete and restore
+- **Multiple CV versions** — each version is a subset of the entries, with its own public link and PDF
+- **Public profile** — custom slug, public profile search, view statistics (country, traffic source, CV version)
+- **CV export** — PDF / JSON / DOCX, several templates (`classic`, `modern`, `ats`); self-scoring of the CV against 10 ATS criteria + keyword matching against a job description
+- **CV import** — from a LinkedIn export file (ZIP) or from an existing CV PDF
+- **Application tracking** — applied / interview / offer / rejected, linked to the CV version that was sent
+- **Bilingual** — Vietnamese/English via `Accept-Language` or `?lang=`
+- **Operations** — rate limit (Redis, falls back to in-memory when Redis is absent), daily Winston logs, `/health`, Swagger at `/api-docs`
 
-## Bắt đầu nhanh
+## Quick start
 
-Yêu cầu: Node.js `>=20.19.0 <23.0.0` (xem `engines` trong `package.json` — Node mới hơn bỏ `Buffer.SlowBuffer` mà một dependency của `jsonwebtoken` còn dùng), MongoDB, Redis (tuỳ chọn).
+Requirements: Node.js `>=20.19.0 <23.0.0` (see `engines` in `package.json` — newer Node drops `Buffer.SlowBuffer`, which a `jsonwebtoken` dependency still uses), MongoDB, Redis (optional).
 
 ```bash
 npm install
-npm run env:setup     # cp .env.example .env, rồi điền giá trị
+npm run env:setup     # cp .env.example .env, then fill in the values
 npm run dev           # → http://localhost:3001/health
 ```
 
-Biến môi trường tối thiểu trong `.env`:
+Minimum environment variables in `.env`:
 
 ```
 NODE_ENV=development
 LOCAL_PORT=3001
-MONGO_URI=...                     # hoặc MONGOBD_USER + MONGOBD_PASSWORD
-TOKEN_SECRET=...                  # 32+ ký tự
+MONGO_URI=...                     # or MONGOBD_USER + MONGOBD_PASSWORD
+TOKEN_SECRET=...                  # 32+ characters
 TOKEN_REFRESH=...
-REDIS_URL=redis://localhost:6379  # tuỳ chọn
-CORS_ORIGIN=https://your-frontend.example   # bắt buộc cho luồng httpOnly cookie
+REDIS_URL=redis://localhost:6379  # optional
+CORS_ORIGIN=https://your-frontend.example   # required for the httpOnly cookie flow
 ```
 
-Danh sách đầy đủ: [`.env.example`](.env.example). Muốn có Redis trên macOS: `brew install redis && redis-server`.
+Full list: [`.env.example`](.env.example). Redis on macOS: `brew install redis && redis-server`.
 
-## Chạy bằng Docker
+## Running with Docker
 
-Không cần cài Node/Mongo trên máy — cả hai chạy trong container (MongoDB 7, có volume lưu dữ liệu). Redis cố ý không đóng container; app tự dùng bộ nhớ khi thiếu `REDIS_URL`.
+No need to install Node/Mongo locally — both run in containers (MongoDB 7, with a data volume). Redis is intentionally not containerized; the app uses in-memory storage when `REDIS_URL` is missing.
 
 ```bash
-# Dev: hot reload, secret dev có sẵn, không cần .env
+# Dev: hot reload, built-in dev secrets, no .env needed
 docker compose up --build                                  # → http://localhost:3001/health
 
-# Prod: image đã build, cần secret thật trong .env
+# Prod: built image, needs real secrets in .env
 cp .env.example .env
 docker compose -f docker-compose.prod.yml up -d --build    # → http://localhost:3008/health
 ```
 
-## Tài liệu API
+## API documentation
 
-- **Swagger UI**: `/api-docs` (spec JSON: `/api-docs.json`) — nguồn đầy đủ và luôn đúng nhất cho mọi endpoint.
-- **Chuẩn response/error**: [`API-STANDARD.md`](API-STANDARD.md).
-- Mọi route `/api/v1/...` cần JWT, trừ nhóm auth. Gửi `Authorization: Bearer <token>` hoặc dùng httpOnly cookie; khi chỉ dùng cookie, request thay đổi dữ liệu phải kèm CSRF token.
-- Hồ sơ công khai (`/api/me/...`) không cần đăng nhập.
+- **Swagger UI**: `/api-docs` (JSON spec: `/api-docs.json`) — the complete and most up-to-date source for every endpoint.
+- **Response/error standard**: [`API-STANDARD.md`](API-STANDARD.md).
+- Every `/api/v1/...` route requires a JWT, except the auth group. Send `Authorization: Bearer <token>` or use the httpOnly cookie; when using the cookie only, state-changing requests must include a CSRF token.
+- Public profiles (`/api/me/...`) need no login.
 
-## Lệnh thường dùng
+## Common commands
 
 ```bash
 npm run dev        # hot reload
 npm run build      # tsc + copy public → dist/
-npm start          # build + chạy production
+npm start          # build + run production
 npm test           # Jest
-npm run lint       # ESLint (npm run lint:fix để tự sửa)
+npm run lint       # ESLint (npm run lint:fix to autofix)
 ```
 
-## Xử lý sự cố
+## Troubleshooting
 
-| Vấn đề | Cách xử lý |
+| Problem | Fix |
 |---|---|
-| Không kết nối được Mongo | Kiểm tra `MONGO_URI` hoặc `MONGOBD_USER`/`MONGOBD_PASSWORD` |
-| Không có Redis | Cài Redis, hoặc bỏ `REDIS_URL` để dùng bộ nhớ |
-| Lỗi CSRF | Request chỉ dùng cookie (không có Bearer) phải kèm CSRF token |
-| Build xong nhưng thiếu file tĩnh / upload | `npm run copy` |
-| Cần xem log | Thư mục `logs/` |
+| Can't connect to Mongo | Check `MONGO_URI` or `MONGOBD_USER`/`MONGOBD_PASSWORD` |
+| No Redis | Install Redis, or unset `REDIS_URL` to use in-memory storage |
+| CSRF error | Cookie-only requests (no Bearer) must include a CSRF token |
+| Build succeeds but static files / uploads are missing | `npm run copy` |
+| Need to read logs | The `logs/` directory |
 
-## Công nghệ
+## Tech stack
 
 Node.js · Express 4 · TypeScript 5 (strict) · MongoDB + Mongoose 8 · Redis 4 · JWT + bcrypt · Joi · Puppeteer + pdf-lib + pdf-parse · docx · multer · Winston · Swagger · Jest · ESLint 9
 
-## Đóng góp
+## Contributing
 
-- `main` và `staging` đều được GitHub bảo vệ: không push thẳng, bắt buộc qua PR, CI phải xanh.
-- Tạo branch từ `staging`, mở PR vào `staging`. `main` chỉ nhận code từ `staging` qua bước release; push vào `main` tự deploy lên Render.
-- Chi tiết và lý do: [`CONTRIBUTING.md`](CONTRIBUTING.md). Quy ước code cho AI agent: [`CLAUDE.md`](CLAUDE.md).
-- Báo lỗi / đề xuất: [GitHub Issues](https://github.com/datvt243/resume-nodejs-api/issues).
+- `main` and `staging` are both GitHub-protected: no direct push, PRs required, CI must be green.
+- Branch off `staging`, open PRs into `staging`. `main` only receives code from `staging` through the release step; a push to `main` auto-deploys to Render.
+- Details and rationale: [`CONTRIBUTING.md`](CONTRIBUTING.md). Code conventions for AI agents: [`CLAUDE.md`](CLAUDE.md).
+- Bug reports / suggestions: [GitHub Issues](https://github.com/datvt243/resume-nodejs-api/issues).
 
-## Tác giả & License
+## Author & License
 
 **Đạt Võ** — [@datvt243](https://github.com/datvt243)
 
-License: ISC (khai báo trong `package.json`; repo chưa có file `LICENSE`).
+License: ISC (declared in `package.json`; the repo has no `LICENSE` file yet).

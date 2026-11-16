@@ -49,7 +49,7 @@ for `--merge` with `SHIP_MERGE_VIA=pr`. Main working branch + merge mode:
 ## Project extensions
 - **Guard, before step 1**: `git branch --show-current` is `main` or
   `staging` → stop, run nothing: both are GitHub-protected. Work goes on a
-  feature/fix branch off `staging`; `staging → main` is `/release`, never
+  `<type>/<n>-<desc>` branch off `staging`; `staging → main` is `/release`, never
   `/ship`. (So `BranchBeforeCommit` never fires here.)
 - **Before staging files**: `git status --short` — delete obvious
   live-test junk (`src/public/pdf/`, `src/public/uploads/`, temp logs);

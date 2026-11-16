@@ -23,4 +23,4 @@ Never re-implement or skip its steps by hand. Gate commands come from
 4. Exit 0: relay its final report (version, tag, PR URLs, deploy, issues).
 
 `main` only ever receives code through this script — no direct push, no
-PR from a feature/fix branch.
+PR from a `<type>/…` work branch.
