@@ -63,7 +63,6 @@ flowchart TD
 | `fix-refresh-token-expiry-unused` | PENDING | `TOKEN_EXP_IN` (`.env`, already exported in config) is never used at any `jwtSign()` call site (`auth.service.ts`, `auth.controller.ts`, `api/v1/auth/services/login.ts`) — access and refresh tokens always share the same default 1h expiry, so the refresh token is pointless. |
 | `ci-lint-ratchet` | SEALED | 2026-11-16 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-16/ci-lint-ratchet-seal.md`. |
 | `job-applications-status-transitions` | SEALED | 2026-11-15 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-15/job-applications-status-transitions-seal.md`. |
-| `bulk-partial-message` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/bulk-partial-message-seal.md`. |
 | `ats-classic-not-applicable` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/ats-classic-not-applicable-seal.md`. |
 | `ats-check-messages-i18n` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/ats-check-messages-i18n-seal.md`. |
 | `linkedin-unparseable-end-date` | SEALED | 2026-11-08 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-08/linkedin-unparseable-end-date-seal.md`. |
@@ -81,3 +80,4 @@ flowchart TD
 | `compound-candidate-deleted-index` | SEALED | 2026-11-15 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-15/compound-candidate-deleted-index-seal.md`. |
 | `remove-express-session-unused-deps` | SEALED | 2026-11-15 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-15/remove-express-session-unused-deps-seal.md`. |
 | `translate-vietnamese-docs` | SEALED | 2026-11-16 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-16/translate-vietnamese-docs-seal.md`. |
+| `contributing-kit-template` | SEALED | 2026-11-16 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-16/contributing-kit-template-seal.md`. |
