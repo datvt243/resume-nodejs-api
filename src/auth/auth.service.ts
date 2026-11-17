@@ -13,6 +13,7 @@ import { invalidateAllSessions } from '@/utils/sessionRevocation';
 import { createVerificationToken, consumeVerificationToken } from '@/utils/emailVerification';
 import { generateUniqueCandidateSlug } from '@/utils/slug';
 import { logger } from '@/logger';
+import { AppError, BadRequestError, ErrorCode, InvalidCredentialsError } from '@/errors';
 
 interface Auth {
   email: string;
@@ -29,7 +30,7 @@ export const handlerRegister = async (item: Auth, lang: string = DEFAULT_LANG) =
   const { email, password } = item;
 
   const emailHasExits = await isEmailAlreadyExists(email);
-  if (emailHasExits) return { success: false, message: t('auth.emailAlreadyExists', lang) };
+  if (emailHasExits) throw new AppError({ message: t('auth.emailAlreadyExists', lang), errorCode: ErrorCode.EMAIL_EXISTS });
 
   /**
    * TODO: validate data với mongo model.valid
@@ -81,7 +82,7 @@ export const handlerRegister = async (item: Auth, lang: string = DEFAULT_LANG) =
  */
 export const handlerVerifyEmail = async (token: string, lang: string = DEFAULT_LANG) => {
   const candidateId = await consumeVerificationToken(token);
-  if (!candidateId) return { success: false, message: t('auth.verificationTokenInvalid', lang) };
+  if (!candidateId) throw new BadRequestError(t('auth.verificationTokenInvalid', lang));
 
   await CandidateModel.updateOne({ _id: candidateId }, { emailVerified: true });
 
@@ -93,11 +94,11 @@ export const handlerLogin = async (data: Auth, lang: string = DEFAULT_LANG) => {
 
   const _user = await CandidateModel.findOne({ email });
   // Same answer for an unknown email and a wrong password, so login can't be used to probe which emails are registered.
-  if (!_user) return { success: false, message: t('auth.invalidCredentials', lang) };
+  if (!_user) throw new InvalidCredentialsError(t('auth.invalidCredentials', lang));
 
   const { _id, password: pwdHash } = _user;
   const comparePwd = await bcryptCompareHash(password, pwdHash);
-  if (!comparePwd) return { success: false, message: t('auth.invalidCredentials', lang) };
+  if (!comparePwd) throw new InvalidCredentialsError(t('auth.invalidCredentials', lang));
 
   const token = jwtSign({ data: { _id }, secretKey: TOKEN_SECRET, props: { expiresIn: TOKEN_EXP_IN || '1h' } });
   // `jti` keeps refresh tokens unique: two signed in the same second would otherwise be byte-identical, and an identical copy of a rotated token reads as reuse.
@@ -155,7 +156,7 @@ export const handlerResetPassword = async (data: ResetPasswordInput, lang: strin
   const { token, password } = data;
 
   const candidateId = await consumeResetToken(token);
-  if (!candidateId) return { success: false, message: t('auth.resetTokenInvalid', lang) };
+  if (!candidateId) throw new BadRequestError(t('auth.resetTokenInvalid', lang));
 
   const bcryptPwd = await bcryptGenerateSalt(password);
   await CandidateModel.updateOne({ _id: candidateId }, { password: bcryptPwd });
