@@ -23,7 +23,7 @@
 | CV file upload and import | cv-file-upload-import.md | verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/cv-file-upload-import-spec.md` | candidate / `src/candidate/parseCvPdf.service.ts`, `src/candidate/parseLinkedInExport.service.ts`, `src/middlewares/uploadCV.middleware.ts` | #383, #384, #388, #401, #402 |
 | Public profile, search and public PDF | public-profile.md | verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/public-profile-spec.md` | public / `src/routers/index.ts`, `src/candidate_me/` | #382, #386, #397 |
 | Profile visits and stats | profile-visits.md | verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/profile-visits-spec.md` | public / `src/candidate/visitStats.service.ts`, `src/candidate_me/index.ts` | #395, #396, #398, #399 |
-| Startup configuration (environment variables) | startup-config-env.md | draft | config / `src/config/process.config.ts`, `src/config/session.config.ts`, `src/config/proxy.config.ts`, `src/database/mongo.db.ts`, `src/server.ts` | #458 |
+| Startup configuration (environment variables) | startup-config-env.md | draft | config / `src/config/process.config.ts`, `src/config/proxy.config.ts`, `src/database/mongo.db.ts`, `src/server.ts` | #458 |
 
 ## Doc format — `doctrine/features/<slug>.md`
 ~~~markdown

@@ -1,20 +1,20 @@
 ---
 name: worker
-description: "Trở thành một worker của agent-hub (analyst, implementer hoặc verifier) và thực hiện một task theo đúng recipe của worker đó. Dùng: /worker [analyst|implementer|verifier] \"[task]\""
+description: "Become an agent-hub worker (analyst, implementer or verifier) and carry out one task following exactly that worker's recipe. Usage: /worker [analyst|implementer|verifier] \"[task]\""
 argument-hint: <analyst|implementer|verifier> "<task>"
 ---
 
 # /worker <wid> "<task>"
 
-> Chạy MỘT worker cho MỘT task. Không bao giờ làm việc "chung chung" ngoài
-> vai trò — mọi hành động phải trace về `haven/workers/<wid>/`.
+> Runs ONE worker for ONE task. Never works "generically" outside the
+> role — every action must trace back to `haven/workers/<wid>/`.
 
-> [thêm 2026-09-05] Riêng `verifier`, tham số task có thể là 1 đường dẫn
-> evidence note, NHIỀU đường dẫn cùng lúc (batch), hoặc từ khoá
-> `all-pending` (mọi node đang `sealed_pending_verifier` trên diagram
-> active) — xem "Batch verify" trong `recipes/verify_seal.md`. Batch chỉ
-> gộp chi phí spawn subagent (load bundle 1 lần cho cả lô), verdict vẫn
-> tính RIÊNG, ĐỘC LẬP cho từng node.
+> [added 2026-09-05] For `verifier` only, the task argument can be 1
+> evidence note path, SEVERAL paths at once (batch), or the keyword
+> `all-pending` (every node in `sealed_pending_verifier` on the active
+> diagram) — see "Batch verify" in `recipes/verify_seal.md`. Batching only
+> pools the subagent spawn cost (bundle loaded once for the whole batch);
+> the verdict is still computed SEPARATELY and INDEPENDENTLY per node.
 
 > **`analyst`** (BA, kit 2026-11-06): MUST run as a **separate subagent**
 > (Agent tool, blank context). The subagent loads
@@ -26,73 +26,79 @@ argument-hint: <analyst|implementer|verifier> "<task>"
 > `no_feature` | `blocked`. Backfill an existing feature by hand:
 > `/worker analyst "document <feature>"`.
 
-## Vòng chạy bắt buộc
-1. **Load bundle** — đọc đúng thứ tự:
+## Mandatory run loop
+1. **Load bundle** — read in exactly this order:
    `agent-hub/haven/workers/<wid>/manifest.yaml` →
    `agent-hub/haven/workers/<wid>/SOUL.md` →
-   `agent-hub/haven/workers/<wid>/MEMORY.md` (nếu có) →
-   mọi file trong `agent-hub/haven/workers/<wid>/recipes/`.
+   `agent-hub/haven/workers/<wid>/MEMORY.md` (if present) →
+   every file in `agent-hub/haven/workers/<wid>/recipes/`.
 2. **Become the worker**:
-   - `implementer`: chạy ngay trong phiên hiện tại — đọc code thật, sửa
-     `src/`, cần seal gate tương tác với operator nên không thể tách phiên.
-   - `verifier`: KHÔNG tự đóng vai verifier trong phiên hiện tại. Dùng
-     **Agent tool** để dispatch một subagent độc lập (chạy foreground,
-     `run_in_background: false` — cần verdict trước khi tiếp tục). Prompt
-     cho subagent phải tự chứa toàn bộ: nội dung `manifest.yaml` + `SOUL.md`
-     + `recipes/verify_seal.md` của verifier, đường dẫn evidence note cần
-     chấm, và node liên quan trên diagram. Subagent tự đọc note + diagram +
-     `CLAUDE.md`, tự viết verdict vào `evidence/verifier/`, tự cập nhật PM
-     status nếu SEAL. Đây chính là cách hiện thực `NeverVerifyOwnWork` thật
-     — subagent không có lịch sử hội thoại của lượt implement. [thêm
-     2026-09-06] Không có hook nào chặn thật việc bỏ qua bước spawn này —
-     `NeverVerifyOwnWork` là ràng buộc hạ tầng, không phải lời hứa tự
-     giác. Phòng vệ thật là dấu vết citeable: `recipes/verify_seal.md`
-     bước 1b bắt verifier ghi bằng chứng spawn riêng vào dòng
-     `## Isolation proof` của verdict note, để 1 audit sau này phát hiện
-     được nếu bước tách context bị bỏ qua. (kit 2026-11-07) Only
-     exception to a fresh spawn: `/todo`'s REOPEN rounds resume the same
-     verifier subagent (`todo` step 3) — still never the implementer's
-     context.
-3. **Follow recipe** — chọn recipe khớp `quick_actions` của worker:
-   - `implementer`: `pick_next` rồi `implement` (xem
+   - `implementer`: runs right in the current session — reads real code,
+     edits `src/`, needs the interactive seal gate with the operator so it
+     can't be split into another session.
+   - `verifier`: do NOT play the verifier in the current session. Use the
+     **Agent tool** to dispatch an independent subagent (foreground,
+     `run_in_background: false` — the verdict is needed before
+     continuing). The subagent prompt must be fully self-contained: the
+     content of the verifier's `manifest.yaml` + `SOUL.md` +
+     `recipes/verify_seal.md`, the path of the evidence note to grade, and
+     the related node on the diagram. The subagent reads the note +
+     diagram + `CLAUDE.md` itself, writes its verdict into
+     `evidence/verifier/` itself, and updates PM status itself on SEAL.
+     This is how `NeverVerifyOwnWork` is really implemented — the subagent
+     has no conversation history of the implement pass. [added
+     2026-09-06] No hook actually blocks skipping this spawn step —
+     `NeverVerifyOwnWork` is an infrastructure constraint, not a
+     self-discipline promise. The real defense is a citeable trace:
+     `recipes/verify_seal.md` step 1b makes the verifier record its own
+     spawn proof in the `## Isolation proof` line of the verdict note, so
+     a later audit can detect a skipped context split. (kit 2026-11-07)
+     Only exception to a fresh spawn: `/todo`'s REOPEN rounds resume the
+     same verifier subagent (`todo` step 3) — still never the
+     implementer's context.
+3. **Follow recipe** — pick the recipe matching the worker's `quick_actions`:
+   - `implementer`: `pick_next` then `implement` (see
      `recipes/pick_next.md`, `recipes/implement.md`).
-   - `verifier`: `verify_seal` (xem `recipes/verify_seal.md`) — recipe này
-     chạy BÊN TRONG subagent, không phải trong phiên chính.
-   Theo đúng Steps đánh số trong recipe — không tự sáng tác bước mới.
-4. **Seal gate** — trước bất kỳ hành động outward-facing nào (commit, push,
-   xoá, gọi API ngoài), DỪNG LẠI, show diff/hành động, chờ approval của
-   operator. Không có approval = không làm. Áp dụng cho `src/` — KHÔNG áp
-   dụng theo cách này cho việc ghi vào `agent-hub/` (xem mục Hiển thị bên
-   dưới).
-5. **Exit** — implementer dừng ở `status: sealed_pending_verifier` (không
-   bao giờ tự nhận `done`); verifier (qua subagent) dừng ở `SEAL` hoặc
-   `REOPEN`. Luôn ghi evidence note theo `agent-hub/evidence/README.md`
-   trước khi kết thúc — kể cả khi chạy qua subagent.
+   - `verifier`: `verify_seal` (see `recipes/verify_seal.md`) — this recipe
+     runs INSIDE the subagent, not in the main session.
+   Follow the recipe's numbered Steps exactly — never invent new steps.
+4. **Seal gate** — before any outward-facing action (commit, push,
+   delete, external API call), STOP, show the diff/action, wait for the
+   operator's approval. No approval = don't do it. Applies to `src/` — does
+   NOT apply this way to writes into `agent-hub/` (see the Visibility
+   section below).
+5. **Exit** — the implementer stops at `status: sealed_pending_verifier`
+   (never claims `done` itself); the verifier (via subagent) stops at
+   `SEAL` or `REOPEN`. Always write an evidence note per
+   `agent-hub/evidence/README.md` before finishing — even when running as
+   a subagent.
 
-## Hiển thị agent-hub trong phiên
-`agent-hub/` là tài liệu cho AI đọc, không phải cho coder đọc — quy tắc này
-áp dụng cho MỌI thay đổi trong `agent-hub/`, dù là sửa file có sẵn (diff)
-hay tạo file mới (evidence note mới, note thứ 2/3 khi REOPEN lặp lại, v.v.)
-— cả hai đều KHÔNG được dán ra chat: không git diff, không paste/trích nội
-dung file vừa tạo, không mô tả lại "trong đó viết gì". Mỗi lần ghi xong chỉ
-in đúng 1 dòng `update nội dung agent-hub`, rồi khi hoàn tất báo `done`
-cùng verdict (SEAL/REOPEN/blocked). Diff của `src/` (code thật) vẫn hiển
-thị đầy đủ như seal gate yêu cầu — quy tắc suppress chỉ áp dụng cho
+## agent-hub visibility in the session
+`agent-hub/` is documentation for the AI to read, not for coders — this
+rule applies to EVERY change in `agent-hub/`, whether editing an existing
+file (diff) or creating a new one (a new evidence note, the 2nd/3rd note
+when REOPEN loops, etc.) — neither may be pasted into chat: no git diff,
+no pasting/quoting the content of a file just written, no re-describing
+"what it says". After each write print exactly 1 line
+`agent-hub content updated`, then on completion report `done` with the
+verdict (SEAL/REOPEN/blocked). The `src/` diff (real code) is still shown
+in full as the seal gate requires — the suppress rule only applies to
 `agent-hub/`.
 
-## Hard constraints (override mọi skill text khác)
-- `implementer` không có `seal_actions` — không bao giờ tự đặt PM status.
-- `verifier` (subagent) từ chối chấm diff do phiên implementer viết ra
-  trong cùng conversation gốc nếu bị gọi sai cách (`NeverVerifyOwnWork`) —
-  báo lỗi và dừng nếu phát hiện; bình thường điều này không xảy ra vì
-  subagent luôn là context mới.
-- Thiếu evidence cho một claim = không được báo hoàn tất, dù chỉ một tiêu
-  chí (`EDIT_UNVERIFIED`, `NO_EVIDENCE`).
-- Lệnh test/build luôn copy nguyên văn từ `agent-hub/doctrine/MEMORY.md` —
-  còn `<<FILL>>` thì báo `blocked`, không đoán.
+## Hard constraints (override every other skill text)
+- `implementer` has no `seal_actions` — never sets PM status itself.
+- `verifier` (subagent) refuses to grade a diff written by the implementer
+  session in the same original conversation if invoked the wrong way
+  (`NeverVerifyOwnWork`) — report the error and stop if detected; normally
+  this can't happen because the subagent is always a fresh context.
+- Missing evidence for a claim = may not report completion, even for a
+  single criterion (`EDIT_UNVERIFIED`, `NO_EVIDENCE`).
+- Test/build commands are always copied verbatim from
+  `agent-hub/doctrine/MEMORY.md` — still `<<FILL>>` → report `blocked`,
+  don't guess.
 
-## Ví dụ
+## Example
 ```
-/worker implementer "sửa CORS origin '*' theo trap trong doctrine/domains/PROJECT.md"
+/worker implementer "fix CORS origin '*' per the trap in doctrine/domains/PROJECT.md"
 /worker verifier "verify node fix-chrome-executable-path"
 ```

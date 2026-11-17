@@ -12,6 +12,7 @@ import * as jwt from '@/utils';
 import * as helperAuth from '@/utils/helper-auth';
 import * as sessionRevocation from '@/utils/sessionRevocation';
 import { handlerRegister, handlerLogin } from '@/auth/auth.service';
+import { AppError, ErrorCode, InvalidCredentialsError } from '@/errors';
 
 // Mock modules
 jest.mock('@/utils');
@@ -95,18 +96,19 @@ describe('auth.controller', () => {
       });
     });
 
-    it('answers a duplicate email with 409 EMAIL_EXISTS via errorsMiddleware', async () => {
+    it('forwards the service EMAIL_EXISTS error instead of writing a response', async () => {
       const req = mockRequest({ email: 'taken@example.com', password: 'pass123', repassword: 'pass123' });
       const res = mockResponse();
       const next = jest.fn();
+      const err = new AppError({ message: 'Email đã tồn tại', errorCode: ErrorCode.EMAIL_EXISTS });
 
       (validateSchema.validateSchema as jest.Mock).mockReturnValue({ isValidated: true, value: { email: 'taken@example.com', password: 'pass123' } });
-      (handlerRegister as jest.Mock).mockResolvedValue({ success: false, message: 'Email đã tồn tại' });
+      (handlerRegister as jest.Mock).mockRejectedValue(err);
 
       await authRegister(req, res, next);
 
       expect(formatReturn.formatReturn).not.toHaveBeenCalled();
-      expect(next.mock.calls[0][0]).toMatchObject({ statusCode: 409, errorCode: 'EMAIL_EXISTS', message: 'Email đã tồn tại' });
+      expect(formatReturn.handleError).toHaveBeenCalledWith(expect.objectContaining({ err, next }));
     });
 
     // issue #159 — the fallback message (`message || t('auth.registerSuccess', lang)`)
@@ -176,38 +178,20 @@ describe('auth.controller', () => {
       );
     });
 
-    it('answers a failed login with 401 INVALID_CREDENTIALS via errorsMiddleware', async () => {
+    it('forwards the service INVALID_CREDENTIALS error without setting cookies', async () => {
       const req = mockRequest({ email: 'test@example.com', password: 'wrong' });
       const res = mockResponse();
       const next = jest.fn();
+      const err = new InvalidCredentialsError('Email hoặc mật khẩu không chính xác');
 
       (validateSchema.validateSchema as jest.Mock).mockReturnValue({ isValidated: true, value: { email: 'test@example.com', password: 'wrong' } });
-      (handlerLogin as jest.Mock).mockResolvedValue({ success: false, message: 'Email hoặc mật khẩu không chính xác' });
+      (handlerLogin as jest.Mock).mockRejectedValue(err);
 
       await authLogin(req, res, next);
 
       expect(formatReturn.formatReturn).not.toHaveBeenCalled();
       expect((jwt as any).setAuthCookies).not.toHaveBeenCalled();
-      expect(next.mock.calls[0][0]).toMatchObject({ statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email hoặc mật khẩu không chính xác' });
-    });
-
-    // issue #159 — same fallback-through-t() proof as authRegister, for the
-    // `_result.message || t('auth.invalidCredentials', lang)` branch.
-    it('localizes the fallback failure message to English when req.lang is en', async () => {
-      const req: any = mockRequest({ email: 'test@example.com', password: 'wrong' });
-      req.lang = 'en';
-      const res = mockResponse();
-
-      (validateSchema.validateSchema as jest.Mock).mockReturnValue({
-        isValidated: true,
-        value: { email: 'test@example.com', password: 'wrong' },
-      });
-      (handlerLogin as jest.Mock).mockResolvedValue({ success: false, message: undefined });
-      const next = jest.fn();
-
-      await authLogin(req, res, next);
-
-      expect(next.mock.calls[0][0]).toMatchObject({ errorCode: 'INVALID_CREDENTIALS', message: 'Incorrect email or password' });
+      expect(formatReturn.handleError).toHaveBeenCalledWith(expect.objectContaining({ err, next }));
     });
   });
 
@@ -321,16 +305,21 @@ describe('auth.controller', () => {
     });
 
     it('also blacklists the refresh token sent with the request', async () => {
-      const req = mockRequest({}, { authorization: 'Bearer access_token' });
+      const req = {
+        ...mockRequest({ refreshToken: 'refresh_token' }),
+        header: (name: string) => (name.toLowerCase() === 'authorization' ? 'Bearer access_token' : undefined),
+      } as unknown as Request;
       const res = mockResponse();
 
-      (helperAuth.extractTokenFromRequest as jest.Mock).mockImplementation((_req, fieldName = 'token') =>
-        fieldName === 'refreshToken' ? 'refresh_token' : 'access_token',
+      // Real lookup: a mocked one hid that the header shadowed body `refreshToken`.
+      (helperAuth.extractTokenFromRequest as jest.Mock).mockImplementation(
+        jest.requireActual<typeof helperAuth>('@/utils/helper-auth').extractTokenFromRequest,
       );
       (tokenBlacklist.addToBlacklist as jest.Mock).mockResolvedValue(true);
 
       await authLogout(req, res, mockNext);
 
+      expect(tokenBlacklist.addToBlacklist).toHaveBeenCalledTimes(2);
       expect(tokenBlacklist.addToBlacklist).toHaveBeenCalledWith('access_token');
       expect(tokenBlacklist.addToBlacklist).toHaveBeenCalledWith('refresh_token');
     });

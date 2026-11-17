@@ -9,6 +9,7 @@ import * as jwt from '@/utils';
 import { createResetToken, consumeResetToken } from '@/utils/passwordReset';
 import { createVerificationToken, consumeVerificationToken } from '@/utils/emailVerification';
 import { invalidateAllSessions } from '@/utils/sessionRevocation';
+import { ErrorCode } from '@/errors';
 
 // Mock modules
 jest.mock('@/models/candidate.model');
@@ -97,9 +98,11 @@ describe('auth.service', () => {
     it('should fail if email already exists', async () => {
       (CandidateModel.findOne as jest.Mock).mockResolvedValue({ email: 'existing@example.com' });
 
-      const result = await handlerRegister({ email: 'existing@example.com', password: 'pass123' });
-
-      expect(result).toEqual({ success: false, message: 'Email đã tồn tại' });
+      await expect(handlerRegister({ email: 'existing@example.com', password: 'pass123' })).rejects.toMatchObject({
+        errorCode: ErrorCode.EMAIL_EXISTS,
+        statusCode: 409,
+        message: 'Email đã tồn tại',
+      });
       expect(bcrypt.bcryptGenerateSalt).not.toHaveBeenCalled();
     });
   });
@@ -152,9 +155,11 @@ describe('auth.service', () => {
     it('should fail if user not found', async () => {
       (CandidateModel.findOne as jest.Mock).mockResolvedValue(null);
 
-      const result = await handlerLogin({ email: 'nonexistent@example.com', password: 'pass' });
-
-      expect(result).toEqual({ success: false, message: 'Email hoặc mật khẩu không chính xác' });
+      await expect(handlerLogin({ email: 'nonexistent@example.com', password: 'pass' })).rejects.toMatchObject({
+        errorCode: ErrorCode.INVALID_CREDENTIALS,
+        statusCode: 401,
+        message: 'Email hoặc mật khẩu không chính xác',
+      });
       expect(bcrypt.bcryptCompareHash).not.toHaveBeenCalled();
     });
 
@@ -164,10 +169,21 @@ describe('auth.service', () => {
       (CandidateModel.findOne as jest.Mock).mockResolvedValue(mockUser);
       (bcrypt.bcryptCompareHash as jest.Mock).mockResolvedValue(false);
 
-      const result = await handlerLogin({ email: 'test@example.com', password: 'wrongpass' });
+      // Same error as the unknown-email case, so login can't enumerate registered emails.
+      await expect(handlerLogin({ email: 'test@example.com', password: 'wrongpass' })).rejects.toMatchObject({
+        errorCode: ErrorCode.INVALID_CREDENTIALS,
+        statusCode: 401,
+        message: 'Email hoặc mật khẩu không chính xác',
+      });
+    });
 
-      // Same message as the unknown-email case, so login can't enumerate registered emails.
-      expect(result).toEqual({ success: false, message: 'Email hoặc mật khẩu không chính xác' });
+    it('localizes the invalid-credentials message to the request lang', async () => {
+      (CandidateModel.findOne as jest.Mock).mockResolvedValue(null);
+
+      await expect(handlerLogin({ email: 'nonexistent@example.com', password: 'pass' }, 'en')).rejects.toMatchObject({
+        errorCode: ErrorCode.INVALID_CREDENTIALS,
+        message: 'Incorrect email or password',
+      });
     });
   });
 
@@ -213,12 +229,15 @@ describe('auth.service', () => {
     it('fails without touching the password when the token is invalid/expired', async () => {
       (consumeResetToken as jest.Mock).mockResolvedValue(null);
 
-      const result = await handlerResetPassword({ token: 'bad-token', password: 'NewPass123!' });
+      await expect(handlerResetPassword({ token: 'bad-token', password: 'NewPass123!' })).rejects.toMatchObject({
+        errorCode: ErrorCode.BAD_REQUEST,
+        statusCode: 400,
+        message: 'Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn',
+      });
 
       expect(bcrypt.bcryptGenerateSalt).not.toHaveBeenCalled();
       expect(CandidateModel.updateOne).not.toHaveBeenCalled();
       expect(invalidateAllSessions).not.toHaveBeenCalled();
-      expect(result).toEqual({ success: false, message: 'Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn' });
     });
   });
 
@@ -237,10 +256,13 @@ describe('auth.service', () => {
     it('fails without touching the candidate when the token is invalid/expired', async () => {
       (consumeVerificationToken as jest.Mock).mockResolvedValue(null);
 
-      const result = await handlerVerifyEmail('bad-token');
+      await expect(handlerVerifyEmail('bad-token')).rejects.toMatchObject({
+        errorCode: ErrorCode.BAD_REQUEST,
+        statusCode: 400,
+        message: 'Token xác thực email không hợp lệ hoặc đã hết hạn',
+      });
 
       expect(CandidateModel.updateOne).not.toHaveBeenCalled();
-      expect(result).toEqual({ success: false, message: 'Token xác thực email không hợp lệ hoặc đã hết hạn' });
     });
   });
 });

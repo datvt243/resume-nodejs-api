@@ -17,7 +17,7 @@ import { extractTokenFromRequest } from '@/utils/helper-auth';
 import { TOKEN_SECRET, TOKEN_REFRESH, TOKEN_EXP_IN, TOKEN_REFRESH_EXP_IN } from '@/config/process.config';
 import { t } from '@/utils/i18n';
 import { logger } from '@/logger';
-import { AppError, ErrorCode, InvalidCredentialsError, TokenRevokedError } from '@/errors';
+import { ErrorCode, TokenRevokedError } from '@/errors';
 
 /**
  * Chức năng Đăng ký mới
@@ -38,8 +38,7 @@ export const authRegister = async (req: Request, res: Response, next: NextFuncti
   }
 
   try {
-    const { success, message } = await handlerRegister({ _id: null, ...value }, req.lang);
-    if (!success) return next(new AppError({ message: message || t('auth.emailAlreadyExists', req.lang), errorCode: ErrorCode.EMAIL_EXISTS }));
+    const { message } = await handlerRegister({ _id: null, ...value }, req.lang);
     return formatReturn(res, {
       statusCode: StatusCodes.CREATED,
       success: true,
@@ -71,22 +70,18 @@ export const authLogin = async (req: Request, res: Response, next: NextFunction)
   }
 
   try {
-    const _result = await handlerLogin({ email: value.email, password: value.password }, req.lang);
-    if (!_result.success) return next(new InvalidCredentialsError(_result.message || t('auth.invalidCredentials', req.lang)));
+    const { message, data } = await handlerLogin({ email: value.email, password: value.password }, req.lang);
 
     // Also set httpOnly cookies so the frontend can migrate off
     // localStorage — kept alongside the existing response-body tokens
     // during the transition.
-    if (_result?.success && _result?.data) {
-      setAuthCookies(res, { token: _result.data.token, tokenRefresh: _result.data.tokenRefresh });
-    }
+    setAuthCookies(res, { token: data.token, tokenRefresh: data.tokenRefresh });
 
     return formatReturn(res, {
-      statusCode: StatusCodes[_result?.success ? 'OK' : 'UNAUTHORIZED'],
-      success: _result?.success || false,
-      message: _result?.message || t('auth.loginFailed', req.lang),
-      errors: _result?.errors || [],
-      data: _result?.data || null,
+      statusCode: StatusCodes.OK,
+      success: true,
+      message,
+      data,
     });
   } catch (err) {
     handleError({ err, next, lang: req.lang });
@@ -204,7 +199,7 @@ export const authVerifyEmail = async (req: Request, res: Response, next: NextFun
   try {
     const { success, message } = await handlerVerifyEmail(token, req.lang);
     return formatReturn(res, {
-      statusCode: StatusCodes[success ? 'OK' : 'BAD_REQUEST'],
+      statusCode: StatusCodes.OK,
       success,
       message,
       data: null,
@@ -266,7 +261,7 @@ export const authResetPassword = async (req: Request, res: Response, next: NextF
   try {
     const { success, message } = await handlerResetPassword({ token: value.token, password: value.password }, req.lang);
     return formatReturn(res, {
-      statusCode: StatusCodes[success ? 'OK' : 'BAD_REQUEST'],
+      statusCode: StatusCodes.OK,
       success,
       message,
       data: null,
@@ -293,7 +288,8 @@ export const authLogout = async (req: Request, res: Response, next: NextFunction
 
     await addToBlacklist(token);
     // Otherwise the refresh token could still mint a fresh pair and revive the session.
-    const refreshToken = extractTokenFromRequest(req, 'refreshToken');
+    // Header skipped: on logout it carries the access token, not the refresh token.
+    const refreshToken = extractTokenFromRequest(req, 'refreshToken', false);
     if (refreshToken) await addToBlacklist(refreshToken);
 
     // Clear the httpOnly auth cookies on logout

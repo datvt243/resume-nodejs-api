@@ -27,5 +27,12 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: npm ci
+    # Ratchet: fail only on errors above the pre-existing baseline; lower LINT_BASELINE as errors get fixed, never raise it.
+    - name: Lint (ratchet)
+      env:
+        LINT_BASELINE: 274
+      run: |
+        npx eslint . -f json -o eslint-report.json || true
+        node -e 'const n = require("./eslint-report.json").reduce((a, f) => a + f.errorCount, 0); console.log(`ESLint errors: ${n} (baseline ${process.env.LINT_BASELINE})`); if (n > Number(process.env.LINT_BASELINE)) process.exit(1);'
     - run: npm run build --if-present
     - run: npm test
