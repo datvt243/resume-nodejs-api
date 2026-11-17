@@ -10,8 +10,11 @@ import { AppError, ErrorCode } from '@/errors';
 import { createRateLimiter, memStore } from '@/middlewares/rateLimit.middleware';
 import { createCrudController } from '@/candidate_profile/BaseController';
 import { errorsMiddleware } from '@/middlewares/errors.middleware';
+import { authResetPassword, authVerifyEmail } from '@/auth/auth.controller';
 
 jest.mock('@/services/redis', () => ({ isRedisAvailable: jest.fn(() => false), getRedisClient: jest.fn(() => null) }));
+jest.mock('@/utils/passwordReset', () => ({ consumeResetToken: jest.fn().mockResolvedValue(null) }));
+jest.mock('@/utils/emailVerification', () => ({ consumeVerificationToken: jest.fn().mockResolvedValue(null) }));
 
 const mockRes = () => {
   const json = jest.fn();
@@ -78,6 +81,20 @@ describe('error envelope', () => {
     expect(status()).toBe(400);
     expectEnvelope(body(), 'VALIDATION_ERROR');
     expect(body().error.details.map((d: any) => d.field)).toEqual(['items.1.company', 'items.2.company', 'items.3.company']);
+  });
+
+  it.each([
+    ['reset-password', authResetPassword, { body: { token: 'used', password: 'NewPassword123!', repassword: 'NewPassword123!' } }, 'Password reset token is invalid or has expired'],
+    ['verify-email', authVerifyEmail, { body: {}, query: { token: 'used' } }, 'Email verification token is invalid or has expired'],
+  ])('invalid %s token → 400 BAD_REQUEST envelope', async (_name, handler, req, message) => {
+    const { res, body, status } = mockRes();
+    const next = jest.fn();
+    await handler({ ...req, lang: 'en' } as any, res, next);
+    errorsMiddleware(next.mock.calls[0][0], {} as any, res, jest.fn());
+
+    expect(status()).toBe(400);
+    expectEnvelope(body(), 'BAD_REQUEST');
+    expect(body().error.message).toBe(message);
   });
 });
 

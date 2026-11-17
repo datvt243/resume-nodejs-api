@@ -81,3 +81,4 @@ flowchart TD
 | `remove-express-session-unused-deps` | SEALED | 2026-11-15 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-15/remove-express-session-unused-deps-seal.md`. |
 | `translate-vietnamese-docs` | SEALED | 2026-11-16 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-16/translate-vietnamese-docs-seal.md`. |
 | `contributing-kit-template` | SEALED | 2026-11-16 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-16/contributing-kit-template-seal.md`. |
+| `auth-service-throw-apperror` | SEALED | 2026-11-17 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-17/auth-service-throw-apperror-seal.md`. |
