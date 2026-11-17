@@ -293,7 +293,8 @@ export const authLogout = async (req: Request, res: Response, next: NextFunction
 
     await addToBlacklist(token);
     // Otherwise the refresh token could still mint a fresh pair and revive the session.
-    const refreshToken = extractTokenFromRequest(req, 'refreshToken');
+    // Header skipped: on logout it carries the access token, not the refresh token.
+    const refreshToken = extractTokenFromRequest(req, 'refreshToken', false);
     if (refreshToken) await addToBlacklist(refreshToken);
 
     // Clear the httpOnly auth cookies on logout
