@@ -148,4 +148,5 @@
 2026-11-16T07:39:52Z role=verifier outcome=SEAL node=ci-lint-ratchet rerun=none spawn=fresh hub_bytes_before=97624 hub_bytes_after=97790
 2026-11-16T07:55:50Z role=verifier outcome=SEAL node=translate-vietnamese-docs rerun=full spawn=fresh hub_bytes_before=98753 hub_bytes_after=97837
 2026-11-16T08:34:20Z role=verifier outcome=SEAL node=contributing-kit-template rerun=partial spawn=fresh hub_bytes_before=98669 hub_bytes_after=97847
+2026-11-17T08:37:32Z role=verifier outcome=SEAL node=logout-refresh-token-header rerun=none spawn=fresh hub_bytes_before=97847 hub_bytes_after=97849
 2026-11-17T08:46:36Z role=verifier outcome=SEAL node=auth-service-throw-apperror rerun=none spawn=fresh hub_bytes_before=97847 hub_bytes_after=97849

@@ -34,8 +34,9 @@ one session or every session, and reject stolen or reused tokens.
    any revoked token.
 7. `POST /auth/logout` (CSRF-checked when token from cookie): no token →
    400; else the access token is blacklisted until its own expiry, the
-   refresh token sent with the request (header/body/query/cookie
-   `refreshToken`, if any) is blacklisted too — a later refresh with it →
+   refresh token sent with the request (body/query/cookie
+   `refreshToken`, if any — never the `Authorization` header, which carries
+   the access token on logout) is blacklisted too — a later refresh with it →
    401 `TOKEN_REVOKED` — auth cookies are cleared, 200.
 8. `POST /auth/logout-all` (requires a valid access token): marks every
    token issued for this candidate before now as revoked (30-day marker),
@@ -72,4 +73,5 @@ one session or every session, and reject stolen or reused tokens.
 | 2026-11-06 | Reviewer corrections (see `evidence/spec-backfill/2026-11-06/review.md`) | independent review vs code + live | - |
 | 2026-11-07 | Operator confirmed Behavior + answered all open questions; Status → verified | analyst backfill re-check, see `evidence/analyst/2026-11-07/auth-session-tokens-spec.md` | - |
 | 2026-11-07 | Behavior 1: query `token` only on `GET /download-pdf` | operator answer #392 | restrict-query-token |
+| 2026-11-17 | Behavior 7: logout's `refreshToken` lookup skips the `Authorization` header; `/auth/refresh` (Behavior 5) unchanged | #475 — header shadowed body `refreshToken`, refresh token stayed valid; operator chose logout-only scope 2026-11-17 | logout-refresh-token-header |
 | 2026-11-07 | Behavior 7: logout also blacklists the refresh token | operator answer #391 | logout-revokes-refresh |
