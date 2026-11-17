@@ -15,8 +15,13 @@ export type TokenSource = 'header' | 'body' | 'query' | 'cookie' | null;
  * explicit body/query value can't be forged onto the browser's behalf the
  * way an auto-attached cookie can.
  */
-export const extractTokenWithSource = (req: Request, fieldName = 'token', allowQuery = true): { token: string | null; source: TokenSource } => {
-  const authHeader = req.header('Authorization') || req.header('authorization') || '';
+export const extractTokenWithSource = (
+  req: Request,
+  fieldName = 'token',
+  allowQuery = true,
+  allowHeader = true,
+): { token: string | null; source: TokenSource } => {
+  const authHeader = allowHeader ? req.header('Authorization') || req.header('authorization') || '' : '';
   if (authHeader) {
     const parts = authHeader.split(' ');
     const [scheme, value] = parts;
@@ -36,5 +41,7 @@ export const extractTokenWithSource = (req: Request, fieldName = 'token', allowQ
  *
  * @param req Express request
  * @param fieldName field to look for in body/query/cookies (defaults to "token")
+ * @param allowHeader false skips the Authorization header, for a lookup that must not pick up the access token
  */
-export const extractTokenFromRequest = (req: Request, fieldName = 'token'): string | null => extractTokenWithSource(req, fieldName).token;
+export const extractTokenFromRequest = (req: Request, fieldName = 'token', allowHeader = true): string | null =>
+  extractTokenWithSource(req, fieldName, true, allowHeader).token;

@@ -321,16 +321,21 @@ describe('auth.controller', () => {
     });
 
     it('also blacklists the refresh token sent with the request', async () => {
-      const req = mockRequest({}, { authorization: 'Bearer access_token' });
+      const req = {
+        ...mockRequest({ refreshToken: 'refresh_token' }),
+        header: (name: string) => (name.toLowerCase() === 'authorization' ? 'Bearer access_token' : undefined),
+      } as unknown as Request;
       const res = mockResponse();
 
-      (helperAuth.extractTokenFromRequest as jest.Mock).mockImplementation((_req, fieldName = 'token') =>
-        fieldName === 'refreshToken' ? 'refresh_token' : 'access_token',
+      // Real lookup: a mocked one hid that the header shadowed body `refreshToken`.
+      (helperAuth.extractTokenFromRequest as jest.Mock).mockImplementation(
+        jest.requireActual<typeof helperAuth>('@/utils/helper-auth').extractTokenFromRequest,
       );
       (tokenBlacklist.addToBlacklist as jest.Mock).mockResolvedValue(true);
 
       await authLogout(req, res, mockNext);
 
+      expect(tokenBlacklist.addToBlacklist).toHaveBeenCalledTimes(2);
       expect(tokenBlacklist.addToBlacklist).toHaveBeenCalledWith('access_token');
       expect(tokenBlacklist.addToBlacklist).toHaveBeenCalledWith('refresh_token');
     });
