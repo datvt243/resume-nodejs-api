@@ -31,9 +31,9 @@ beforeAll(async () => {
   await mongoose.connect(mongo.getUri());
   app = createApp();
 
-  // One user per flow: access tokens carry no jti, so a same-second login would mint a token another flow already blacklisted.
-  const results = await Promise.all(['alice@example.com', 'bob@example.com', 'carol@example.com', 'dave@example.com'].map(register));
-  expect(results.map((r) => r.status)).toEqual([201, 201, 201, 201]);
+  // One user per flow, so one flow's logout or session revocation can't leak into another.
+  const results = await Promise.all(['alice@example.com', 'bob@example.com', 'carol@example.com', 'dave@example.com', 'erin@example.com'].map(register));
+  expect(results.map((r) => r.status)).toEqual([201, 201, 201, 201, 201]);
 }, 120_000);
 
 afterAll(async () => {
@@ -91,6 +91,21 @@ it('reusing a rotated refresh token after the 10s grace window revokes every ses
   const refreshWithRotated = await request(app).post('/api/v1/auth/refresh').send({ refreshToken: newRefresh });
   expect(refreshWithRotated.status).toBe(401);
   expect(refreshWithRotated.body.error.code).toBe('TOKEN_REVOKED');
+});
+
+it('logging out one session leaves another session signed in the same second working', async () => {
+  // Pin the clock only for the two logins, so both tokens get the same iat — the case where a jti-less payload would collide.
+  const clock = jest.spyOn(Date, 'now').mockReturnValue(Date.now());
+  const phone = await login('erin@example.com');
+  const laptop = await login('erin@example.com');
+  clock.mockRestore();
+  expect(laptop.token).not.toBe(phone.token);
+
+  const logout = await request(app).post('/api/v1/auth/logout').set('Authorization', `Bearer ${phone.token}`).send({ refreshToken: phone.tokenRefresh });
+  expect(logout.status).toBe(200);
+
+  expect((await getProfiles(phone.token)).status).toBe(401);
+  expect((await getProfiles(laptop.token)).status).toBe(200);
 });
 
 it('rejects a cookie-only state-changing request without the CSRF header', async () => {

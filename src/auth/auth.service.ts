@@ -3,7 +3,6 @@
  * @see https://github.com/datvt243
  */
 
-import crypto from 'crypto';
 import CandidateModel from '@/models/candidate.model';
 import { bcryptGenerateSalt, bcryptCompareHash, jwtSign } from '@/utils';
 import { TOKEN_SECRET, TOKEN_REFRESH, TOKEN_EXP_IN, TOKEN_REFRESH_EXP_IN } from '@/config/process.config';
@@ -101,8 +100,7 @@ export const handlerLogin = async (data: Auth, lang: string = DEFAULT_LANG) => {
   if (!comparePwd) throw new InvalidCredentialsError(t('auth.invalidCredentials', lang));
 
   const token = jwtSign({ data: { _id }, secretKey: TOKEN_SECRET, props: { expiresIn: TOKEN_EXP_IN || '1h' } });
-  // `jti` keeps refresh tokens unique: two signed in the same second would otherwise be byte-identical, and an identical copy of a rotated token reads as reuse.
-  const tokenRefresh = jwtSign({ data: { _id, jti: crypto.randomUUID() }, secretKey: TOKEN_REFRESH, props: { expiresIn: TOKEN_REFRESH_EXP_IN } });
+  const tokenRefresh = jwtSign({ data: { _id }, secretKey: TOKEN_REFRESH, props: { expiresIn: TOKEN_REFRESH_EXP_IN } });
 
   return {
     success: true,
