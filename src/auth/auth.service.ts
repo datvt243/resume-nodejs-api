@@ -92,7 +92,7 @@ export const handlerVerifyEmail = async (token: string, lang: string = DEFAULT_L
 export const handlerLogin = async (data: Auth, lang: string = DEFAULT_LANG) => {
   const { email, password } = data;
 
-  const _user = await CandidateModel.findOne({ email });
+  const _user = await CandidateModel.findOne({ email }).select('+password');
   // Same answer for an unknown email and a wrong password, so login can't be used to probe which emails are registered.
   if (!_user) throw new InvalidCredentialsError(t('auth.invalidCredentials', lang));
 
