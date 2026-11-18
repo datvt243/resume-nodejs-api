@@ -62,7 +62,7 @@ TRUST_PROXY_HOPS=1           # optional; proxy hops in front of the app (1 on Re
 ## Conventions
 
 - Always import via the `@/` alias (`@/utils/helper`) — `src/*` in dev (tsconfig-paths), `dist/*` in prod (module-alias, `src/alias.ts`).
-- Middleware order is `runServer` in `src/server.ts`. `/health` and `/api-docs` are registered before the rate limiter on purpose (exempt).
+- Middleware order is `createApp` in `src/server.ts`. `/health` and `/api-docs` are registered before the rate limiter on purpose (exempt).
 - New CV section → `src/candidate_profile/<section>/` controller + service + validate, built on `createCrudService()` (`BaseService.ts`) and `BaseController.ts`, like the existing sections.
 - CV-section models + `Application` + `Profile` soft-delete via nullable `deletedAt` (`Visit` doesn't). Localized free-text fields use `localizedTextSchema` (`{ vi, en }`), resolved per request by `?lang=`.
 - Errors: services throw `AppError` subclasses (`src/errors/`), never return `{ success:false }`. Every status comes from the `ERROR_STATUS` map in `errors/AppError.ts`; `withTimeout` throws `SERVICE_UNAVAILABLE` (503) on a DB/Redis timeout.
