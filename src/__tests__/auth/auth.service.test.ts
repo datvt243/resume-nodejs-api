@@ -108,6 +108,13 @@ describe('auth.service', () => {
   });
 
   describe('handlerLogin', () => {
+    // Login reads the hash via `.findOne(...).select('+password')`, so the mock has to chain.
+    const mockLoginFind = (user: unknown) => {
+      const select = jest.fn().mockResolvedValue(user);
+      (CandidateModel.findOne as jest.Mock).mockReturnValue({ select });
+      return select;
+    };
+
     it('should login successfully with correct credentials', async () => {
       const mockUser = {
         _id: 'user_id',
@@ -120,13 +127,14 @@ describe('auth.service', () => {
       const mockToken = 'access_token';
       const mockRefresh = 'refresh_token';
 
-      (CandidateModel.findOne as jest.Mock).mockResolvedValue(mockUser);
+      const select = mockLoginFind(mockUser);
       (bcrypt.bcryptCompareHash as jest.Mock).mockResolvedValue(mockCompareResult);
       (jwt.jwtSign as jest.Mock).mockReturnValueOnce(mockToken).mockReturnValueOnce(mockRefresh);
 
       const result = await handlerLogin({ email: 'test@example.com', password: 'correctpass' });
 
       expect(CandidateModel.findOne).toHaveBeenCalledWith({ email: 'test@example.com' });
+      expect(select).toHaveBeenCalledWith('+password');
       expect(bcrypt.bcryptCompareHash).toHaveBeenCalledWith('correctpass', mockUser.password);
       expect(jwt.jwtSign).toHaveBeenNthCalledWith(1, {
         data: { _id: 'user_id' },
@@ -153,7 +161,7 @@ describe('auth.service', () => {
     });
 
     it('should fail if user not found', async () => {
-      (CandidateModel.findOne as jest.Mock).mockResolvedValue(null);
+      mockLoginFind(null);
 
       await expect(handlerLogin({ email: 'nonexistent@example.com', password: 'pass' })).rejects.toMatchObject({
         errorCode: ErrorCode.INVALID_CREDENTIALS,
@@ -166,7 +174,7 @@ describe('auth.service', () => {
     it('should fail if password incorrect', async () => {
       const mockUser = { _id: 'user_id', email: 'test@example.com', password: 'hash' };
 
-      (CandidateModel.findOne as jest.Mock).mockResolvedValue(mockUser);
+      mockLoginFind(mockUser);
       (bcrypt.bcryptCompareHash as jest.Mock).mockResolvedValue(false);
 
       // Same error as the unknown-email case, so login can't enumerate registered emails.
@@ -178,7 +186,7 @@ describe('auth.service', () => {
     });
 
     it('localizes the invalid-credentials message to the request lang', async () => {
-      (CandidateModel.findOne as jest.Mock).mockResolvedValue(null);
+      mockLoginFind(null);
 
       await expect(handlerLogin({ email: 'nonexistent@example.com', password: 'pass' }, 'en')).rejects.toMatchObject({
         errorCode: ErrorCode.INVALID_CREDENTIALS,

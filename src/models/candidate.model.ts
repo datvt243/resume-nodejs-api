@@ -22,7 +22,8 @@ const schema = new Schema(
       sparse: true,
       index: true,
     },
-    password: { type: String, default: '', required: [false, 'Password is required'] },
+    // Hidden from every query by default; only code that compares the hash opts in with `.select('+password')`.
+    password: { type: String, default: '', select: false, required: [false, 'Password is required'] },
 
     firstName: { type: String, default: '', required: false },
     lastName: { type: String, default: '', required: false },
