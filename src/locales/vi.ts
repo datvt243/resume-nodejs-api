@@ -31,6 +31,16 @@ export default {
     tokenExpired: 'Token đã hết hạn',
     invalidToken: 'Token không hợp lệ',
   },
+  mail: {
+    resetPassword: {
+      subject: 'Đặt lại mật khẩu',
+      body: 'Mở liên kết sau để đặt lại mật khẩu (hết hạn sau 15 phút):\n{link}\n\nNếu bạn không yêu cầu, hãy bỏ qua email này.',
+    },
+    verifyEmail: {
+      subject: 'Xác thực email',
+      body: 'Mở liên kết sau để xác thực email của bạn (hết hạn sau 24 giờ):\n{link}\n\nNếu bạn không đăng ký tài khoản, hãy bỏ qua email này.',
+    },
+  },
   validation: {
     hasErrors: 'Dữ liệu không hợp lệ',
     invalidSchema: 'Schema không hợp lệ',

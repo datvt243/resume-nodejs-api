@@ -11,6 +11,7 @@ import { createResetToken, consumeResetToken } from '@/utils/passwordReset';
 import { invalidateAllSessions } from '@/utils/sessionRevocation';
 import { createVerificationToken, consumeVerificationToken } from '@/utils/emailVerification';
 import { generateUniqueCandidateSlug } from '@/utils/slug';
+import { sendAuthLinkEmail, AuthMailKind } from '@/services/mail';
 import { logger } from '@/logger';
 import { AppError, BadRequestError, ErrorCode, InvalidCredentialsError } from '@/errors';
 
@@ -19,6 +20,18 @@ interface Auth {
   password: string;
   repassword?: string;
 }
+
+/**
+ * Fire-and-forget: awaiting the SMTP round-trip would make a registered
+ * email answer measurably slower than an unknown one, and a failed send must
+ * not change the response either — so it is only logged, by message alone,
+ * since the mail options carry the token.
+ */
+const emailAuthLink = (email: string, kind: AuthMailKind, path: string, lang: string): void => {
+  sendAuthLinkEmail(email, kind, path, lang).catch((err: unknown) => {
+    logger.error(`[mail] ${kind} email failed: ${err instanceof Error ? err.message : String(err)}`);
+  });
+};
 
 export const isEmailAlreadyExists = async (email: string) => {
   const find = await CandidateModel.findOne({ email });
@@ -48,11 +61,8 @@ export const handlerRegister = async (item: Auth, lang: string = DEFAULT_LANG) =
   });
 
   /**
-   * STUB: no email-sending infra exists yet — log the verification link
-   * instead of emailing it. Does NOT block
-   * registration or login (product decision, operator-confirmed via
-   * AskUserQuestion): `emailVerified` stays false until this link is
-   * visited, but the account is usable immediately either way.
+   * Verification is not required to log in: `emailVerified` stays false
+   * until the emailed link is visited, but the account is usable at once.
    *
    * Re-fetch by email instead of using CandidateModel.create()'s own
    * return value — passing `_id: null` explicitly (as above) makes
@@ -68,7 +78,7 @@ export const handlerRegister = async (item: Auth, lang: string = DEFAULT_LANG) =
   const savedDocument = await CandidateModel.findOne({ email });
   if (savedDocument && savedDocument._id) {
     const verifyToken = await createVerificationToken(savedDocument._id.toString());
-    logger.info(`[emailVerification] Verification link for ${email}: /verify-email?token=${verifyToken}`);
+    emailAuthLink(email, 'verifyEmail', `/verify-email?token=${verifyToken}`, lang);
   }
 
   return { success: true, message: t('auth.registerSuccess', lang) };
@@ -126,16 +136,15 @@ export const handlerLogin = async (data: Auth, lang: string = DEFAULT_LANG) => {
  *
  * Luôn trả về message chung chung dù email có tồn tại hay không, để
  * tránh lộ thông tin email nào đã đăng ký (user enumeration).
- *
- * STUB: chưa có hạ tầng gửi email trong project — log link reset thay vì
- * gửi email thật. Thay bằng mailer thật khi chọn được provider.
  */
 export const handlerForgotPassword = async (email: string, lang: string = DEFAULT_LANG) => {
   const user = await CandidateModel.findOne({ email });
 
   if (user && user._id) {
-    const token = await createResetToken(user._id.toString());
-    logger.info(`[passwordReset] Reset link for ${email}: /reset-password?token=${token}`);
+    const candidateId = user._id.toString();
+    const token = await createResetToken(candidateId);
+    logger.info(`[passwordReset] Reset requested for candidate ${candidateId}`);
+    emailAuthLink(email, 'resetPassword', `/reset-password?token=${token}`, lang);
   }
 
   return { success: true, message: t('auth.forgotPasswordRequested', lang) };

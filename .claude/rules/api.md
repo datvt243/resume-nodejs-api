@@ -27,9 +27,9 @@ state-changing requests must also pass the double-submit CSRF check (see Securit
 | POST | `/logout` | Blacklist current token (CSRF-checked) |
 | POST | `/logout-all` | Revoke every token issued to this candidate up to now |
 | POST | `/refresh` | Rotate tokens; blacklist old refresh token (CSRF-checked); reuse of a rotated token > 10s later revokes all sessions |
-| POST | `/forgot-password` | Request password reset (stub — logged, not emailed) |
+| POST | `/forgot-password` | Request password reset (link emailed via SMTP, `services/mail.ts`) |
 | POST | `/reset-password` | Reset password using a reset token |
-| GET | `/verify-email` | Verify email using a token issued on register (stub) |
+| GET | `/verify-email` | Verify email using the token emailed on register |
 
 `api/v2/auth` mirrors `/register` and `/login` only — still WIP.
 

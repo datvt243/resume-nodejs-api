@@ -165,7 +165,7 @@ router.post('/refresh', verifyCsrf('refreshToken'), asyncHandler(authRefreshToke
  * /api/v1/auth/forgot-password:
  *   post:
  *     tags: [Auth]
- *     summary: Request a password reset (stub — no email is actually sent yet)
+ *     summary: Request a password reset (the link is emailed if the address is registered)
  *     requestBody:
  *       required: true
  *       content:
@@ -227,7 +227,7 @@ router.post('/reset-password', authLimiter, asyncHandler(authResetPassword));
  * /api/v1/auth/verify-email:
  *   get:
  *     tags: [Auth]
- *     summary: Verify a candidate's email using the token sent (stub — logged, not emailed) on register
+ *     summary: Verify a candidate's email using the token emailed on register
  *     parameters:
  *       - in: query
  *         name: token
