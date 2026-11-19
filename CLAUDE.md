@@ -57,6 +57,12 @@ CORS_ORIGIN=...              # comma-separated allow-list; required for the http
 TOKEN_REFRESH_EXP_IN=7d      # optional; refresh token lifetime (default 7d)
 TRUST_PROXY_HOPS=1           # optional; proxy hops in front of the app (1 on Render) so req.ip / rate limit
                               # key on the real client; unset = trust none (no proxy)
+SMTP_HOST=...                # optional; reset/verify links emailed via Nodemailer (services/mail.ts)
+SMTP_PORT=587                # optional; 465 = implicit TLS
+SMTP_USER=... / SMTP_PASS=...
+MAIL_FROM=...                # From address
+APP_URL=...                  # frontend base URL for the emailed links; SMTP_HOST or APP_URL unset →
+                              # dev logs the link, prod warns and sends nothing (never logs the token)
 ```
 
 ## Conventions

@@ -31,6 +31,16 @@ export default {
     tokenExpired: 'Token has expired',
     invalidToken: 'Invalid token',
   },
+  mail: {
+    resetPassword: {
+      subject: 'Reset your password',
+      body: 'Open this link to reset your password (expires in 15 minutes):\n{link}\n\nIf you did not request this, ignore this email.',
+    },
+    verifyEmail: {
+      subject: 'Verify your email',
+      body: 'Open this link to verify your email (expires in 24 hours):\n{link}\n\nIf you did not create an account, ignore this email.',
+    },
+  },
   validation: {
     hasErrors: 'Validation has errors',
     invalidSchema: 'Invalid schema',

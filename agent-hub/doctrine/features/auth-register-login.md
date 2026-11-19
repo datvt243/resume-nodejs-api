@@ -1,8 +1,8 @@
 # Register, login and email verification
 
-- Status: verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/auth-register-login-spec.md`
+- Status: verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/auth-register-login-spec.md` (rules 1–9); rules 10–11 draft for #461
 - Source: backfill from code
-- Issues: #385, #387, #389, #390
+- Issues: #385, #387, #389, #390, #461
 - Anchors: `src/routers/api/v1/auth.route.ts`, `src/routers/api/v2/auth.route.ts`, `src/auth/auth.controller.ts`, `src/auth/auth.service.ts`, `src/auth/auth.validate.ts`, `src/utils/emailVerification.ts`, `src/utils/slug.ts`, `src/utils/authCookies.ts`
 
 ## Goal
@@ -46,6 +46,16 @@ API tokens, and can confirm their email address.
    routes (`/refresh`, `/logout`, `/logout-all`, `/verify-email`) only have
    the global limit.
 
+### #461 — email the verification link, never log the token (draft)
+10. When `NODE_ENV=production`, register never writes the verification
+    token or link to any log.
+11. On register, the new address is emailed a plain-text message with
+    `<APP_URL>/verify-email?token=<token>` (a frontend page that calls
+    `GET /api/v1/auth/verify-email`), through the same mail service,
+    SMTP/`MAIL_FROM`/`?lang=` rules, failure handling and no-SMTP
+    handling as `auth-password-reset` rules 8–11. Register's response
+    stays as rule 3 (201, `data: null`) even when the send fails.
+
 ## Acceptance criteria
 - `npx jest src/__tests__/auth/auth.controller.test.ts` passes.
 - `npx jest src/__tests__/auth/auth.service.test.ts` passes.
@@ -53,6 +63,9 @@ API tokens, and can confirm their email address.
 - Register twice with the same email → second response is HTTP 409.
 - `npx jest src/__tests__/auth/auth.validate.test.ts` passes (login accepts a short legacy password; register still rejects it).
 - Login with a wrong password and with an unknown email → both HTTP 401, identical `error.message`.
+- (#461) `npx jest src/__tests__/auth/auth.service.test.ts` has a register test asserting the mocked mail service is called once with the new email and a link containing the verification token.
+- (#461) A test with `NODE_ENV=production` asserts no `logger` call argument contains the verification token value.
+- (#461) A register test with the mail mock rejecting → still `{ success: true }` (201 path).
 
 ## Edge cases
 - `repassword` missing or different → 400.
@@ -60,7 +73,8 @@ API tokens, and can confirm their email address.
 - Redis down → tokens stored in process memory (lost on restart).
 
 ## Out of scope
-- Actually sending emails (stub logs the link).
+- ~~Actually sending emails (stub logs the link).~~ → in scope from #461.
+- (#461) A re-send-verification endpoint (still out of scope, per the 2026-11-07 answer).
 - Blocking unverified accounts.
 
 ## Open questions
@@ -72,6 +86,10 @@ API tokens, and can confirm their email address.
 - Login re-applies the register password rules, so an account whose password predates the current rules (e.g. < 12 chars) gets 400 and can never log in. Intended? → **Answer (operator 2026-11-07):** Bug: login should only require a non-empty password — #390
 - The v2 auth router has no `authLimiter` (only v1 does); and since the global limiter (100/15 min) is stricter than `authLimiter` (150/15 min), the auth limiter never binds. Intended? → **Answer (operator 2026-11-07):** Bug — #387; limit (operator 2026-11-08): 10 / 15 min on login/register/forgot/reset, v1 + v2
 
+### #461 (answered by operator 2026-11-19, round 2)
+- Q8. Verification link target? → **Answer:** frontend `APP_URL/verify-email?token=...`.
+- Provider, sender, language, failure and no-SMTP handling: see `auth-password-reset.md` Q1–Q7 answers.
+
 ## Changelog
 | Date | Change | Why | Node |
 |---|---|---|---|
@@ -82,3 +100,5 @@ API tokens, and can confirm their email address.
 | 2026-11-07 | Behavior 5: GET /auth/login removed (POST only) | operator answer #389 | remove-get-login |
 | 2026-11-08 | Behavior 9: auth limit 10/15 min on credential routes, v1 + v2 | operator answer #387 | auth-credential-limit |
 | 2026-11-08 | Behavior 5: login password = non-empty string ≤ 128, strength rules on register/reset only | operator answer #390 | login-password-any-length |
+| 2026-11-19 | Rules 10–11 + criteria + Q8: email the verification link, never log the token in prod (draft) | #461 | - |
+| 2026-11-19 | Operator answered Q8 (frontend link); rule 11 made concrete; send failure keeps 201 | #461 round 2 | - |
