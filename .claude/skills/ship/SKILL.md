@@ -1,6 +1,6 @@
 ---
 name: ship
-description: "Commit + push a SEALED node via the bundled ship.sh — the outward-facing gate at the end of the loop. Usage: /ship \"[note]\" or /ship \"[note]\" --merge[=branch] to also merge into a target branch (directly, or through a GitHub PR + required CI when ship.env sets SHIP_MERGE_VIA=pr). Prints the exact git commands, then runs them at once — invoking /ship is the approval. Never --force/--no-verify."
+description: "Commit + push a SEALED node via the bundled ship.sh — the outward-facing gate at the end of the loop. Usage: /ship \"[note]\" or /ship \"[note]\" --merge[=branch] to also merge into a target branch (directly, or through a GitHub PR + required CI when ship.env sets SHIP_MERGE_VIA=pr). Prints the exact git commands, then runs them at once — invoking /ship is the approval. Never --force/--no-verify. Use when a node is SEALED and the work should be committed."
 argument-hint: "[note] [--merge[=<branch>]]"
 ---
 

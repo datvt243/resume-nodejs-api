@@ -1,6 +1,6 @@
 ---
 name: todo
-description: "Resolve/create a GitHub issue + check out that issue's own branch, then combine /worker analyst (feature, or a bug with no feature doc yet), /worker implementer and /worker verifier into 1 typed command for a task — still runs 2 separate passes inside, looping automatically on REOPEN. Usage: /todo \"[task]\"|#[issue-number] [--ship]"
+description: "Resolve/create a GitHub issue + check out that issue's own branch, then combine /worker analyst (feature, or a bug with no feature doc yet), /worker implementer and /worker verifier into 1 typed command for a task — still runs 2 separate passes inside, looping automatically on REOPEN. Usage: /todo \"[task]\"|#[issue-number] [--ship] Use when running any feat or fix task end-to-end."
 argument-hint: "<task>|#<issue-number> [--ship]"
 disable-model-invocation: true
 ---

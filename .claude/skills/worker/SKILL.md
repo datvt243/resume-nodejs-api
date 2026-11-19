@@ -1,6 +1,6 @@
 ---
 name: worker
-description: "Become an agent-hub worker (analyst, implementer or verifier) and carry out one task following exactly that worker's recipe. Usage: /worker [analyst|implementer|verifier] \"[task]\""
+description: "Become an agent-hub worker (analyst, implementer or verifier) and carry out one task following exactly that worker's recipe. Usage: /worker [analyst|implementer|verifier] \"[task]\" Use when running one loop role by hand instead of /todo."
 argument-hint: <analyst|implementer|verifier> "<task>"
 ---
 
@@ -53,6 +53,12 @@ argument-hint: <analyst|implementer|verifier> "<task>"
      `recipes/verify_seal.md` step 1b makes the verifier record its own
      spawn proof in the `## Isolation proof` line of the verdict note, so
      a later audit can detect a skipped context split. (kit 2026-11-07)
+     Spawn it with `model: "sonnet"` (it checks cited evidence against
+     criteria, doesn't design). The spawn prompt names the absolute hub
+     path, the note path(s) and node slug(s) — never make the subagent
+     `ls` around to find its inputs, and never add re-run instructions
+     ("re-run the checks yourself") — `verify_seal.md`'s "Re-run scope"
+     alone decides. (kit 2026-11-18)
      Only exception to a fresh spawn: `/todo`'s REOPEN rounds resume the
      same verifier subagent (`todo` step 3) — still never the
      implementer's context.
