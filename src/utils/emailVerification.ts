@@ -3,9 +3,7 @@
  * Redis-with-in-memory-fallback pattern as utils/passwordReset.ts /
  * utils/tokenBlacklist.ts.
  *
- * NOTE: no email-sending infra exists in this project yet. The
- * verification link is logged instead of emailed, a stand-in until a
- * mail provider is chosen. See auth.service.ts's handlerRegister.
+ * The link is emailed by services/mail.ts (see auth.service.ts).
  *
  * @author Đạt Võ <votan.it@gmail.com>
  * @see https://github.com/datvt243

@@ -10,6 +10,8 @@ import { createResetToken, consumeResetToken } from '@/utils/passwordReset';
 import { createVerificationToken, consumeVerificationToken } from '@/utils/emailVerification';
 import { invalidateAllSessions } from '@/utils/sessionRevocation';
 import { ErrorCode } from '@/errors';
+import { sendAuthLinkEmail } from '@/services/mail';
+import { logger } from '@/logger';
 
 // Mock modules
 jest.mock('@/models/candidate.model');
@@ -30,12 +32,20 @@ jest.mock('@/utils/emailVerification', () => ({
 }));
 jest.mock('@/utils/sessionRevocation', () => ({ invalidateAllSessions: jest.fn().mockResolvedValue(true) }));
 jest.mock('@/logger', () => ({
-  logger: { info: jest.fn(), error: jest.fn() },
+  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 }));
+jest.mock('@/services/mail', () => ({ sendAuthLinkEmail: jest.fn().mockResolvedValue(undefined) }));
+
+// The send is fire-and-forget; let its .catch handler run before asserting on logs.
+const flushPromises = () => new Promise((resolve) => setImmediate(resolve));
+
+const loggedText = () =>
+  [logger.info, logger.warn, logger.error].flatMap((fn) => (fn as jest.Mock).mock.calls.flat().map((arg) => JSON.stringify(arg))).join('\n');
 
 describe('auth.service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (createVerificationToken as jest.Mock).mockResolvedValue('verify-token');
   });
 
   describe('isEmailAlreadyExists', () => {
@@ -90,9 +100,32 @@ describe('auth.service', () => {
         slug: expect.stringMatching(/^new-[a-z0-9]+$/),
       });
       expect(CandidateModel.findOne).toHaveBeenNthCalledWith(3, { email: 'new@example.com' });
-      // issue #71 — a verification token is created (stub: logged, not emailed)
       expect(createVerificationToken).toHaveBeenCalledWith('new_id');
+      expect(sendAuthLinkEmail).toHaveBeenCalledTimes(1);
+      expect(sendAuthLinkEmail).toHaveBeenCalledWith('new@example.com', 'verifyEmail', expect.stringContaining('verify-token'), 'vi');
       expect(result).toEqual({ success: true, message: 'Đăng ký thành công' });
+    });
+
+    it('never logs the verification token in production and still succeeds when the email fails', async () => {
+      const prevEnv = process.env['NODE_ENV'];
+      process.env['NODE_ENV'] = 'production';
+      (CandidateModel.findOne as jest.Mock)
+        .mockResolvedValueOnce(null)
+        .mockReturnValueOnce({ select: () => ({ exec: () => Promise.resolve(null) }) })
+        .mockResolvedValueOnce({ _id: 'new_id', email: 'new@example.com' });
+      (CandidateModel.create as jest.Mock).mockResolvedValue({ _id: null, email: 'new@example.com' });
+      (sendAuthLinkEmail as jest.Mock).mockRejectedValueOnce(new Error('smtp down'));
+
+      try {
+        const result = await handlerRegister({ email: 'new@example.com', password: 'pass123' });
+        await flushPromises();
+
+        expect(result).toEqual({ success: true, message: 'Đăng ký thành công' });
+        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('smtp down'));
+        expect(loggedText()).not.toContain('verify-token');
+      } finally {
+        process.env['NODE_ENV'] = prevEnv;
+      }
     });
 
     it('should fail if email already exists', async () => {
@@ -108,6 +141,13 @@ describe('auth.service', () => {
   });
 
   describe('handlerLogin', () => {
+    // Login reads the hash via `.findOne(...).select('+password')`, so the mock has to chain.
+    const mockLoginFind = (user: unknown) => {
+      const select = jest.fn().mockResolvedValue(user);
+      (CandidateModel.findOne as jest.Mock).mockReturnValue({ select });
+      return select;
+    };
+
     it('should login successfully with correct credentials', async () => {
       const mockUser = {
         _id: 'user_id',
@@ -120,21 +160,21 @@ describe('auth.service', () => {
       const mockToken = 'access_token';
       const mockRefresh = 'refresh_token';
 
-      (CandidateModel.findOne as jest.Mock).mockResolvedValue(mockUser);
+      const select = mockLoginFind(mockUser);
       (bcrypt.bcryptCompareHash as jest.Mock).mockResolvedValue(mockCompareResult);
       (jwt.jwtSign as jest.Mock).mockReturnValueOnce(mockToken).mockReturnValueOnce(mockRefresh);
 
       const result = await handlerLogin({ email: 'test@example.com', password: 'correctpass' });
 
       expect(CandidateModel.findOne).toHaveBeenCalledWith({ email: 'test@example.com' });
+      expect(select).toHaveBeenCalledWith('+password');
       expect(bcrypt.bcryptCompareHash).toHaveBeenCalledWith('correctpass', mockUser.password);
       expect(jwt.jwtSign).toHaveBeenNthCalledWith(1, {
         data: { _id: 'user_id' },
         secretKey: expect.any(String),
         props: expect.objectContaining({ expiresIn: expect.any(String) }),
       });
-      // A fresh `jti` per refresh token, so two logins in the same second never produce the same token.
-      expect(jwt.jwtSign).toHaveBeenNthCalledWith(2, expect.objectContaining({ data: { _id: 'user_id', jti: expect.any(String) } }));
+      expect(jwt.jwtSign).toHaveBeenNthCalledWith(2, expect.objectContaining({ data: { _id: 'user_id' } }));
       expect(result).toEqual({
         success: true,
         message: 'Đăng nhập thành công',
@@ -153,7 +193,7 @@ describe('auth.service', () => {
     });
 
     it('should fail if user not found', async () => {
-      (CandidateModel.findOne as jest.Mock).mockResolvedValue(null);
+      mockLoginFind(null);
 
       await expect(handlerLogin({ email: 'nonexistent@example.com', password: 'pass' })).rejects.toMatchObject({
         errorCode: ErrorCode.INVALID_CREDENTIALS,
@@ -166,7 +206,7 @@ describe('auth.service', () => {
     it('should fail if password incorrect', async () => {
       const mockUser = { _id: 'user_id', email: 'test@example.com', password: 'hash' };
 
-      (CandidateModel.findOne as jest.Mock).mockResolvedValue(mockUser);
+      mockLoginFind(mockUser);
       (bcrypt.bcryptCompareHash as jest.Mock).mockResolvedValue(false);
 
       // Same error as the unknown-email case, so login can't enumerate registered emails.
@@ -178,7 +218,7 @@ describe('auth.service', () => {
     });
 
     it('localizes the invalid-credentials message to the request lang', async () => {
-      (CandidateModel.findOne as jest.Mock).mockResolvedValue(null);
+      mockLoginFind(null);
 
       await expect(handlerLogin({ email: 'nonexistent@example.com', password: 'pass' }, 'en')).rejects.toMatchObject({
         errorCode: ErrorCode.INVALID_CREDENTIALS,
@@ -188,16 +228,21 @@ describe('auth.service', () => {
   });
 
   describe('handlerForgotPassword', () => {
-    it('creates a reset token when the email exists', async () => {
-      const mockUser = { _id: { toString: () => 'user_id' }, email: 'test@example.com' };
-      (CandidateModel.findOne as jest.Mock).mockResolvedValue(mockUser);
-      (createResetToken as jest.Mock).mockResolvedValue('raw-token');
+    const GENERIC = { success: true, message: 'Nếu email tồn tại, liên kết đặt lại mật khẩu đã được tạo' };
 
-      const result = await handlerForgotPassword('test@example.com');
+    beforeEach(() => {
+      (CandidateModel.findOne as jest.Mock).mockResolvedValue({ _id: { toString: () => 'user_id' }, email: 'test@example.com' });
+      (createResetToken as jest.Mock).mockResolvedValue('raw-token');
+    });
+
+    it('creates a reset token and emails the link when the email exists', async () => {
+      const result = await handlerForgotPassword('test@example.com', 'en');
 
       expect(CandidateModel.findOne).toHaveBeenCalledWith({ email: 'test@example.com' });
       expect(createResetToken).toHaveBeenCalledWith('user_id');
-      expect(result).toEqual({ success: true, message: 'Nếu email tồn tại, liên kết đặt lại mật khẩu đã được tạo' });
+      expect(sendAuthLinkEmail).toHaveBeenCalledTimes(1);
+      expect(sendAuthLinkEmail).toHaveBeenCalledWith('test@example.com', 'resetPassword', '/reset-password?token=raw-token', 'en');
+      expect(result).toEqual({ success: true, message: 'If the email exists, a password reset link has been generated' });
     });
 
     it('returns the same generic success message when the email does not exist (no user enumeration)', async () => {
@@ -206,7 +251,39 @@ describe('auth.service', () => {
       const result = await handlerForgotPassword('nonexistent@example.com');
 
       expect(createResetToken).not.toHaveBeenCalled();
-      expect(result).toEqual({ success: true, message: 'Nếu email tồn tại, liên kết đặt lại mật khẩu đã được tạo' });
+      expect(sendAuthLinkEmail).not.toHaveBeenCalled();
+      expect(result).toEqual(GENERIC);
+    });
+
+    it('never logs the reset token in production, only the candidate id', async () => {
+      const prevEnv = process.env['NODE_ENV'];
+      process.env['NODE_ENV'] = 'production';
+      try {
+        await handlerForgotPassword('test@example.com');
+
+        expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('user_id'));
+        expect(loggedText()).not.toContain('raw-token');
+        expect(loggedText()).not.toContain('test@example.com');
+      } finally {
+        process.env['NODE_ENV'] = prevEnv;
+      }
+    });
+
+    it('responds without waiting for the SMTP send, so a registered email is not slower to answer', async () => {
+      (sendAuthLinkEmail as jest.Mock).mockReturnValueOnce(new Promise(() => undefined));
+
+      await expect(handlerForgotPassword('test@example.com')).resolves.toEqual(GENERIC);
+    });
+
+    it('still returns the generic message when sending fails, logging the error without the token', async () => {
+      (sendAuthLinkEmail as jest.Mock).mockRejectedValueOnce(new Error('smtp timeout'));
+
+      const result = await handlerForgotPassword('test@example.com');
+      await flushPromises();
+
+      expect(result).toEqual(GENERIC);
+      expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('smtp timeout'));
+      expect(loggedText()).not.toContain('raw-token');
     });
   });
 

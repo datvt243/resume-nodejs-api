@@ -25,12 +25,8 @@ import { moveLegacyCvUploads } from '@/middlewares/uploadCV.middleware';
 
 dotenv.config();
 
-// Last safety net: Node ≥15 exits on an unhandled rejection; asyncHandler should make this unreachable.
-process.on('unhandledRejection', (reason) => {
-  logger.error('Unhandled promise rejection', { error: reason instanceof Error ? reason.message : String(reason), stack: reason instanceof Error ? reason.stack : undefined });
-});
-
-const runServer = async ({ portNumber }: { portNumber: number }) => {
+/** The full middleware chain without listen/Redis/cleanup side effects, so the HTTP integration tests can drive it through supertest. */
+export const createApp = () => {
   const app = express();
 
   // req.ip (rate-limit key) must be the real client, not Render's proxy.
@@ -97,6 +93,12 @@ const runServer = async ({ portNumber }: { portNumber: number }) => {
   app.use(notFoundHandler);
   app.use(errorsMiddleware);
 
+  return app;
+};
+
+const runServer = async ({ portNumber }: { portNumber: number }) => {
+  const app = createApp();
+
   const _env = process.env['NODE_ENV'] || 'development';
   /**
    * Respect LOCAL_PORT whenever it's actually set, in every environment —
@@ -147,4 +149,11 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// Importing this module (tests) must not connect to Mongo, bind a port or install process-wide handlers.
+if (require.main === module) {
+  // Last safety net: Node ≥15 exits on an unhandled rejection; asyncHandler should make this unreachable.
+  process.on('unhandledRejection', (reason) => {
+    logger.error('Unhandled promise rejection', { error: reason instanceof Error ? reason.message : String(reason), stack: reason instanceof Error ? reason.stack : undefined });
+  });
+  void startServer();
+}

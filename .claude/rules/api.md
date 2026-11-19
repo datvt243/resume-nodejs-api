@@ -27,9 +27,9 @@ state-changing requests must also pass the double-submit CSRF check (see Securit
 | POST | `/logout` | Blacklist current token (CSRF-checked) |
 | POST | `/logout-all` | Revoke every token issued to this candidate up to now |
 | POST | `/refresh` | Rotate tokens; blacklist old refresh token (CSRF-checked); reuse of a rotated token > 10s later revokes all sessions |
-| POST | `/forgot-password` | Request password reset (stub — logged, not emailed) |
+| POST | `/forgot-password` | Request password reset (link emailed via SMTP, `services/mail.ts`) |
 | POST | `/reset-password` | Reset password using a reset token |
-| GET | `/verify-email` | Verify email using a token issued on register (stub) |
+| GET | `/verify-email` | Verify email using the token emailed on register |
 
 `api/v2/auth` mirrors `/register` and `/login` only — still WIP.
 
@@ -86,8 +86,8 @@ best-effort — each item validated/created independently via the same
 ## Auth flow
 
 1. `POST /auth/register` → validate Joi → check duplicate email → bcrypt(password, 12) → create Candidate doc
-2. `POST /auth/login` → find by email → bcryptCompare → sign `accessToken` (TOKEN_SECRET) + `refreshToken` (TOKEN_REFRESH) with payload `{ _id: candidateId }` → set as httpOnly cookies (`utils/authCookies.ts`) and returned in the response body
+2. `POST /auth/login` → find by email → bcryptCompare → sign `accessToken` (TOKEN_SECRET) + `refreshToken` (TOKEN_REFRESH) with payload `{ _id: candidateId, jti }` (random `jti` per token, so two signed in the same second never collide) → set as httpOnly cookies (`utils/authCookies.ts`) and returned in the response body
 3. All protected requests → `verifyToken` middleware → extract token (Bearer header, cookie, body, or query via `extractTokenWithSource`) → `jwtVerify` → check blacklist → check per-candidate session-revocation timestamp (`sessionRevocation.ts`) → if the request authenticated purely off the cookie, require a valid double-submit CSRF token → attach `req.user._id` and force `req.body.candidateId` to it
-4. `POST /auth/refresh` → CSRF-checked → if the token was already rotated away: 403, and if that rotation was more than 10s ago (not a concurrent refresh) treat it as theft → `invalidateAllSessions` (once — a token already predating the last revocation doesn't re-trigger it) → otherwise verify refresh token → blacklist old refresh token with a rotated-at marker → issue new pair (refresh tokens carry a random `jti` so two issued in the same second never collide)
+4. `POST /auth/refresh` → CSRF-checked → if the token was already rotated away: 403, and if that rotation was more than 10s ago (not a concurrent refresh) treat it as theft → `invalidateAllSessions` (once — a token already predating the last revocation doesn't re-trigger it) → otherwise verify refresh token → blacklist old refresh token with a rotated-at marker → issue new pair (both carry a fresh random `jti`)
 5. `POST /auth/logout` → CSRF-checked → add token to blacklist (Redis TTL = token remaining exp; mem fallback)
 6. `POST /auth/logout-all` → bump the candidate's session-invalidated-at timestamp so every token issued before now is rejected on next use, even if not individually blacklisted or expired

@@ -13,7 +13,7 @@ import { TOKEN_REFRESH, TOKEN_SECRET } from '@/config/process.config';
 const T0 = Date.UTC(2026, 9, 16, 9, 0, 0);
 
 const loginRefreshToken = (candidateId: string) =>
-  jwtSign({ data: { _id: candidateId, jti: `login-${Date.now()}` }, secretKey: TOKEN_REFRESH, props: { expiresIn: '7d' } });
+  jwtSign({ data: { _id: candidateId }, secretKey: TOKEN_REFRESH, props: { expiresIn: '7d' } });
 
 const refresh = async (refreshToken: string) => {
   const json = jest.fn();

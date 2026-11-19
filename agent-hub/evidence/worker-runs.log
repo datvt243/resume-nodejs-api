@@ -1,2 +1,6 @@
 2026-11-17T08:37:32Z role=verifier outcome=SEAL node=logout-refresh-token-header rerun=none spawn=fresh hub_bytes_before=97847 hub_bytes_after=97849
 2026-11-17T08:46:36Z role=verifier outcome=SEAL node=auth-service-throw-apperror rerun=none spawn=fresh hub_bytes_before=97847 hub_bytes_after=97849
+2026-11-18T09:00:21Z role=verifier outcome=SEAL node=hide-password-select-false rerun=none spawn=fresh hub_bytes_before=97857 hub_bytes_after=97851
+2026-11-18T09:36:07Z role=verifier outcome=SEAL node=auth-http-integration-tests rerun=partial spawn=fresh hub_bytes_before=97851 hub_bytes_after=97855
+2026-11-18T09:50:12Z role=verifier outcome=SEAL node=fix-access-token-jti rerun=none spawn=fresh hub_bytes_before=98675 hub_bytes_after=97846
+2026-11-19T09:52:11Z role=verifier outcome=SEAL node=email-auth-links rerun=none spawn=fresh hub_bytes_before=99127 hub_bytes_after=99105

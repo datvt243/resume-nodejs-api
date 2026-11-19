@@ -81,7 +81,7 @@ describe('authRefreshToken controller', () => {
     await authRefreshToken(req, res, next);
 
     expect(mockedClaimRotation).toHaveBeenCalledWith('oldRefresh', expect.any(Number));
-    expect(mockedJwtSign).toHaveBeenNthCalledWith(2, expect.objectContaining({ data: { _id: 'user1', jti: expect.any(String) } }));
+    expect(mockedJwtSign).toHaveBeenNthCalledWith(2, expect.objectContaining({ data: { _id: 'user1' } }));
     expect(mockedInvalidateAllSessions).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.status().json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));

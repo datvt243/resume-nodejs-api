@@ -57,12 +57,18 @@ CORS_ORIGIN=...              # comma-separated allow-list; required for the http
 TOKEN_REFRESH_EXP_IN=7d      # optional; refresh token lifetime (default 7d)
 TRUST_PROXY_HOPS=1           # optional; proxy hops in front of the app (1 on Render) so req.ip / rate limit
                               # key on the real client; unset = trust none (no proxy)
+SMTP_HOST=...                # optional; reset/verify links emailed via Nodemailer (services/mail.ts)
+SMTP_PORT=587                # optional; 465 = implicit TLS
+SMTP_USER=... / SMTP_PASS=...
+MAIL_FROM=...                # From address
+APP_URL=...                  # frontend base URL for the emailed links; SMTP_HOST or APP_URL unset →
+                              # dev logs the link, prod warns and sends nothing (never logs the token)
 ```
 
 ## Conventions
 
 - Always import via the `@/` alias (`@/utils/helper`) — `src/*` in dev (tsconfig-paths), `dist/*` in prod (module-alias, `src/alias.ts`).
-- Middleware order is `runServer` in `src/server.ts`. `/health` and `/api-docs` are registered before the rate limiter on purpose (exempt).
+- Middleware order is `createApp` in `src/server.ts`. `/health` and `/api-docs` are registered before the rate limiter on purpose (exempt).
 - New CV section → `src/candidate_profile/<section>/` controller + service + validate, built on `createCrudService()` (`BaseService.ts`) and `BaseController.ts`, like the existing sections.
 - CV-section models + `Application` + `Profile` soft-delete via nullable `deletedAt` (`Visit` doesn't). Localized free-text fields use `localizedTextSchema` (`{ vi, en }`), resolved per request by `?lang=`.
 - Errors: services throw `AppError` subclasses (`src/errors/`), never return `{ success:false }`. Every status comes from the `ERROR_STATUS` map in `errors/AppError.ts`; `withTimeout` throws `SERVICE_UNAVAILABLE` (503) on a DB/Redis timeout.

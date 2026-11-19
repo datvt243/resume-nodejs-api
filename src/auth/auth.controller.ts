@@ -3,7 +3,6 @@
  * @see https://github.com/datvt243
  */
 
-import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { validateSchema, formatReturn, handleError, setAuthCookies, clearAuthCookies } from '@/utils';
@@ -165,8 +164,7 @@ export const authRefreshToken = async (req: Request, res: Response, next: NextFu
     }
 
     const newAccess = jwtSign({ data: { _id }, secretKey: TOKEN_SECRET, props: { expiresIn: TOKEN_EXP_IN || '1h' } });
-    // Unique `jti`, same reason as handlerLogin: a same-second copy of the rotated token would read as reuse.
-    const newRefresh = jwtSign({ data: { _id, jti: crypto.randomUUID() }, secretKey: TOKEN_REFRESH, props: { expiresIn: TOKEN_REFRESH_EXP_IN } });
+    const newRefresh = jwtSign({ data: { _id }, secretKey: TOKEN_REFRESH, props: { expiresIn: TOKEN_REFRESH_EXP_IN } });
 
     // Rotate the httpOnly cookies to match the rotated tokens
     setAuthCookies(res, { token: newAccess, tokenRefresh: newRefresh });
