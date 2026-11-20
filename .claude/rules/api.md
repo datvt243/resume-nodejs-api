@@ -18,7 +18,7 @@ All v1 routes: `/api/v1/...` — JWT required except auth. Auth accepts either a
 `Authorization: Bearer <token>` header or an httpOnly JWT cookie; cookie-only
 state-changing requests must also pass the double-submit CSRF check (see Security).
 
-## Auth `/api/v1/auth` (authLimiter: 10 req/15 min per IP on login/register/forgot/reset, v1 + v2 shared)
+## Auth `/api/v1/auth` (authLimiter: 10 req/15 min per IP on login/register/forgot/reset/change-password/change-email, v1 + v2 shared)
 
 | Method | Path | Description |
 |---|---|---|
@@ -30,6 +30,9 @@ state-changing requests must also pass the double-submit CSRF check (see Securit
 | POST | `/forgot-password` | Request password reset (link emailed via SMTP, `services/mail.ts`) |
 | POST | `/reset-password` | Reset password using a reset token |
 | GET | `/verify-email` | Verify email using the token emailed on register |
+| POST | `/change-password` | Signed in: `{ currentPassword, password, repassword }` → wrong current / same as current → 400; revokes every session, returns + sets a fresh pair for the caller |
+| POST | `/change-email` | Signed in: `{ currentPassword, email }` → taken 409, same 400; emails a 24h single-use confirm link to the new address, stored email unchanged until confirmed |
+| GET | `/confirm-email-change` | `?token=` from change-email → re-checks uniqueness (409), sets email + `emailVerified`, notices the old address; sessions kept |
 
 `api/v2/auth` mirrors `/register` and `/login` only — still WIP.
 

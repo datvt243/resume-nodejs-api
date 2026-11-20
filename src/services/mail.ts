@@ -11,15 +11,22 @@ import { createTransport } from 'nodemailer';
 import { logger } from '@/logger';
 import { t, DEFAULT_LANG } from '@/utils/i18n';
 
-export type AuthMailKind = 'resetPassword' | 'verifyEmail';
+export type AuthMailKind = 'resetPassword' | 'verifyEmail' | 'confirmEmailChange' | 'emailChanged';
 
 /**
- * Emails `<APP_URL><path>` to `to` as plain text; rejects if the SMTP send
- * fails. Without SMTP_HOST or APP_URL nothing is sent: outside production
- * the link is logged so local dev still works; production logs only a
+ * Emails `<APP_URL><path>` to `to` as plain text, filling `{name}`
+ * placeholders in the body from `params`; rejects if the SMTP send fails.
+ * Without SMTP_HOST or APP_URL nothing is sent: outside production the
+ * link is logged so local dev still works; production logs only a
  * warning, since the link carries a live token.
  */
-export const sendAuthLinkEmail = async (to: string, kind: AuthMailKind, path: string, lang: string = DEFAULT_LANG): Promise<void> => {
+export const sendAuthLinkEmail = async (
+  to: string,
+  kind: AuthMailKind,
+  path: string,
+  lang: string = DEFAULT_LANG,
+  params: Record<string, string> = {},
+): Promise<void> => {
   // Read per call, not at import, so tests can switch env between cases.
   const { NODE_ENV, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM, APP_URL } = process.env;
 
@@ -44,6 +51,7 @@ export const sendAuthLinkEmail = async (to: string, kind: AuthMailKind, path: st
     ...(MAIL_FROM && { from: MAIL_FROM }),
     to,
     subject: t(`mail.${kind}.subject`, lang),
-    text: t(`mail.${kind}.body`, lang).replace('{link}', () => link),
+    // One pass, so a value that itself contains `{...}` (braces are legal in an email local part) is never re-substituted.
+    text: t(`mail.${kind}.body`, lang).replace(/\{(\w+)\}/g, (placeholder, key: string) => ({ ...params, link })[key] ?? placeholder),
   });
 };

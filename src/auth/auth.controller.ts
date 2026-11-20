@@ -7,8 +7,17 @@ import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { validateSchema, formatReturn, handleError, setAuthCookies, clearAuthCookies } from '@/utils';
 
-import { schemaAuthRegister, schemaAuthLogin, schemaForgotPassword, schemaResetPassword } from './auth.validate';
-import { handlerRegister, handlerLogin, handlerForgotPassword, handlerResetPassword, handlerVerifyEmail } from './auth.service';
+import { schemaAuthRegister, schemaAuthLogin, schemaForgotPassword, schemaResetPassword, schemaChangePassword, schemaChangeEmail } from './auth.validate';
+import {
+  handlerRegister,
+  handlerLogin,
+  handlerForgotPassword,
+  handlerResetPassword,
+  handlerVerifyEmail,
+  handlerChangePassword,
+  handlerChangeEmail,
+  handlerConfirmEmailChange,
+} from './auth.service';
 import { addToBlacklist, claimRotation, isBlacklisted, getRotatedAt } from '@/utils/tokenBlacklist';
 import { invalidateAllSessions, getSessionsInvalidatedAt, isSessionRevoked } from '@/utils/sessionRevocation';
 import { jwtSign, jwtVerify } from '@/utils';
@@ -331,6 +340,91 @@ export const authLogoutAll = async (req: Request, res: Response, next: NextFunct
       statusCode: StatusCodes.OK,
       success: true,
       message: t('auth.logoutAllSuccess', req.lang),
+    });
+  } catch (err) {
+    handleError({ err, next, lang: req.lang });
+  }
+};
+
+/**
+ * Chức năng Đổi mật khẩu (đã đăng nhập): route gắn `verifyToken`, trả về
+ * và set cookie cặp token mới thay cho cặp vừa bị thu hồi.
+ */
+export const authChangePassword = async (req: Request, res: Response, next: NextFunction) => {
+  const validation = validateSchema({
+    schema: schemaChangePassword,
+    item: req.body as Record<string, unknown>,
+    lang: req.lang,
+  });
+  if (!validation.isValidated) {
+    return formatReturn(res, {
+      statusCode: StatusCodes.BAD_REQUEST,
+      success: false,
+      message: validation.message,
+      errors: validation.errors,
+    });
+  }
+
+  try {
+    const { currentPassword, password } = validation.value as { currentPassword: string; password: string };
+    const { message, data } = await handlerChangePassword(req.user?._id ?? '', { currentPassword, password }, req.lang);
+    setAuthCookies(res, data);
+    return formatReturn(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message,
+      data,
+    });
+  } catch (err) {
+    handleError({ err, next, lang: req.lang });
+  }
+};
+
+/**
+ * Chức năng Đổi email (đã đăng nhập): gửi link xác nhận tới email mới.
+ */
+export const authChangeEmail = async (req: Request, res: Response, next: NextFunction) => {
+  const validation = validateSchema({
+    schema: schemaChangeEmail,
+    item: req.body as Record<string, unknown>,
+    lang: req.lang,
+  });
+  if (!validation.isValidated) {
+    return formatReturn(res, {
+      statusCode: StatusCodes.BAD_REQUEST,
+      success: false,
+      message: validation.message,
+      errors: validation.errors,
+    });
+  }
+
+  try {
+    const { currentPassword, email } = validation.value as { currentPassword: string; email: string };
+    const { success, message } = await handlerChangeEmail(req.user?._id ?? '', { currentPassword, email }, req.lang);
+    return formatReturn(res, {
+      statusCode: StatusCodes.OK,
+      success,
+      message,
+      data: null,
+    });
+  } catch (err) {
+    handleError({ err, next, lang: req.lang });
+  }
+};
+
+/**
+ * Chức năng Xác nhận đổi email bằng token gửi tới email mới.
+ */
+export const authConfirmEmailChange = async (req: Request, res: Response, next: NextFunction) => {
+  const token = typeof req.query['token'] === 'string' ? req.query['token'] : '';
+
+  try {
+    const { success, message } = await handlerConfirmEmailChange(token, req.lang);
+    return formatReturn(res, {
+      statusCode: StatusCodes.OK,
+      success,
+      message,
+      data: null,
     });
   } catch (err) {
     handleError({ err, next, lang: req.lang });

@@ -14,7 +14,7 @@ describe('v1 auth route wiring', () => {
 describe('auth limiter wiring (issue #387)', () => {
   const handlersOf = (router: any, path: string) => router.stack.find((layer: any) => layer.route?.path === path).route.stack.map((s: any) => s.handle);
 
-  it.each(['/login', '/register', '/forgot-password', '/reset-password'])('v1 %s runs the shared authLimiter first', (path) => {
+  it.each(['/login', '/register', '/forgot-password', '/reset-password', '/change-password', '/change-email'])('v1 %s runs the shared authLimiter first', (path) => {
     expect(handlersOf(v1AuthRouter, path)[0]).toBe(authLimiter);
   });
 
@@ -22,7 +22,7 @@ describe('auth limiter wiring (issue #387)', () => {
     expect(handlersOf(v2AuthRouter, path)[0]).toBe(authLimiter);
   });
 
-  it.each(['/logout', '/logout-all', '/refresh', '/verify-email'])('v1 %s stays on the global limit only', (path) => {
+  it.each(['/logout', '/logout-all', '/refresh', '/verify-email', '/confirm-email-change'])('v1 %s stays on the global limit only', (path) => {
     expect(handlersOf(v1AuthRouter, path)).not.toContain(authLimiter);
   });
 

@@ -8,8 +8,9 @@ import { bcryptGenerateSalt, bcryptCompareHash, jwtSign } from '@/utils';
 import { TOKEN_SECRET, TOKEN_REFRESH, TOKEN_EXP_IN, TOKEN_REFRESH_EXP_IN } from '@/config/process.config';
 import { t, DEFAULT_LANG } from '@/utils/i18n';
 import { createResetToken, consumeResetToken } from '@/utils/passwordReset';
-import { invalidateAllSessions } from '@/utils/sessionRevocation';
+import { invalidateAllSessions, getSessionsInvalidatedAt, isSessionRevoked } from '@/utils/sessionRevocation';
 import { createVerificationToken, consumeVerificationToken } from '@/utils/emailVerification';
+import { createEmailChangeToken, consumeEmailChangeToken } from '@/utils/emailChange';
 import { generateUniqueCandidateSlug } from '@/utils/slug';
 import { sendAuthLinkEmail, AuthMailKind } from '@/services/mail';
 import { logger } from '@/logger';
@@ -27,8 +28,8 @@ interface Auth {
  * not change the response either — so it is only logged, by message alone,
  * since the mail options carry the token.
  */
-const emailAuthLink = (email: string, kind: AuthMailKind, path: string, lang: string): void => {
-  sendAuthLinkEmail(email, kind, path, lang).catch((err: unknown) => {
+const emailAuthLink = (email: string, kind: AuthMailKind, path: string, lang: string, params: Record<string, string> = {}): void => {
+  sendAuthLinkEmail(email, kind, path, lang, params).catch((err: unknown) => {
     logger.error(`[mail] ${kind} email failed: ${err instanceof Error ? err.message : String(err)}`);
   });
 };
@@ -171,4 +172,85 @@ export const handlerResetPassword = async (data: ResetPasswordInput, lang: strin
   await invalidateAllSessions(candidateId);
 
   return { success: true, message: t('auth.resetPasswordSuccess', lang) };
+};
+
+/** Loads the signed-in candidate with its password hash, after checking `currentPassword` against it. */
+const findWithCurrentPassword = async (candidateId: string, currentPassword: string, lang: string) => {
+  const candidate = await CandidateModel.findById(candidateId).select('+password');
+  if (!candidate) throw new BadRequestError(t('common.idNotFound', lang));
+  // 400, not 401: the session is valid, and a 401 would make the frontend log the user out.
+  if (!(await bcryptCompareHash(currentPassword, candidate.password))) throw new BadRequestError(t('auth.currentPasswordInvalid', lang));
+  return candidate;
+};
+
+interface ChangePasswordInput {
+  currentPassword: string;
+  password: string;
+}
+
+/**
+ * Chức năng Đổi mật khẩu khi đã đăng nhập: thu hồi mọi phiên rồi cấp cặp
+ * token mới cho chính người gọi, nên chỉ các thiết bị khác bị đăng xuất.
+ */
+export const handlerChangePassword = async (candidateId: string, data: ChangePasswordInput, lang: string = DEFAULT_LANG) => {
+  const { currentPassword, password } = data;
+
+  await findWithCurrentPassword(candidateId, currentPassword, lang);
+  // currentPassword was just verified against the hash, so a plain comparison saves a second bcrypt round.
+  if (password === currentPassword) throw new BadRequestError(t('auth.passwordUnchanged', lang));
+
+  const bcryptPwd = await bcryptGenerateSalt(password);
+  await CandidateModel.updateOne({ _id: candidateId }, { password: bcryptPwd });
+  // Revocation rejects tokens issued strictly before this second, so the pair signed below stays valid.
+  await invalidateAllSessions(candidateId);
+
+  const token = jwtSign({ data: { _id: candidateId }, secretKey: TOKEN_SECRET, props: { expiresIn: TOKEN_EXP_IN || '1h' } });
+  const tokenRefresh = jwtSign({ data: { _id: candidateId }, secretKey: TOKEN_REFRESH, props: { expiresIn: TOKEN_REFRESH_EXP_IN } });
+
+  return { success: true, message: t('auth.changePasswordSuccess', lang), data: { token, tokenRefresh } };
+};
+
+interface ChangeEmailInput {
+  currentPassword: string;
+  email: string;
+}
+
+/**
+ * Chức năng Đổi email: chỉ gửi link xác nhận tới email mới — email lưu
+ * trong DB chưa đổi cho tới khi link được mở (handlerConfirmEmailChange).
+ */
+export const handlerChangeEmail = async (candidateId: string, data: ChangeEmailInput, lang: string = DEFAULT_LANG) => {
+  const newEmail = data.email.toLowerCase();
+
+  const candidate = await findWithCurrentPassword(candidateId, data.currentPassword, lang);
+  if (newEmail === candidate.email.toLowerCase()) throw new BadRequestError(t('auth.emailUnchanged', lang));
+  if (await isEmailAlreadyExists(newEmail)) throw new AppError({ message: t('auth.emailAlreadyExists', lang), errorCode: ErrorCode.EMAIL_EXISTS });
+
+  const token = await createEmailChangeToken({ candidateId, newEmail });
+  emailAuthLink(newEmail, 'confirmEmailChange', `/confirm-email-change?token=${token}`, lang);
+
+  return { success: true, message: t('auth.changeEmailRequested', lang) };
+};
+
+/**
+ * Chức năng Xác nhận đổi email: token single-use; email mới được kiểm tra
+ * trùng lại vì có thể đã bị đăng ký trong lúc chờ xác nhận. Phiên đăng
+ * nhập giữ nguyên (token chỉ mang candidate id).
+ */
+export const handlerConfirmEmailChange = async (token: string, lang: string = DEFAULT_LANG) => {
+  const change = await consumeEmailChangeToken(token);
+  if (!change) throw new BadRequestError(t('auth.emailChangeTokenInvalid', lang));
+  const { candidateId, newEmail, issuedAt } = change;
+  // A password reset/change or logout-all after the request cancels it, so a leaked password can't still move the email.
+  if (isSessionRevoked(issuedAt, await getSessionsInvalidatedAt(candidateId))) throw new BadRequestError(t('auth.emailChangeTokenInvalid', lang));
+
+  const candidate = await CandidateModel.findById(candidateId);
+  if (!candidate) throw new BadRequestError(t('common.idNotFound', lang));
+  if (await isEmailAlreadyExists(newEmail)) throw new AppError({ message: t('auth.emailAlreadyExists', lang), errorCode: ErrorCode.EMAIL_EXISTS });
+
+  const oldEmail = candidate.email;
+  await CandidateModel.updateOne({ _id: candidateId }, { email: newEmail, emailVerified: true });
+  emailAuthLink(oldEmail, 'emailChanged', '', lang, { newEmail });
+
+  return { success: true, message: t('auth.emailChangedSuccess', lang) };
 };
