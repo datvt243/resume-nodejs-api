@@ -5,3 +5,5 @@
 2026-11-18T09:50:12Z role=verifier outcome=SEAL node=fix-access-token-jti rerun=none spawn=fresh hub_bytes_before=98675 hub_bytes_after=97846
 2026-11-19T09:52:11Z role=verifier outcome=SEAL node=email-auth-links rerun=none spawn=fresh hub_bytes_before=99127 hub_bytes_after=99105
 2026-11-20T12:37:11Z role=verifier outcome=SEAL node=account-settings rerun=none spawn=fresh hub_bytes_before=99105 hub_bytes_after=99107
+2026-11-20T12:40:56Z role=implementer outcome=blocked node=confirm-general-info-unique-index hub_bytes_before=99107 verifier_rerun=n/a
+2026-11-20T12:52:52Z role=verifier outcome=SEAL node=confirm-general-info-unique-index rerun=none spawn=fresh hub_bytes_before=99107 hub_bytes_after=99103
