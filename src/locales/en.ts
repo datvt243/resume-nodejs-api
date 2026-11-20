@@ -28,6 +28,13 @@ export default {
     resetPasswordSuccess: 'Password reset successful',
     verificationTokenInvalid: 'Email verification token is invalid or has expired',
     emailVerifiedSuccess: 'Email verified successfully',
+    currentPasswordInvalid: 'Current password is incorrect',
+    passwordUnchanged: 'New password must be different from the current one',
+    changePasswordSuccess: 'Password changed. Other devices have been logged out',
+    emailUnchanged: 'New email is the same as the current one',
+    changeEmailRequested: 'A confirmation link has been sent to the new email',
+    emailChangeTokenInvalid: 'Email change token is invalid or has expired',
+    emailChangedSuccess: 'Email changed successfully',
     tokenExpired: 'Token has expired',
     invalidToken: 'Invalid token',
   },
@@ -39,6 +46,14 @@ export default {
     verifyEmail: {
       subject: 'Verify your email',
       body: 'Open this link to verify your email (expires in 24 hours):\n{link}\n\nIf you did not create an account, ignore this email.',
+    },
+    confirmEmailChange: {
+      subject: 'Confirm your new email',
+      body: 'Open this link to confirm this address as your new account email (expires in 24 hours):\n{link}\n\nIf you did not request this, ignore this email.',
+    },
+    emailChanged: {
+      subject: 'Your account email was changed',
+      body: 'The email of your account was changed to {newEmail}.\n\nIf you did not do this, reset your password and contact support.',
     },
   },
   validation: {

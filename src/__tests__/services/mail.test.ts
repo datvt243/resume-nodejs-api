@@ -50,6 +50,17 @@ describe('sendAuthLinkEmail', () => {
     expect(sendMail.mock.calls[0][0]).not.toHaveProperty('html');
   });
 
+  it('fills body placeholders from params, e.g. the new address in the email-changed notice', async () => {
+    Object.assign(process.env, { SMTP_HOST: 'smtp.test', APP_URL: 'https://app.test' });
+
+    await sendAuthLinkEmail('old@test.com', 'emailChanged', '', 'en', { newEmail: 'new@test.com' });
+
+    const { to, subject, text } = sendMail.mock.calls[0][0] as { to: string; subject: string; text: string };
+    expect({ to, subject }).toEqual({ to: 'old@test.com', subject: 'Your account email was changed' });
+    expect(text).toContain('changed to new@test.com.');
+    expect(text).not.toContain('{');
+  });
+
   it('rejects when the SMTP send fails, so the caller decides how to handle it', async () => {
     Object.assign(process.env, { SMTP_HOST: 'smtp.test', APP_URL: 'https://app.test' });
     sendMail.mockRejectedValueOnce(new Error('smtp down'));

@@ -61,7 +61,6 @@ flowchart TD
 |---|---|---|
 | `fix-candidate-password-leak` | PENDING | `src/candidate/candidate.service.ts` — `handlerGetInformationByEmail` has no `.select()` at all; `handlerGetInformationById` double-wraps `whitelistSelect([select])`, making the select a permanent no-op. Result: `GET /api/v1/candidate/:email` and `PUT/PATCH /candidate/update` return the raw bcrypt password hash in the response. |
 | `fix-refresh-token-expiry-unused` | PENDING | `TOKEN_EXP_IN` (`.env`, already exported in config) is never used at any `jwtSign()` call site (`auth.service.ts`, `auth.controller.ts`, `api/v1/auth/services/login.ts`) — access and refresh tokens always share the same default 1h expiry, so the refresh token is pointless. |
-| `ci-lint-ratchet` | SEALED | 2026-11-16 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-16/ci-lint-ratchet-seal.md`. |
 | `job-applications-status-transitions` | SEALED | 2026-11-15 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-15/job-applications-status-transitions-seal.md`. |
 | `paginate-visits` | SEALED | 2026-11-09 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-09/paginate-visits-seal.md`. |
 | `search-in-profile-only` | SEALED | 2026-11-09 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-09/search-in-profile-only-seal.md`. |
@@ -81,3 +80,4 @@ flowchart TD
 | `auth-http-integration-tests` | SEALED | 2026-11-18 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-18/auth-http-integration-tests-seal.md`. |
 | `fix-access-token-jti` | SEALED | 2026-11-18 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-18/fix-access-token-jti-seal.md`. |
 | `email-auth-links` | SEALED | 2026-11-19 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-19/email-auth-links-seal.md`. |
+| `account-settings` | SEALED | 2026-11-20 — archived, see `haven/diagrams/dev-loop-archive.md`. Evidence: `evidence/verifier/2026-11-20/account-settings-seal.md`. |

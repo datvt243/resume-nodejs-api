@@ -24,6 +24,7 @@
 | Public profile, search and public PDF | public-profile.md | verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/public-profile-spec.md` | public / `src/routers/index.ts`, `src/candidate_me/` | #382, #386, #397 |
 | Profile visits and stats | profile-visits.md | verified — confirmed by operator 2026-11-07, see `evidence/analyst/2026-11-07/profile-visits-spec.md` | public / `src/candidate/visitStats.service.ts`, `src/candidate_me/index.ts` | #395, #396, #398, #399 |
 | Startup configuration (environment variables) | startup-config-env.md | draft | config / `src/config/process.config.ts`, `src/config/proxy.config.ts`, `src/database/mongo.db.ts`, `src/server.ts` | #458 |
+| Account settings: change password and change email | account-settings.md | verified — verified by `evidence/verifier/2026-11-20/account-settings-seal.md` | auth / `src/auth/auth.service.ts`, `src/auth/auth.validate.ts`, `src/routers/api/v1/auth.route.ts`, `src/utils/sessionRevocation.ts`, `src/services/mail.ts` | #412 |
 
 ## Doc format — `doctrine/features/<slug>.md`
 ~~~markdown

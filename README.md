@@ -16,7 +16,7 @@ REST API (Node.js + TypeScript) for managing candidate profiles (CVs): JWT login
 
 ## Features
 
-- **Authentication** — JWT access/refresh (httpOnly cookie or Bearer), bcrypt, CSRF, token blacklist, log out of every device, refresh-token reuse detection, forgot/reset password and email verification (links emailed over SMTP)
+- **Authentication** — JWT access/refresh (httpOnly cookie or Bearer), bcrypt, CSRF, token blacklist, log out of every device, refresh-token reuse detection, forgot/reset password, email verification, change password/email for a signed-in user (links emailed over SMTP)
 - **CV profile** — candidate information, education, experience (with career breaks), projects, awards, certificates, references; soft delete and restore
 - **Multiple CV versions** — each version is a subset of the entries, with its own public link and PDF
 - **Public profile** — custom slug, public profile search, view statistics (country, traffic source, CV version)

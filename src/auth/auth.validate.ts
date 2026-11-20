@@ -4,7 +4,7 @@
  */
 
 import Joi from 'joi';
-import { email, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from '@/config/joi.config';
+import { email, candidateId, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from '@/config/joi.config';
 import { passwordRegex } from '@/config/regex.config';
 
 export const password = Joi.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH).regex(passwordRegex).trim().strict().label('Password').required();
@@ -30,3 +30,19 @@ export const schemaResetPassword = Joi.object({
   password,
   repassword: Joi.any().valid(Joi.ref('password')).required(),
 }).with('password', 'repassword');
+
+const currentPassword = Joi.string().max(PASSWORD_MAX_LENGTH).label('Current password').required();
+
+// `candidateId` is allowed because verifyToken writes it into the body of every signed-in request.
+export const schemaChangePassword = Joi.object({
+  candidateId,
+  currentPassword,
+  password,
+  repassword: Joi.any().valid(Joi.ref('password')).required(),
+}).with('password', 'repassword');
+
+export const schemaChangeEmail = Joi.object({
+  candidateId,
+  currentPassword,
+  email,
+});
