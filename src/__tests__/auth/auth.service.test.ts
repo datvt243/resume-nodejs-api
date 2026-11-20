@@ -3,12 +3,22 @@
  */
 
 import CandidateModel from '@/models/candidate.model';
-import { handlerRegister, handlerLogin, isEmailAlreadyExists, handlerForgotPassword, handlerResetPassword, handlerVerifyEmail } from '@/auth/auth.service';
+import {
+  handlerRegister,
+  handlerLogin,
+  isEmailAlreadyExists,
+  handlerForgotPassword,
+  handlerResetPassword,
+  handlerVerifyEmail,
+  handlerChangePassword,
+  handlerChangeEmail,
+  handlerConfirmEmailChange,
+} from '@/auth/auth.service';
 import * as bcrypt from '@/utils';
 import * as jwt from '@/utils';
 import { createResetToken, consumeResetToken } from '@/utils/passwordReset';
 import { createVerificationToken, consumeVerificationToken } from '@/utils/emailVerification';
-import { invalidateAllSessions } from '@/utils/sessionRevocation';
+import { invalidateAllSessions, getSessionsInvalidatedAt } from '@/utils/sessionRevocation';
 import { ErrorCode } from '@/errors';
 import { sendAuthLinkEmail } from '@/services/mail';
 import { logger } from '@/logger';
@@ -30,7 +40,11 @@ jest.mock('@/utils/emailVerification', () => ({
   createVerificationToken: jest.fn(),
   consumeVerificationToken: jest.fn(),
 }));
-jest.mock('@/utils/sessionRevocation', () => ({ invalidateAllSessions: jest.fn().mockResolvedValue(true) }));
+jest.mock('@/utils/sessionRevocation', () => ({
+  invalidateAllSessions: jest.fn().mockResolvedValue(true),
+  getSessionsInvalidatedAt: jest.fn().mockResolvedValue(null),
+  isSessionRevoked: jest.requireActual('@/utils/sessionRevocation').isSessionRevoked,
+}));
 jest.mock('@/logger', () => ({
   logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 }));
@@ -102,7 +116,7 @@ describe('auth.service', () => {
       expect(CandidateModel.findOne).toHaveBeenNthCalledWith(3, { email: 'new@example.com' });
       expect(createVerificationToken).toHaveBeenCalledWith('new_id');
       expect(sendAuthLinkEmail).toHaveBeenCalledTimes(1);
-      expect(sendAuthLinkEmail).toHaveBeenCalledWith('new@example.com', 'verifyEmail', expect.stringContaining('verify-token'), 'vi');
+      expect(sendAuthLinkEmail).toHaveBeenCalledWith('new@example.com', 'verifyEmail', expect.stringContaining('verify-token'), 'vi', {});
       expect(result).toEqual({ success: true, message: 'Đăng ký thành công' });
     });
 
@@ -241,7 +255,7 @@ describe('auth.service', () => {
       expect(CandidateModel.findOne).toHaveBeenCalledWith({ email: 'test@example.com' });
       expect(createResetToken).toHaveBeenCalledWith('user_id');
       expect(sendAuthLinkEmail).toHaveBeenCalledTimes(1);
-      expect(sendAuthLinkEmail).toHaveBeenCalledWith('test@example.com', 'resetPassword', '/reset-password?token=raw-token', 'en');
+      expect(sendAuthLinkEmail).toHaveBeenCalledWith('test@example.com', 'resetPassword', '/reset-password?token=raw-token', 'en', {});
       expect(result).toEqual({ success: true, message: 'If the email exists, a password reset link has been generated' });
     });
 
@@ -339,7 +353,183 @@ describe('auth.service', () => {
         message: 'Token xác thực email không hợp lệ hoặc đã hết hạn',
       });
 
-      expect(CandidateModel.updateOne).not.toHaveBeenCalled();
+      expect(CandidateModel.updateOne as jest.Mock).not.toHaveBeenCalled();
+    });
+  });
+
+  // Plain mock properties, so asserting on them doesn't trip @typescript-eslint/unbound-method.
+  const candidateMock = CandidateModel as unknown as Record<'findOne' | 'findById' | 'updateOne', jest.Mock>;
+
+  describe('handlerChangePassword', () => {
+    const input = { currentPassword: 'OldPass123!xyz', password: 'NewPass123!xyz' };
+    const mockFindByIdWithPassword = (doc: unknown) => (CandidateModel.findById as jest.Mock).mockReturnValue({ select: jest.fn().mockResolvedValue(doc) });
+
+    beforeEach(() => {
+      mockFindByIdWithPassword({ _id: 'user_id', email: 'me@example.com', password: '$2b$12$oldhash' });
+      (jwt.jwtSign as jest.Mock).mockReturnValueOnce('new-access').mockReturnValueOnce('new-refresh');
+    });
+
+    it('rejects a wrong current password without changing anything', async () => {
+      (bcrypt.bcryptCompareHash as jest.Mock).mockResolvedValue(false);
+
+      await expect(handlerChangePassword('user_id', input)).rejects.toMatchObject({
+        errorCode: ErrorCode.BAD_REQUEST,
+        statusCode: 400,
+        message: 'Mật khẩu hiện tại không đúng',
+      });
+      expect(candidateMock.updateOne).not.toHaveBeenCalled();
+      expect(invalidateAllSessions).not.toHaveBeenCalled();
+    });
+
+    it('rejects a new password equal to the current one', async () => {
+      (bcrypt.bcryptCompareHash as jest.Mock).mockResolvedValue(true);
+
+      await expect(handlerChangePassword('user_id', { ...input, password: input.currentPassword })).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Mật khẩu mới phải khác mật khẩu hiện tại',
+      });
+      expect(candidateMock.updateOne).not.toHaveBeenCalled();
+    });
+
+    it('answers 400 idNotFound when the signed-in candidate no longer exists', async () => {
+      mockFindByIdWithPassword(null);
+
+      await expect(handlerChangePassword('user_id', input)).rejects.toMatchObject({ statusCode: 400, message: 'ID không tồn tại' });
+    });
+
+    it('stores a new hash, revokes every session and returns a fresh pair', async () => {
+      (bcrypt.bcryptCompareHash as jest.Mock).mockResolvedValue(true);
+      (bcrypt.bcryptGenerateSalt as jest.Mock).mockResolvedValue('$2b$12$newhash');
+
+      const result = await handlerChangePassword('user_id', input, 'en');
+
+      expect(candidateMock.findById).toHaveBeenCalledWith('user_id');
+      expect(candidateMock.updateOne).toHaveBeenCalledWith({ _id: 'user_id' }, { password: '$2b$12$newhash' });
+      expect(invalidateAllSessions).toHaveBeenCalledTimes(1);
+      expect(invalidateAllSessions).toHaveBeenCalledWith('user_id');
+      expect(result.data).toEqual({ token: 'new-access', tokenRefresh: 'new-refresh' });
+      expect(result.message).toBe('Password changed. Other devices have been logged out');
+    });
+  });
+
+  describe('handlerChangeEmail + handlerConfirmEmailChange', () => {
+    const caller = { _id: 'user_id', email: 'old@example.com', password: '$2b$12$hash' };
+    const input = { currentPassword: 'OldPass123!xyz', email: 'New@Example.com' };
+
+    // Requests an email change and returns the token the confirm link carries.
+    const requestChange = async (): Promise<string> => {
+      (CandidateModel.findById as jest.Mock).mockReturnValueOnce({ select: jest.fn().mockResolvedValue(caller) });
+      (bcrypt.bcryptCompareHash as jest.Mock).mockResolvedValue(true);
+      (CandidateModel.findOne as jest.Mock).mockResolvedValueOnce(null);
+      await handlerChangeEmail('user_id', input);
+      const path = (sendAuthLinkEmail as jest.Mock).mock.calls[0][2] as string;
+      jest.clearAllMocks();
+      return path.split('token=')[1] ?? '';
+    };
+
+    it('rejects a wrong current password without sending anything', async () => {
+      (CandidateModel.findById as jest.Mock).mockReturnValue({ select: jest.fn().mockResolvedValue(caller) });
+      (bcrypt.bcryptCompareHash as jest.Mock).mockResolvedValue(false);
+
+      await expect(handlerChangeEmail('user_id', input)).rejects.toMatchObject({ statusCode: 400, message: 'Mật khẩu hiện tại không đúng' });
+      expect(sendAuthLinkEmail).not.toHaveBeenCalled();
+    });
+
+    it('rejects an email taken by another candidate (409) or equal to the current one, case-insensitively (400)', async () => {
+      (CandidateModel.findById as jest.Mock).mockReturnValue({ select: jest.fn().mockResolvedValue(caller) });
+      (bcrypt.bcryptCompareHash as jest.Mock).mockResolvedValue(true);
+      (CandidateModel.findOne as jest.Mock).mockResolvedValue({ _id: 'other_id' });
+
+      await expect(handlerChangeEmail('user_id', input)).rejects.toMatchObject({ errorCode: ErrorCode.EMAIL_EXISTS, statusCode: 409 });
+      expect(candidateMock.findOne).toHaveBeenCalledWith({ email: 'new@example.com' });
+      await expect(handlerChangeEmail('user_id', { ...input, email: 'OLD@example.com' })).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Email mới trùng với email hiện tại',
+      });
+      expect(sendAuthLinkEmail).not.toHaveBeenCalled();
+    });
+
+    it('emails the confirm link to the new address without changing the stored email', async () => {
+      (CandidateModel.findById as jest.Mock).mockReturnValue({ select: jest.fn().mockResolvedValue(caller) });
+      (bcrypt.bcryptCompareHash as jest.Mock).mockResolvedValue(true);
+      (CandidateModel.findOne as jest.Mock).mockResolvedValue(null);
+
+      const result = await handlerChangeEmail('user_id', input, 'en');
+
+      expect(sendAuthLinkEmail).toHaveBeenCalledTimes(1);
+      expect(sendAuthLinkEmail).toHaveBeenCalledWith('new@example.com', 'confirmEmailChange', expect.stringMatching(/^\/confirm-email-change\?token=[0-9a-f]{64}$/), 'en', {});
+      expect(candidateMock.updateOne).not.toHaveBeenCalled();
+      expect(result).toEqual({ success: true, message: 'A confirmation link has been sent to the new email' });
+    });
+
+    it('never logs the change-email token in production, even when the send fails', async () => {
+      const prevEnv = process.env['NODE_ENV'];
+      process.env['NODE_ENV'] = 'production';
+      try {
+        (CandidateModel.findById as jest.Mock).mockReturnValue({ select: jest.fn().mockResolvedValue(caller) });
+        (bcrypt.bcryptCompareHash as jest.Mock).mockResolvedValue(true);
+        (CandidateModel.findOne as jest.Mock).mockResolvedValue(null);
+        (sendAuthLinkEmail as jest.Mock).mockRejectedValueOnce(new Error('SMTP down'));
+
+        await handlerChangeEmail('user_id', input);
+        await flushPromises();
+
+        const token = ((sendAuthLinkEmail as jest.Mock).mock.calls[0][2] as string).split('token=')[1] ?? '';
+        expect(token).toHaveLength(64);
+        expect(logger.error).toHaveBeenCalled();
+        expect(loggedText()).not.toContain(token);
+      } finally {
+        process.env['NODE_ENV'] = prevEnv;
+      }
+    });
+
+    it('confirm sets the new email + emailVerified, notices the old address and keeps sessions', async () => {
+      const token = await requestChange();
+      (CandidateModel.findById as jest.Mock).mockResolvedValue(caller);
+      (CandidateModel.findOne as jest.Mock).mockResolvedValue(null);
+
+      const result = await handlerConfirmEmailChange(token, 'en');
+
+      expect(candidateMock.updateOne).toHaveBeenCalledWith({ _id: 'user_id' }, { email: 'new@example.com', emailVerified: true });
+      expect(sendAuthLinkEmail).toHaveBeenCalledWith('old@example.com', 'emailChanged', '', 'en', { newEmail: 'new@example.com' });
+      expect(invalidateAllSessions).not.toHaveBeenCalled();
+      expect(result).toEqual({ success: true, message: 'Email changed successfully' });
+    });
+
+    it('confirm rejects a token used twice, or an unknown one', async () => {
+      const token = await requestChange();
+      (CandidateModel.findById as jest.Mock).mockResolvedValue(caller);
+      (CandidateModel.findOne as jest.Mock).mockResolvedValue(null);
+      await handlerConfirmEmailChange(token);
+
+      await expect(handlerConfirmEmailChange(token)).rejects.toMatchObject({ statusCode: 400, message: 'Token đổi email không hợp lệ hoặc đã hết hạn' });
+      await expect(handlerConfirmEmailChange('')).rejects.toMatchObject({ statusCode: 400 });
+    });
+
+    it('confirm answers 409 without updating when the new email was taken meanwhile', async () => {
+      const token = await requestChange();
+      (CandidateModel.findById as jest.Mock).mockResolvedValue(caller);
+      (CandidateModel.findOne as jest.Mock).mockResolvedValue({ _id: 'other_id' });
+
+      await expect(handlerConfirmEmailChange(token)).rejects.toMatchObject({ errorCode: ErrorCode.EMAIL_EXISTS, statusCode: 409 });
+      expect(candidateMock.updateOne).not.toHaveBeenCalled();
+    });
+
+    it('confirm rejects a change requested before the sessions were revoked (password reset/change, logout-all)', async () => {
+      const token = await requestChange();
+      (getSessionsInvalidatedAt as jest.Mock).mockResolvedValueOnce(Math.floor(Date.now() / 1000) + 1);
+
+      await expect(handlerConfirmEmailChange(token)).rejects.toMatchObject({ statusCode: 400, message: 'Token đổi email không hợp lệ hoặc đã hết hạn' });
+      expect(getSessionsInvalidatedAt).toHaveBeenCalledWith('user_id');
+      expect(candidateMock.updateOne).not.toHaveBeenCalled();
+    });
+
+    it('confirm answers 400 idNotFound when the account was deleted meanwhile', async () => {
+      const token = await requestChange();
+      (CandidateModel.findById as jest.Mock).mockResolvedValue(null);
+
+      await expect(handlerConfirmEmailChange(token)).rejects.toMatchObject({ statusCode: 400, message: 'ID không tồn tại' });
+      expect(candidateMock.updateOne).not.toHaveBeenCalled();
     });
   });
 });

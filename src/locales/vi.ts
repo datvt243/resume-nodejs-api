@@ -28,6 +28,13 @@ export default {
     resetPasswordSuccess: 'Đặt lại mật khẩu thành công',
     verificationTokenInvalid: 'Token xác thực email không hợp lệ hoặc đã hết hạn',
     emailVerifiedSuccess: 'Xác thực email thành công',
+    currentPasswordInvalid: 'Mật khẩu hiện tại không đúng',
+    passwordUnchanged: 'Mật khẩu mới phải khác mật khẩu hiện tại',
+    changePasswordSuccess: 'Đổi mật khẩu thành công. Các thiết bị khác đã bị đăng xuất',
+    emailUnchanged: 'Email mới trùng với email hiện tại',
+    changeEmailRequested: 'Liên kết xác nhận đã được gửi tới email mới',
+    emailChangeTokenInvalid: 'Token đổi email không hợp lệ hoặc đã hết hạn',
+    emailChangedSuccess: 'Đổi email thành công',
     tokenExpired: 'Token đã hết hạn',
     invalidToken: 'Token không hợp lệ',
   },
@@ -39,6 +46,14 @@ export default {
     verifyEmail: {
       subject: 'Xác thực email',
       body: 'Mở liên kết sau để xác thực email của bạn (hết hạn sau 24 giờ):\n{link}\n\nNếu bạn không đăng ký tài khoản, hãy bỏ qua email này.',
+    },
+    confirmEmailChange: {
+      subject: 'Xác nhận email mới',
+      body: 'Mở liên kết sau để xác nhận địa chỉ này là email mới của tài khoản (hết hạn sau 24 giờ):\n{link}\n\nNếu bạn không yêu cầu, hãy bỏ qua email này.',
+    },
+    emailChanged: {
+      subject: 'Email tài khoản đã được thay đổi',
+      body: 'Email tài khoản của bạn đã được đổi thành {newEmail}.\n\nNếu không phải bạn, hãy đặt lại mật khẩu và liên hệ hỗ trợ.',
     },
   },
   validation: {

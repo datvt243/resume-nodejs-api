@@ -7,7 +7,19 @@ import express from 'express';
 import { asyncHandler } from '@/utils/asyncHandler';
 const router = express.Router();
 
-import { authRegister, authLogin, authLogout, authLogoutAll, authRefreshToken, authForgotPassword, authResetPassword, authVerifyEmail } from '@/auth/auth.controller';
+import {
+  authRegister,
+  authLogin,
+  authLogout,
+  authLogoutAll,
+  authRefreshToken,
+  authForgotPassword,
+  authResetPassword,
+  authVerifyEmail,
+  authChangePassword,
+  authChangeEmail,
+  authConfirmEmailChange,
+} from '@/auth/auth.controller';
 import { authLimiter } from '@/middlewares/rateLimit.middleware';
 import { verifyToken } from '@/middlewares/verifyToken.middleware';
 import { verifyCsrf } from '@/middlewares/csrf.middleware';
@@ -249,5 +261,139 @@ router.post('/reset-password', authLimiter, asyncHandler(authResetPassword));
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get('/verify-email', asyncHandler(authVerifyEmail));
+
+/**
+ * @swagger
+ * /api/v1/auth/change-password:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Change the signed-in candidate's password
+ *     description: >
+ *       Checks the current password, applies the register strength rules to
+ *       the new one, then revokes every session of the candidate and returns
+ *       (and sets as cookies) a fresh token pair, so only other devices are
+ *       logged out.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [currentPassword, password, repassword]
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               repassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password changed, new token pair issued
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthTokenResponse'
+ *       400:
+ *         description: Validation error, wrong current password, or new password equal to the current one
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Missing, invalid, expired, or revoked token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.post('/change-password', authLimiter, asyncHandler(verifyToken), asyncHandler(authChangePassword));
+
+/**
+ * @swagger
+ * /api/v1/auth/change-email:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Request an email change for the signed-in candidate (confirmation link emailed to the new address)
+ *     description: >
+ *       The stored email does not change until the link sent to the new
+ *       address is opened (/confirm-email-change).
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [currentPassword, email]
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Confirmation link sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       400:
+ *         description: Validation error, wrong current password, or email equal to the current one
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Missing, invalid, expired, or revoked token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       409:
+ *         description: Email already used by another candidate
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.post('/change-email', authLimiter, asyncHandler(verifyToken), asyncHandler(authChangeEmail));
+
+/**
+ * @swagger
+ * /api/v1/auth/confirm-email-change:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Confirm an email change using the token emailed to the new address
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Email changed (the old address gets a notice)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       400:
+ *         description: Invalid, expired, or already-used token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       409:
+ *         description: The new email was taken by another candidate meanwhile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.get('/confirm-email-change', asyncHandler(authConfirmEmailChange));
 
 export default router;
