@@ -32,6 +32,7 @@ argument-hint: <analyst|implementer|verifier> "<task>"
    `agent-hub/haven/workers/<wid>/SOUL.md` →
    `agent-hub/haven/workers/<wid>/MEMORY.md` (if present) →
    every file in `agent-hub/haven/workers/<wid>/recipes/`.
+   `analyst`/`verifier`: only check the bundle exists (`ls`) — the subagent loads it; reading it here only grows the calling session's context.
 2. **Become the worker**:
    - `implementer`: runs right in the current session — reads real code,
      edits `src/`, needs the interactive seal gate with the operator so it
